@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { acpAdapter } from '../src/adapters/acp.js';
 import { ccrCliAdapter } from '../src/adapters/ccr-cli.js';
+import { claudeCodeAdapter } from '../src/adapters/claude-code.js';
 import { copilotCliAdapter } from '../src/adapters/copilot-cli.js';
 import { cursorCliAdapter } from '../src/adapters/cursor-cli.js';
 import { droidCliAdapter } from '../src/adapters/droid-cli.js';
@@ -15,6 +16,21 @@ function feed(lines: readonly string[], parse: (line: string) => StreamEvent[]):
   }
   return out;
 }
+
+describe('claudeCodeAdapter', () => {
+  it('defaults to claude-sonnet-5 when no model is provided', () => {
+    const args = claudeCodeAdapter.buildArgs({});
+    expect(args).toContain('--model');
+    expect(args).toContain('claude-sonnet-5');
+  });
+
+  it('keeps an explicitly provided model instead of the default', () => {
+    const args = claudeCodeAdapter.buildArgs({ model: 'claude-opus-4-7' });
+    expect(args).toContain('--model');
+    expect(args).toContain('claude-opus-4-7');
+    expect(args).not.toContain('claude-sonnet-5');
+  });
+});
 
 describe('cursorCliAdapter', () => {
   it('builds the expected flags with --force and a default `auto` model', () => {
@@ -126,43 +142,212 @@ describe('droidCliAdapter', () => {
 });
 
 describe('opencodeCliAdapter', () => {
-  it('builds with --auto-approve and run subcommand', () => {
-    const args = opencodeCliAdapter.buildArgs({});
-    expect(args[0]).toBe('run');
-    expect(args).toContain('--output-format=stream-json');
-    expect(args).toContain('--auto-approve');
+  it('builds with the opencode 1.17.20 flags and ignores the kanbots model', () => {
+    expect(opencodeCliAdapter.buildArgs({})).toEqual(['run', '--format', 'json', '--auto']);
+    expect(opencodeCliAdapter.buildArgs({ model: 'whatever' })).toEqual([
+      'run',
+      '--format',
+      'json',
+      '--auto',
+    ]);
   });
 
-  it('accepts assistant text in both raw-string and delta-shaped forms', () => {
-    const raw = opencodeCliAdapter.parseLine(
-      JSON.stringify({ type: 'assistant', text: 'hello world' }),
-    );
-    expect(raw.map((e) => e.kind)).toEqual(['text']);
-    const delta = opencodeCliAdapter.parseLine(
-      JSON.stringify({ type: 'assistant', text: { delta: 'streamed' } }),
-    );
-    expect(delta.map((e) => e.kind)).toEqual(['text']);
+  it('maps resumeFromSessionId to --session so replies iterate the same session', () => {
+    expect(opencodeCliAdapter.buildArgs({ resumeFromSessionId: 'ses_abc' })).toEqual([
+      'run',
+      '--format',
+      'json',
+      '--auto',
+      '--session',
+      'ses_abc',
+    ]);
   });
 
-  it('parses tool_use and tool_result with the alternate alias keys', () => {
-    const tool = opencodeCliAdapter.parseLine(
+  it('parses a real step_start envelope into one session event', () => {
+    const events = opencodeCliAdapter.parseLine(
       JSON.stringify({
-        type: 'tool_call',
-        id: 'op-1',
-        tool: 'Edit',
-        parameters: { file_path: 'x.ts' },
+        type: 'step_start',
+        timestamp: 1710000000000,
+        sessionID: 'ses_start',
+        part: {
+          id: 'prt_start',
+          messageID: 'msg_start',
+          sessionID: 'ses_start',
+          snapshot: 'snapshot',
+          type: 'step-start',
+        },
       }),
     );
-    expect(tool.map((e) => e.kind)).toEqual(['tool_use']);
-    const result = opencodeCliAdapter.parseLine(
+    expect(events).toEqual([{ kind: 'session', sessionId: 'ses_start', model: null }]);
+  });
+
+  it('parses a real text envelope', () => {
+    const events = opencodeCliAdapter.parseLine(
       JSON.stringify({
-        type: 'tool_response',
-        tool_use_id: 'op-1',
-        result: 'ok',
-        is_error: false,
+        type: 'text',
+        timestamp: 1710000000001,
+        sessionID: 'ses_start',
+        part: { id: 'prt_text', messageID: 'msg_start', type: 'text', text: 'PING' },
       }),
     );
-    expect(result.map((e) => e.kind)).toEqual(['tool_result']);
+    expect(events).toEqual([{ kind: 'text', text: 'PING' }]);
+  });
+
+  it('extracts a kanbots-decision block from a text envelope as a decision event', () => {
+    const decision = JSON.stringify({
+      question: 'Approve this acceptance criteria list?',
+      options: [
+        { value: 'approve', label: 'Approve and start implementation' },
+        { value: 'edit', label: 'Edit the criteria' },
+        { value: 'cancel', label: 'Cancel the task' },
+      ],
+    });
+    const events = opencodeCliAdapter.parseLine(
+      JSON.stringify({
+        type: 'text',
+        timestamp: 1710000000001,
+        sessionID: 'ses_start',
+        part: {
+          id: 'prt_text',
+          messageID: 'msg_start',
+          type: 'text',
+          text: `Here is the spec.\n\n\`\`\`kanbots-decision\n${decision}\n\`\`\`\n`,
+        },
+      }),
+    );
+    expect(events).toEqual([
+      { kind: 'text', text: 'Here is the spec.\n\n' },
+      {
+        kind: 'decision',
+        question: 'Approve this acceptance criteria list?',
+        options: [
+          { value: 'approve', label: 'Approve and start implementation' },
+          { value: 'edit', label: 'Edit the criteria' },
+          { value: 'cancel', label: 'Cancel the task' },
+        ],
+      },
+    ]);
+  });
+
+  it('maps an error envelope to a failing result instead of dropping it', () => {
+    const events = opencodeCliAdapter.parseLine(
+      JSON.stringify({
+        type: 'error',
+        timestamp: 1710000000003,
+        sessionID: 'ses_start',
+        error: {
+          name: 'UnknownError',
+          data: { message: 'Unexpected server error. Check server logs for details.' },
+        },
+      }),
+    );
+    expect(events).toEqual([
+      {
+        kind: 'result',
+        isError: true,
+        text: 'opencode error: Unexpected server error. Check server logs for details.',
+        tokenUsage: null,
+        durationMs: null,
+        totalCostUsd: null,
+      },
+    ]);
+  });
+
+  it('parses a completed tool_use envelope into tool_use and tool_result', () => {
+    const events = opencodeCliAdapter.parseLine(
+      JSON.stringify({
+        type: 'tool_use',
+        timestamp: 1710000000002,
+        sessionID: 'ses_start',
+        part: {
+          type: 'tool',
+          tool: 'read',
+          callID: 'call_read',
+          state: {
+            status: 'completed',
+            input: { filePath: '/tmp/foo' },
+            output: 'file contents',
+            metadata: {},
+          },
+        },
+      }),
+    );
+    expect(events.map((e) => e.kind)).toEqual(['tool_use', 'tool_result']);
+    expect(events[0]).toEqual({
+      kind: 'tool_use',
+      toolUseId: 'call_read',
+      name: 'read',
+      input: { filePath: '/tmp/foo' },
+    });
+    expect(events[1]).toEqual({
+      kind: 'tool_result',
+      toolUseId: 'call_read',
+      isError: false,
+      content: 'file contents',
+    });
+  });
+
+  it('accumulates per-step tokens and cost until the terminal step_finish', () => {
+    const events = feed(
+      [
+        JSON.stringify({
+          type: 'step_start',
+          timestamp: 1710000000010,
+          sessionID: 'ses_accum',
+          part: { sessionID: 'ses_accum', type: 'step-start' },
+        }),
+        JSON.stringify({
+          type: 'step_finish',
+          timestamp: 1710000000011,
+          sessionID: 'ses_accum',
+          part: {
+            reason: 'tool-calls',
+            type: 'step-finish',
+            tokens: { total: 12000, input: 578, output: 94, reasoning: 0 },
+            cost: 0.12,
+          },
+        }),
+        JSON.stringify({
+          type: 'step_start',
+          timestamp: 1710000000012,
+          sessionID: 'ses_accum',
+          part: { sessionID: 'ses_accum', type: 'step-start' },
+        }),
+        JSON.stringify({
+          type: 'step_finish',
+          timestamp: 1710000000013,
+          sessionID: 'ses_accum',
+          part: {
+            reason: 'stop',
+            type: 'step-finish',
+            tokens: { total: 18948, input: 321, output: 100, reasoning: 0 },
+            cost: 0.08,
+          },
+        }),
+      ],
+      (line) => opencodeCliAdapter.parseLine(line),
+    );
+    expect(events.filter((event) => event.kind === 'result')).toHaveLength(1);
+    expect(events.at(-1)).toEqual({
+      kind: 'result',
+      isError: false,
+      text: '',
+      tokenUsage: { input: 899, output: 194 },
+      durationMs: null,
+      totalCostUsd: 0.2,
+    });
+  });
+
+  it('resets accumulation and emits a session for a new session after a terminal result', () => {
+    const events = opencodeCliAdapter.parseLine(
+      JSON.stringify({
+        type: 'step_start',
+        timestamp: 1710000000020,
+        sessionID: 'ses_new',
+        part: { sessionID: 'ses_new', type: 'step-start' },
+      }),
+    );
+    expect(events).toEqual([{ kind: 'session', sessionId: 'ses_new', model: null }]);
   });
 });
 

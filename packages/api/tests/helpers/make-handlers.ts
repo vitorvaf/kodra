@@ -1,4 +1,4 @@
-import type { Config } from '../../src/handlers/types.js';
+import type { Config, HandlerDeps } from '../../src/handlers/types.js';
 import type { AutopilotManager } from '../../src/autopilot/orchestrator.js';
 import {
   createHandlers,
@@ -41,6 +41,7 @@ export interface HandlerTestKit {
 
 export function makeHandlerTestKit(
   configOverride: Partial<Config> = {},
+  dependencyOverride: Pick<HandlerDeps, 'memory'> = {},
 ): HandlerTestKit {
   const source = new FakeIssueSource();
   const store = openStoreInMemory();
@@ -111,6 +112,7 @@ export function makeHandlerTestKit(
         safeStorageAvailable: () => false,
         hasClaudeCodeCredentials: () => false,
       },
+      ...(dependencyOverride.memory ? { memory: dependencyOverride.memory } : {}),
     },
     subscriptions: registry,
   });

@@ -42,6 +42,7 @@ export const copilotCliAdapter: AgentCliAdapter = {
   // get the same entry point.
   command: 'npx',
   promptDelivery: 'stdin',
+  mcpSupport: 'none',
 
   buildArgs(opts: BuildArgsInput): string[] {
     // Pinning a specific package keeps the experience stable across

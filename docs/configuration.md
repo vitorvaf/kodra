@@ -62,6 +62,13 @@ Two shapes, one per workspace mode. Both share a common
 | `notifyOnRunComplete` | `boolean` | `false` | Show OS notification when a run ends. |
 | `checks.<kind>.command` | `string` | — | Override the executable for a check kind. |
 | `checks.<kind>.args` | `string[]` | — | Args to that executable. |
+| `memory.enabled` | `boolean` | `false` | Enable the AgentMemory integration; an absent `memory` section remains unset. |
+| `memory.provider` | `'agentmemory'` | `'agentmemory'` | Memory provider; only AgentMemory is supported. |
+| `memory.url` | `string` | `http://localhost:3111` | AgentMemory service URL. |
+| `memory.secret` | `string \| null` | `null` | Optional AgentMemory authentication secret. |
+| `memory.scope` | `'shared' \| 'team' \| 'global'` | `'shared'` | Memory namespace scope. |
+| `memory.teamId` | `string \| null` | `null` | Team identifier; required for `team` scope. |
+| `rtk.assumeInstalled` | `boolean` | `false` | Skip RTK installation checks when true. |
 
 `<kind>` is one of `typecheck`, `tests`, `lint`, `e2e`.
 
@@ -98,6 +105,21 @@ detected from `package.json` scripts, but you can override per-workspace:
 
 Unknown keys are ignored with a warning. Each entry must have a
 non-empty `command` and a `string[]` `args`.
+
+## Memory
+
+The optional `memory` section configures the AgentMemory service used to
+provide persistent agent memory. Its defaults keep a local service at
+`http://localhost:3111` in the `shared` scope. Set `scope` to `team` only
+when `teamId` is provided; `global` uses the global namespace. See
+[ADR-0003](adr/0003-agentmemory-mcp-wiring-into-spawned-agents.md) for the design and rollout details.
+
+## RTK
+
+The optional `rtk` section controls the repository tool kit integration.
+Set `assumeInstalled` to `true` when RTK is already installed and kanbots
+should not require an installation check. See [ADR-0006](adr/0006-rtk-cli-output-compression.md)
+for the design details.
 
 ## Containment mode
 

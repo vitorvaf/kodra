@@ -129,6 +129,7 @@ const SYSTEM_PROMPT_DELIMITER = '\n\n---\n\n';
 export const codexCliAdapter: AgentCliAdapter = {
   command: 'codex',
   promptDelivery: 'argv',
+  mcpSupport: 'flags',
 
   buildArgs(opts: BuildArgsInput): string[] {
     // The supervisor passes `appendSystemPrompt` through opts; we ignore it

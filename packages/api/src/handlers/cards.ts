@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { DismissCardResult, ResolveCardResult } from '../bridge.js';
+import { memoryNamespace } from '../memory/client.js';
 import { badRequest, namedError, notFound, parseArgs } from './errors.js';
 import { buildTaskSystemPrompt } from './issues.js';
 import type { HandlerDeps } from './types.js';
@@ -60,6 +61,30 @@ export async function resolve(
     value: parsed.value,
     label: chosen.label,
   });
+
+  if (deps.memory) {
+    void Promise.resolve(
+      (async () => {
+        try {
+          if (!deps.memory?.getConfig()?.enabled) return;
+          // The handler has no reliable physical repo path; use the stable
+          // decisions project until workspace repo paths are exposed here.
+          const project = memoryNamespace({ workspaceId: 'default', repoId: 'decisions' });
+          await deps.memory.client.save({
+            content:
+              `Decision: ${payload?.question ?? '(unspecified question)'} → chose: ${chosen.label}`,
+            namespace: project,
+            kind: 'decision',
+            metadata: { runId, value: parsed.value },
+          });
+        } catch {
+          // Best-effort memory capture; never block decision resolution.
+        }
+      })(),
+    ).catch(() => {
+      // Best-effort memory capture; never block decision resolution.
+    });
+  }
 
   const resumePrompt = `User chose: ${chosen.label} (value: ${parsed.value}). Continue.`;
   const updatedRun = await deps.supervisor.resume({

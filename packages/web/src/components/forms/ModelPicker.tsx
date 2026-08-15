@@ -9,7 +9,7 @@ interface ModelEntry {
 }
 
 // Mirror @kanbots/llm catalogue. Keep in sync.
-const MODELS: Record<ProviderId, ModelEntry[]> = {
+export const MODELS: Record<ProviderId, ModelEntry[]> = {
   'claude-code': [
     { id: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
     { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
@@ -58,6 +58,26 @@ const PROVIDER_LABELS: Record<ProviderId, string> = {
   'qwen-cli': 'Qwen Code',
   acp: 'ACP',
 };
+export { PROVIDER_LABELS };
+
+/**
+ * Providers that support agent runs. Mirrors the `agentRunsOnly` filter
+ * below — exported so callers that render a separate "agent" control can
+ * keep the same allowlist without re-hardcoding it.
+ */
+export const AGENT_RUN_PROVIDERS: ReadonlyArray<ProviderId> = [
+  'claude-code',
+  'codex-cli',
+  'gemini-cli',
+  'amp-cli',
+  'cursor-cli',
+  'copilot-cli',
+  'opencode-cli',
+  'droid-cli',
+  'ccr-cli',
+  'qwen-cli',
+  'acp',
+];
 
 export interface ModelPickerValue {
   provider: ProviderId;
@@ -82,22 +102,8 @@ export function ModelPicker({ value, onChange, className, agentRunsOnly }: Model
   const options = useMemo(() => {
     if (!providers) return [] as Array<{ provider: ProviderId; models: ModelEntry[] }>;
     return providers.providers
-      .filter((p) => p.enabled && p.hasKey)
-      .filter((p) =>
-        agentRunsOnly
-          ? p.id === 'claude-code' ||
-            p.id === 'codex-cli' ||
-            p.id === 'gemini-cli' ||
-            p.id === 'amp-cli' ||
-            p.id === 'cursor-cli' ||
-            p.id === 'copilot-cli' ||
-            p.id === 'opencode-cli' ||
-            p.id === 'droid-cli' ||
-            p.id === 'ccr-cli' ||
-            p.id === 'qwen-cli' ||
-            p.id === 'acp'
-          : true,
-      )
+      .filter((p) => p.hasKey)
+      .filter((p) => (agentRunsOnly ? AGENT_RUN_PROVIDERS.includes(p.id) : true))
       .map((p) => ({ provider: p.id, models: MODELS[p.id] ?? [] }));
   }, [providers, agentRunsOnly]);
 

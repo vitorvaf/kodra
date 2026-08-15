@@ -44,10 +44,12 @@ export {
 
 export {
   startAgentRun,
+  getAdapterMcpSupport,
   DEFAULT_GRACEFUL_TIMEOUT_MS,
   UnsupportedProviderForAgentRunError,
   type AgentRunHandle,
   type AgentRunProvider,
+  type AdapterMcpSupport,
   type RunResult,
   type RunSummary,
   type StartAgentRunOptions,

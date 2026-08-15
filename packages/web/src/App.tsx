@@ -30,6 +30,7 @@ import { HouseRulesSettingsModal } from './components/modals/HouseRulesSettingsM
 import { RepoScriptsSettingsModal } from './components/modals/RepoScriptsSettingsModal.js';
 import { ProvidersSettingsModal } from './components/modals/ProvidersSettingsModal.js';
 import { SentrySettingsModal } from './components/modals/SentrySettingsModal.js';
+import { MemorySettingsModal } from './components/modals/MemorySettingsModal.js';
 import { WorkspaceReposSettingsModal } from './components/modals/WorkspaceReposSettingsModal.js';
 import { Stats } from './components/Stats.js';
 import { Tray } from './components/tray/Tray.js';
@@ -118,6 +119,7 @@ function ShellHost({
     null | { autoRun?: 'setup' | 'cleanup' }
   >(null);
   const [sentrySettingsOpen, setSentrySettingsOpen] = useState(false);
+  const [memorySettingsOpen, setMemorySettingsOpen] = useState(false);
   const [reposOpen, setReposOpen] = useState(false);
   const [cardTemplatesOpen, setCardTemplatesOpen] = useState(false);
   const { mutate, issues } = useIssues();
@@ -252,6 +254,7 @@ function ShellHost({
                 onOpenScripts={() => setScriptsOpen({})}
                 onOpenRepos={() => setReposOpen(true)}
                 onOpenSentry={() => setSentrySettingsOpen(true)}
+                onOpenMemory={() => setMemorySettingsOpen(true)}
                 onOpenCardTemplates={() => setCardTemplatesOpen(true)}
               />
             ) : null
@@ -321,6 +324,9 @@ function ShellHost({
       ) : null}
       {sentrySettingsOpen ? (
         <SentrySettingsModal onClose={() => setSentrySettingsOpen(false)} />
+      ) : null}
+      {memorySettingsOpen ? (
+        <MemorySettingsModal onClose={() => setMemorySettingsOpen(false)} />
       ) : null}
       {reposOpen ? (
         <WorkspaceReposSettingsModal onClose={() => setReposOpen(false)} />

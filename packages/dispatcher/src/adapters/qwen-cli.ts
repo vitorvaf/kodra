@@ -89,6 +89,7 @@ const SYSTEM_PROMPT_DELIMITER = '\n\n---\n\n';
 export const qwenCliAdapter: AgentCliAdapter = {
   command: 'qwen-code',
   promptDelivery: 'stdin',
+  mcpSupport: 'none',
 
   buildArgs(opts: BuildArgsInput): string[] {
     // `--yolo` skips per-tool permission prompts — the qwen analogue of

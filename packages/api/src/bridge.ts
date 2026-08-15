@@ -738,8 +738,15 @@ export interface ShipCommitResult {
   commitSha: string;
 }
 
+export interface MemoryStatus {
+  available: boolean;
+  version: string | null;
+  url: string;
+}
+
 export interface BridgeChannels {
   'config:get': { args: void; result: Config };
+  'memory:status': { args: void; result: MemoryStatus };
   'issues:list': {
     args: { state?: 'open' | 'closed' | 'all' };
     result: DecoratedIssue[];

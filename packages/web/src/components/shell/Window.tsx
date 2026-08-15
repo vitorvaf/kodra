@@ -31,6 +31,25 @@ const chatIcon = (
   </svg>
 );
 
+const minimizeIcon = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="5" y1="19" x2="19" y2="19" />
+  </svg>
+);
+
+const maximizeIcon = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="5" y="5" width="14" height="14" />
+  </svg>
+);
+
+const closeIcon = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="6" y1="6" x2="18" y2="18" />
+    <line x1="18" y1="6" x2="6" y2="18" />
+  </svg>
+);
+
 export function Window({
   workspaceName,
   folderName,
@@ -48,32 +67,6 @@ export function Window({
     <div className="kb-stage" data-host={host}>
       <div className="kb-window kb-app">
         <div className="kb-titlebar">
-          <div className="kb-tlights">
-            <button
-              type="button"
-              className="kb-tlight r"
-              aria-label="Close"
-              title="Close"
-              disabled={!bridge}
-              onClick={() => bridge?.closeWindow()}
-            />
-            <button
-              type="button"
-              className="kb-tlight y"
-              aria-label="Minimize"
-              title="Minimize"
-              disabled={!bridge}
-              onClick={() => bridge?.minimizeWindow()}
-            />
-            <button
-              type="button"
-              className="kb-tlight g"
-              aria-label="Maximize"
-              title="Maximize"
-              disabled={!bridge}
-              onClick={() => bridge?.toggleMaximizeWindow()}
-            />
-          </div>
           <div className="kb-tbar-title">
             <span className="kb-tdot" />
             <span>{workspaceName}</span>
@@ -103,6 +96,38 @@ export function Window({
               onClick={onToggleRail}
             >
               {sidebarIcon}
+            </button>
+          </div>
+          <div className="kb-winctrls">
+            <button
+              type="button"
+              className="kb-winctrl"
+              aria-label="Minimize"
+              title="Minimize"
+              disabled={!bridge}
+              onClick={() => bridge?.minimizeWindow()}
+            >
+              {minimizeIcon}
+            </button>
+            <button
+              type="button"
+              className="kb-winctrl"
+              aria-label="Maximize"
+              title="Maximize"
+              disabled={!bridge}
+              onClick={() => bridge?.toggleMaximizeWindow()}
+            >
+              {maximizeIcon}
+            </button>
+            <button
+              type="button"
+              className="kb-winctrl close"
+              aria-label="Close"
+              title="Close"
+              disabled={!bridge}
+              onClick={() => bridge?.closeWindow()}
+            >
+              {closeIcon}
             </button>
           </div>
         </div>

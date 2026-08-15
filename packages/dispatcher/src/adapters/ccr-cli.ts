@@ -22,6 +22,7 @@ import type { AgentCliAdapter, BuildArgsInput } from './types.js';
 export const ccrCliAdapter: AgentCliAdapter = {
   command: 'ccr',
   promptDelivery: 'stdin',
+  mcpSupport: 'none',
 
   buildArgs(opts: BuildArgsInput): string[] {
     // `code` is CCR's pass-through subcommand — it forwards the rest of

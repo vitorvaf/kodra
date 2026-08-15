@@ -1493,12 +1493,99 @@
   border-radius: 6px;
 }
 .kb-sentry-warn code {
-  font-family: var(--mono, monospace);
-  font-size: 11px;
-  background: rgba(0, 0, 0, 0.06);
-  padding: 1px 4px;
-  border-radius: 3px;
+   font-family: var(--mono, monospace);
+   font-size: 11px;
+   background: rgba(0, 0, 0, 0.06);
+   padding: 1px 4px;
+   border-radius: 3px;
+ }
+
+/* agentmemory settings modal. */
+.kb-memory-modal { max-width: 560px; }
+.kb-memory-body {
+  padding: 22px 20px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
 }
+.kb-memory-intro { padding-bottom: 4px; }
+.kb-memory-kicker {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.kb-memory-intro h3 {
+  margin: 5px 0 4px;
+  font-family: var(--ff-mono);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.kb-memory-intro p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 390px;
+}
+.kb-memory-status {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: 999px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--ink-2);
+  background: color-mix(in oklch, var(--bg-1) 75%, transparent);
+}
+.kb-memory-status--running {
+  color: color-mix(in oklch, var(--ok, #15803d) 82%, var(--ink));
+  border-color: color-mix(in oklch, var(--ok, #15803d) 28%, var(--hairline));
+  background: color-mix(in oklch, var(--ok, #15803d) 8%, transparent);
+}
+.kb-memory-status--missing { color: var(--ink-3); }
+.kb-memory-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--ink-4);
+}
+.kb-memory-status--running .kb-memory-dot {
+  background: var(--ok, #15803d);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ok, #15803d) 13%, transparent);
+}
+.kb-memory-details {
+  margin: 0;
+  border-top: 1px solid var(--hairline-soft);
+  font-size: 12px;
+}
+.kb-memory-details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.kb-memory-details dt { color: var(--ink-3); }
+.kb-memory-details dd {
+  margin: 0;
+  color: var(--ink-2);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.kb-memory-error { margin: 0; color: var(--ink-3); font-size: 12px; }
+
 
 /* Sentry analysis section in TaskDetailModal overview */
 .kb-sentry-section {

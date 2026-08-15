@@ -79,6 +79,7 @@ const SYSTEM_PROMPT_DELIMITER = '\n\n---\n\n';
 export const droidCliAdapter: AgentCliAdapter = {
   command: 'droid',
   promptDelivery: 'stdin',
+  mcpSupport: 'none',
 
   buildArgs(opts: BuildArgsInput): string[] {
     // `exec` is the non-interactive subcommand. stream-json gives us

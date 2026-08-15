@@ -5,12 +5,14 @@ import { basename, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron';
 import {
+  createAgentMemoryClient,
   createAutopilotManager,
   createChatHandlers,
   createCurator,
   createHandlers,
   createSupervisor,
   dispatchChatTool,
+  hasProviderCredentials,
   reconcileIssueLabels,
   startToolBridge,
   type AgentSupervisor,
@@ -31,6 +33,7 @@ import {
   createPrDescriptionDrafter,
   createSentryAnalyzer,
   createSuggester,
+  getAdapterMcpSupport,
 } from '@kanbots/dispatcher';
 import {
   describeKanbotsDir,
@@ -184,6 +187,7 @@ import type {
   RecentWorkspace,
 } from './types.js';
 import type { AgentRun, AgentRunStatus } from '@kanbots/local-store';
+import { agentMemoryMcpEntry, withAgentMemory } from './memory/mcp-composition.js';
 
 interface ActiveWorkspace {
   repoPath: string;
@@ -244,6 +248,7 @@ let deviceChatSupervisor: AgentSupervisor | null = null;
 
 const DEFAULT_CLOUD_BASE_URL =
   process.env['KANBOTS_CLOUD_BASE_URL'] ?? 'https://app.kanbots.dev';
+const DEFAULT_AGENTMEMORY_BASE_URL = 'http://localhost:3111';
 
 /**
  * Process-wide cloud client. The base URL and token are resolved
@@ -510,6 +515,29 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
   await ensureKanbotsDir(gitRoot);
   let config = await ensureLocalWorkspace(gitRoot);
 
+  // Keep this accessor tied to the live workspace config variable. The
+  // settings handlers replace `config` after writing .kanbots/config.json,
+  // so MCP composition and future memory consumers see the latest values.
+  const getMemoryConfig = () => config.memory;
+  const memoryClient = createAgentMemoryClient({
+    baseUrl: config.memory?.url ?? DEFAULT_AGENTMEMORY_BASE_URL,
+    ...(config.memory?.secret !== undefined ? { secret: config.memory.secret } : {}),
+  });
+  const memoryStatus = {
+    available: false,
+    version: null as string | null,
+    url: config.memory?.url ?? DEFAULT_AGENTMEMORY_BASE_URL,
+  };
+  void (async () => {
+    const available = await memoryClient.health();
+    const version = available ? await memoryClient.version() : null;
+    memoryStatus.available = available;
+    memoryStatus.version = version;
+    console.log(
+      `[main] agentmemory: ${available ? `running (${version})` : 'not detected'}`,
+    );
+  })();
+
   await closeActiveWorkspace();
 
   const kdir = describeKanbotsDir(gitRoot);
@@ -573,9 +601,11 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
     store,
     repoPath: gitRoot,
     containmentMode,
+    hasProviderCredentials: (id) => hasProviderCredentials(id, hasClaudeCodeCredentials),
     defaultRunCostBudgetUsd: () => budgetsState.runCostBudgetUsd,
     houseRules: () => houseRulesState.houseRules,
     acpCommand: () => acpCommandState.acpCommand,
+    memory: { client: memoryClient, getConfig: getMemoryConfig },
     onRunStatusChange: async (run) => {
       try {
         await maybeNotifyRunStatus(run, store, source);
@@ -703,6 +733,7 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
         toolBridge,
         runtimeDir: toolBridgeRuntimeDir,
         mcpServerEntry,
+        getMemoryConfig,
       });
     }
   } catch (err) {
@@ -724,6 +755,8 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
       analyzeSentryError,
       sentry: sentryRuntime,
       providers: providersRuntime,
+      memory: { client: memoryClient, getConfig: getMemoryConfig },
+      memoryStatus: () => ({ ...memoryStatus }),
       ...(chatTools ? { chatTools } : {}),
       budgets: {
         get: () => ({
@@ -1014,6 +1047,7 @@ async function ensureDeviceChat(): Promise<{
   const supervisor = await createSupervisor({
     store,
     repoPath: resolveChatCwd,
+    hasProviderCredentials: (id) => hasProviderCredentials(id, hasClaudeCodeCredentials),
   });
   deviceChatStore = store;
   deviceChatSupervisor = supervisor;
@@ -2094,31 +2128,47 @@ function buildChatToolRuntime(args: {
   toolBridge: ToolBridge;
   runtimeDir: string;
   mcpServerEntry: string;
+  getMemoryConfig: () => import('@kanbots/local-store').MemoryConfig | undefined;
 }): ChatToolRuntime {
-  const { toolBridge, runtimeDir, mcpServerEntry } = args;
+  const { toolBridge, runtimeDir, mcpServerEntry, getMemoryConfig } = args;
   return {
     prepareForRun: async ({ provider }) => {
       const token = toolBridge.issueToken();
-      const env = {
+      const bridgeEnv = {
         KANBOTS_TOOL_BRIDGE_URL: toolBridge.baseUrl(),
         KANBOTS_TOOL_BRIDGE_TOKEN: token,
       };
       const mcpServer = {
         command: process.execPath,
         args: [mcpServerEntry],
-        env,
+        env: bridgeEnv,
       };
+      const memoryEntry = agentMemoryMcpEntry(getMemoryConfig());
+      const env = { ...bridgeEnv, ...(memoryEntry?.env ?? {}) };
       let extraArgs: string[];
-      if (provider === 'codex-cli') {
+      const mcpSupport = getAdapterMcpSupport(provider);
+      if (mcpSupport === 'flags') {
+        // codex-style per-server `-c mcp_servers.<name>.*` overrides
         extraArgs = buildCodexMcpArgs('kanbots', mcpServer);
-      } else {
+        if (memoryEntry) {
+          extraArgs.push(...buildCodexMcpArgs('agentmemory', memoryEntry));
+        }
+      } else if (mcpSupport === 'file') {
+        // claude-code-style `--mcp-config <path>` pointing at a JSON file
         const configPath = join(
           runtimeDir,
           `mcp-${randomUUID().slice(0, 8)}.json`,
         );
-        const config = { mcpServers: { kanbots: mcpServer } };
+        const config = {
+          mcpServers: withAgentMemory({ kanbots: mcpServer }, getMemoryConfig()),
+        };
         await writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
         extraArgs = ['--mcp-config', configPath];
+      } else {
+        // 'none' / 'config-dir' / unknown — the CLI cannot be wired at spawn
+        // time. Passing `--mcp-config` here would be rejected as an unknown
+        // flag (e.g. opencode, gemini), crashing the run before it starts.
+        extraArgs = [];
       }
       return {
         extraArgs,

@@ -1,9 +1,11 @@
 import type { Issue } from '@kanbots/core';
+import type { AgentRunProvider } from '@kanbots/dispatcher';
 import type { AgentRun, Store } from '@kanbots/local-store';
 import { z } from 'zod';
 import type { DecoratedIssue, SplitResult } from '../bridge.js';
 import { buildActiveRunMap, decorateIssue } from './issues.js';
 import { badRequest, parseArgs } from './errors.js';
+import { hasProviderCredentials, resolveProviderWithCreds } from './provider-credentials.js';
 import type { HandlerDeps } from './types.js';
 
 const REVIEWER_SYSTEM_PROMPT = `You are a code reviewer for a kanbots task.
@@ -31,6 +33,27 @@ const PROVIDER_ENUM = z.enum([
   'qwen-cli',
   'acp',
 ]);
+
+type DispatchProvider = AgentRunProvider;
+
+function resolveDispatchProvider(
+  deps: HandlerDeps,
+  explicit: DispatchProvider | undefined,
+): DispatchProvider {
+  let defaultProvider: DispatchProvider | undefined;
+  try {
+    const configured = deps.store.providerSettings.get().defaultProvider;
+    if (PROVIDER_ENUM.safeParse(configured).success) {
+      defaultProvider = configured as DispatchProvider;
+    }
+  } catch {
+    // Settings may not exist on first run; fall through to credential-aware
+    // resolution below.
+  }
+  const hasCreds = (id: DispatchProvider) =>
+    hasProviderCredentials(id, () => deps.providers.hasClaudeCodeCredentials());
+  return resolveProviderWithCreds(explicit, defaultProvider, hasCreds);
+}
 
 const startAgentSchema = z
   .object({
@@ -124,17 +147,38 @@ export async function startAgent(
   args: StartAgentArgs,
 ): Promise<AgentRun> {
   const parsed = parseArgs(startAgentSchema, args);
-  return deps.supervisor.start({
-    threadId: parsed.threadId,
-    issueNumber: parsed.number,
-    prompt: parsed.prompt,
-    ...(parsed.appendSystemPrompt !== undefined
-      ? { appendSystemPrompt: parsed.appendSystemPrompt }
-      : {}),
-    ...(parsed.model !== undefined ? { model: parsed.model } : {}),
-    ...(parsed.provider !== undefined ? { provider: parsed.provider } : {}),
-    ...(parsed.repoId !== undefined ? { repoId: parsed.repoId } : {}),
-  });
+  const dispatchProvider = resolveDispatchProvider(deps, parsed.provider);
+  let toolPrep: Awaited<ReturnType<NonNullable<typeof deps.chatTools>['prepareForRun']>> | null = null;
+  if (deps.chatTools) {
+    try {
+      toolPrep = await deps.chatTools.prepareForRun({ provider: dispatchProvider });
+    } catch {
+      toolPrep = null;
+    }
+  }
+  try {
+    return await deps.supervisor.start({
+      threadId: parsed.threadId,
+      issueNumber: parsed.number,
+      prompt: parsed.prompt,
+      ...(parsed.appendSystemPrompt !== undefined
+        ? { appendSystemPrompt: parsed.appendSystemPrompt }
+        : {}),
+      ...(parsed.model !== undefined ? { model: parsed.model } : {}),
+      ...(parsed.provider !== undefined ? { provider: parsed.provider } : {}),
+      ...(parsed.repoId !== undefined ? { repoId: parsed.repoId } : {}),
+      ...(toolPrep
+        ? {
+            extraArgs: toolPrep.extraArgs,
+            env: toolPrep.env,
+            cleanup: toolPrep.cleanup,
+          }
+        : {}),
+    });
+  } catch (err) {
+    if (toolPrep) toolPrep.cleanup();
+    throw err;
+  }
 }
 
 export async function archive(

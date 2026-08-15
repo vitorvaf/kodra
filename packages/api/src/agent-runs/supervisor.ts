@@ -11,6 +11,7 @@ import {
   inspectToolUse,
   startAgentRun as defaultStartAgentRun,
   type AgentRunHandle,
+  type AgentRunProvider,
   type ContainmentEscape,
   type CreateWorktreeInput,
   type StampWorktreeIdentityInput,
@@ -19,7 +20,16 @@ import {
   type StreamEvent,
   type Worktree,
 } from '@kanbots/dispatcher';
-import type { AgentEvent, AgentRun, AgentRunStatus, Card, Store } from '@kanbots/local-store';
+import { resolveProviderWithCreds } from '../handlers/provider-credentials.js';
+import type {
+  AgentEvent,
+  AgentRun,
+  AgentRunStatus,
+  Card,
+  MemoryConfig,
+  Store,
+} from '@kanbots/local-store';
+import { memoryNamespace, type AgentMemoryClient } from '../memory/client.js';
 import { BRIEFING_MARKER, renderSiblingBriefing } from './sibling-briefing.js';
 import {
   describeReapOutcome,
@@ -84,6 +94,15 @@ export interface CreateSupervisorOptions {
    * the documented Gemini default. Pass a function to read it dynamically.
    */
   acpCommand?: string | null | (() => string | null | undefined);
+  /**
+   * Credential probe used by provider resolution. Returns whether a given
+   * provider currently has detectable credentials. When omitted, every
+   * provider is treated as credentialed and resolution collapses to the
+   * historical explicit → default → 'claude-code' chain. Wire this in
+   * production so picker-less dispatch (drag-to-inProgress, autopilot) does
+   * not funnel into a provider whose credentials were removed.
+   */
+  hasProviderCredentials?: (id: AgentRunProvider) => boolean;
   onRunComplete?: (run: AgentRun) => Promise<void> | void;
   /**
    * Maximum time to wait after SIGTERM before escalating to SIGKILL during stop().
@@ -97,6 +116,10 @@ export interface CreateSupervisorOptions {
    *  worktree. Default: 'warn'. */
   containmentMode?: ContainmentMode;
   onRunStatusChange?: (run: AgentRun) => Promise<void> | void;
+  memory?: {
+    client: AgentMemoryClient;
+    getConfig: () => MemoryConfig | undefined;
+  };
 }
 
 const STOP_FORCE_RESOLVE_SLACK_MS = 2_000;
@@ -138,6 +161,12 @@ export interface StartRunInput {
    * drag-to-inProgress, autopilot children).
    */
   chatSessionId?: number;
+  /** Extra arguments appended to the underlying agent invocation. */
+  extraArgs?: readonly string[];
+  /** Environment variables merged into the agent process environment. */
+  env?: Record<string, string>;
+  /** Called once the run reaches a terminal status. */
+  cleanup?: () => void;
 }
 
 export interface ResumeRunInput {
@@ -250,6 +279,9 @@ interface ActiveRun {
   costSoFarUsd: number;
   budgetUsd: number | null;
   budgetExceeded: boolean;
+  cleanup: (() => void) | undefined;
+  memoryProject: string | undefined;
+  issueNumber: number | undefined;
 }
 
 const ACTIVE_STATUSES: ReadonlyArray<AgentRunStatus> = ['starting', 'running', 'awaiting_input'];
@@ -285,6 +317,11 @@ export async function createSupervisor(
   const decisionInstructions = opts.appendSystemPromptDefault ?? DEFAULT_DECISION_PROMPT;
   const stopGracefulTimeoutMs = opts.stopGracefulTimeoutMs ?? DEFAULT_GRACEFUL_TIMEOUT_MS;
   const containmentMode: ContainmentMode = opts.containmentMode ?? 'warn';
+  // When the credential probe is omitted (tests), treat every provider as
+  // credentialed so resolution collapses to the legacy explicit → default →
+  // claude-code chain.
+  const hasCreds: (id: AgentRunProvider) => boolean =
+    opts.hasProviderCredentials ?? (() => true);
 
   function readDefaultBudget(): number | null {
     const raw = opts.defaultRunCostBudgetUsd;
@@ -325,34 +362,19 @@ export async function createSupervisor(
     return readDefaultBudget();
   }
 
-  // Falls back to the workspace default provider so dispatch surfaces that
-  // don't expose a picker (drag-to-inProgress, autopilot kickoff) honor the
-  // user's choice. If neither is set, we keep claude-code as the safety net.
-  function resolveProvider(
-    explicit: import('@kanbots/dispatcher').AgentRunProvider | undefined,
-  ): import('@kanbots/dispatcher').AgentRunProvider {
-    if (explicit) return explicit;
+  // Falls back to the workspace default provider (when it still has
+  // credentials) and then to the first credentialed provider — so dispatch
+  // surfaces that don't expose a picker (drag-to-inProgress, autopilot
+  // kickoff) never funnel into a provider whose credentials were removed.
+  function resolveProvider(explicit: AgentRunProvider | undefined): AgentRunProvider {
+    let defaultProvider: AgentRunProvider | undefined;
     try {
       const def = store.providerSettings.get().defaultProvider;
-      if (
-        def === 'claude-code' ||
-        def === 'codex-cli' ||
-        def === 'gemini-cli' ||
-        def === 'amp-cli' ||
-        def === 'cursor-cli' ||
-        def === 'copilot-cli' ||
-        def === 'opencode-cli' ||
-        def === 'droid-cli' ||
-        def === 'ccr-cli' ||
-        def === 'qwen-cli' ||
-        def === 'acp'
-      ) {
-        return def;
-      }
+      if (def) defaultProvider = def as AgentRunProvider;
     } catch {
       // settings row may not exist on first run — fall through
     }
-    return 'claude-code';
+    return resolveProviderWithCreds(explicit, defaultProvider, hasCreds);
   }
 
   // Any 'starting'/'running' rows on construction belong to a previous app
@@ -364,8 +386,27 @@ export async function createSupervisor(
   store.cards.dismissOrphanPendingDecisions();
 
   const active = new Map<number, ActiveRun>();
+  // A paused run has no live handle, but its tool bridge must remain valid
+  // until the resumed run reaches a terminal status.
+  const runCleanups = new Map<number, () => void>();
+  const runMemoryProjects = new Map<number, string>();
+  const runIssueNumbers = new Map<number, number>();
   const emitter = new EventEmitter();
   emitter.setMaxListeners(0);
+
+  function invokeRunCleanup(runId: number, entry?: ActiveRun): void {
+    const cleanup = entry?.cleanup ?? runCleanups.get(runId);
+    if (entry) entry.cleanup = undefined;
+    runCleanups.delete(runId);
+    if (!cleanup) return;
+    try {
+      void Promise.resolve(cleanup()).catch(() => {
+        // best-effort hook; failures must not affect run completion
+      });
+    } catch {
+      // best-effort hook; failures must not affect run completion
+    }
+  }
 
   const eventChannel = (runId: number): string => `event:${runId}`;
   const statusChannel = (runId: number): string => `status:${runId}`;
@@ -495,6 +536,39 @@ export async function createSupervisor(
     return { prompt: parts.join('\n\n'), briefing };
   }
 
+  async function recallMemoryBlock(input: {
+    query: string;
+    repoPath: string;
+    budgetUsd: number | null;
+  }): Promise<string | null> {
+    try {
+      const memory = opts.memory;
+      if (!memory?.getConfig()?.enabled) return null;
+      // v1: per-repo via repoPath; workspaceId/team scoping is a future refinement per ADR-0004.
+      const project = memoryNamespace({ workspaceId: 'default', repoId: input.repoPath });
+      const topK = input.budgetUsd !== null && input.budgetUsd < 0.5 ? 1 : 3;
+      const hits = await memory.client.smartSearch({
+        query: input.query,
+        namespace: project,
+        topK,
+      });
+      if (hits.length === 0) return null;
+      const lines = hits.slice(0, topK).map((hit) => {
+        const content = hit.content.replace(/\s+/g, ' ').trim().slice(0, 400);
+        const score = hit.score === undefined ? 'n/a' : String(hit.score);
+        return `- ${content} (score ${score})`;
+      });
+      const block = [
+        'RELEVANT_PROJECT_MEMORY — context recalled from prior runs on this repo:',
+        ...lines,
+        'You also have `memory_recall` / `memory_smart_search` MCP tools for deeper queries.',
+      ].join('\n');
+      return block.slice(0, 1600);
+    } catch {
+      return null;
+    }
+  }
+
   /** Pull top-N learnings for the run's repo and format them as a system
    *  block. Bumps use_count on the injected entries so the recency-decayed
    *  ranker rotates between them over time. Returns null when the repo has
@@ -568,6 +642,9 @@ export async function createSupervisor(
       costSoFarUsd: run.totalCostUsd ?? 0,
       budgetUsd: run.costBudgetUsd ?? null,
       budgetExceeded: false,
+      cleanup: runCleanups.get(run.id),
+      memoryProject: runMemoryProjects.get(run.id),
+      issueNumber: runIssueNumbers.get(run.id),
     };
     active.set(run.id, entry);
 
@@ -737,6 +814,38 @@ export async function createSupervisor(
       });
       if (status !== 'awaiting_input') {
         store.cards.dismissPendingDecisionsForRun(run.id);
+      }
+      if (status !== 'awaiting_input') {
+        invokeRunCleanup(run.id, entry);
+        const project = entry.memoryProject ?? runMemoryProjects.get(run.id);
+        const issueNumber = entry.issueNumber ?? runIssueNumbers.get(run.id);
+        if (status === 'complete' && updated.sessionId && project && issueNumber !== undefined) {
+          void Promise.resolve(
+            (async () => {
+              try {
+                const memory = opts.memory;
+                if (!memory?.getConfig()?.enabled) return;
+                const session = await memory.client.getSession(updated.sessionId!);
+                if (session === null || !session.hasContent) {
+                  await memory.client.save({
+                    content:
+                      `Run #${updated.id} (issue #${issueNumber}) completed. ` +
+                      `Branch: ${updated.branchName ?? 'unknown'}. Status: complete.`,
+                    namespace: project,
+                    kind: 'run-summary',
+                    metadata: { runId: updated.id, branchName: updated.branchName },
+                  });
+                }
+              } catch {
+                // best-effort memory checkpoint; never affect run completion
+              }
+            })(),
+          ).catch(() => {
+            // best-effort memory checkpoint; never affect run completion
+          });
+        }
+        runMemoryProjects.delete(run.id);
+        runIssueNumbers.delete(run.id);
       }
       active.delete(run.id);
       if (status === 'complete') clearCooldownOnSuccess();
@@ -923,8 +1032,9 @@ export async function createSupervisor(
       prompt: input.prompt,
       resumeFromSessionId: existing.sessionId,
       appendSystemPrompt: composed.prompt,
-      // Resume always reuses the original provider; non-claude-code can't
-      // produce a sessionId today, so this guard is implicit.
+      // Resume always reuses the original provider; providers without
+      // session events (no sessionId persisted) can't be resumed, so
+      // this guard is implicit.
       ...(existing.provider ? { provider: existing.provider as import('@kanbots/dispatcher').AgentRunProvider } : {}),
       ...(input.extraArgs !== undefined ? { extraArgs: input.extraArgs } : {}),
       ...(input.env !== undefined ? { env: input.env } : {}),
@@ -970,6 +1080,7 @@ export async function createSupervisor(
         ? { chatSessionId: input.chatSessionId }
         : {}),
     });
+    if (input.cleanup) runCleanups.set(run.id, input.cleanup);
     const branch = defaultBranchName({
       issueNumber: input.issueNumber,
       runId: run.id,
@@ -984,6 +1095,12 @@ export async function createSupervisor(
       const repoRow = store.workspaceRepos.findById(input.repoId);
       if (repoRow) repoPath = repoRow.repoPath;
     }
+    // v1: per-repo via repoPath; workspaceId/team scoping is a future refinement per ADR-0004.
+    runMemoryProjects.set(
+      run.id,
+      memoryNamespace({ workspaceId: 'default', repoId: repoPath }),
+    );
+    runIssueNumbers.set(run.id, input.issueNumber);
     const worktreePath = defaultWorktreePath({
       repoPath,
       issueNumber: input.issueNumber,
@@ -1003,6 +1120,9 @@ export async function createSupervisor(
         issueNumber: input.issueNumber,
       });
     } catch (err) {
+      invokeRunCleanup(run.id);
+      runMemoryProjects.delete(run.id);
+      runIssueNumbers.delete(run.id);
       run = store.agentRuns.update(run.id, {
         status: 'failed',
         endedAt: new Date().toISOString(),
@@ -1029,16 +1149,34 @@ export async function createSupervisor(
     // Persist last-used model on the thread for the model picker default.
     store.threads.setLastModel(input.threadId, provider, input.model ?? null);
 
-    const composed = composeSystemPrompt(run.id, input.appendSystemPrompt);
+    const recall = await recallMemoryBlock({
+      query: input.prompt,
+      repoPath,
+      budgetUsd: budget,
+    });
+    const appendSystemPrompt = recall
+      ? [recall, input.appendSystemPrompt].filter(Boolean).join('\n\n')
+      : input.appendSystemPrompt;
+    const composed = composeSystemPrompt(run.id, appendSystemPrompt);
     persistBriefing(run.id, composed.briefing);
     applyAcpWorkspaceCommand();
-    const handle = startAgent({
-      cwd: worktreePath,
-      prompt: input.prompt,
-      appendSystemPrompt: composed.prompt,
-      ...(input.model !== undefined ? { model: input.model } : {}),
-      provider,
-    });
+    let handle: AgentRunHandle;
+    try {
+      handle = startAgent({
+        cwd: worktreePath,
+        prompt: input.prompt,
+        appendSystemPrompt: composed.prompt,
+        ...(input.model !== undefined ? { model: input.model } : {}),
+        provider,
+        ...(input.extraArgs !== undefined ? { extraArgs: input.extraArgs } : {}),
+        ...(input.env !== undefined ? { env: input.env } : {}),
+      });
+    } catch (err) {
+      runCleanups.delete(run.id);
+      runMemoryProjects.delete(run.id);
+      runIssueNumbers.delete(run.id);
+      throw err;
+    }
 
     run = store.agentRuns.update(run.id, {
       status: 'running',
@@ -1078,6 +1216,12 @@ export async function createSupervisor(
       prompt: input.prompt,
       resumeFromSessionId: existing.sessionId,
       appendSystemPrompt: composed.prompt,
+      // Resume must reuse the original provider — otherwise an opencode
+      // run's ses_* session id gets fed to claude's --resume (or vice
+      // versa) and the resume fails.
+      ...(existing.provider
+        ? { provider: existing.provider as import('@kanbots/dispatcher').AgentRunProvider }
+        : {}),
     });
 
     const run = store.agentRuns.update(input.runId, {
@@ -1113,6 +1257,9 @@ export async function createSupervisor(
         // caller doesn't deadlock. Clean up the in-memory entry; if the close
         // handler fires later, active.delete will be a no-op.
         active.delete(runId);
+        invokeRunCleanup(runId, entry);
+        runMemoryProjects.delete(runId);
+        runIssueNumbers.delete(runId);
         store.agentRuns.update(runId, {
           status: 'stopped',
           endedAt: new Date().toISOString(),
@@ -1136,6 +1283,9 @@ export async function createSupervisor(
       pid: null,
     });
     store.cards.dismissPendingDecisionsForRun(runId);
+    invokeRunCleanup(runId);
+    runMemoryProjects.delete(runId);
+    runIssueNumbers.delete(runId);
     emitter.emit(statusChannel(runId), updated.status);
     return updated;
   }

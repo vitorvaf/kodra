@@ -70,6 +70,11 @@ export function createHandlers(opts: CreateHandlersOptions): Handlers {
   const { deps } = opts;
   const map: Handlers = {
     'config:get': () => config.getConfig(deps),
+    'memory:status': async () => deps.memoryStatus?.() ?? {
+      available: false,
+      version: null,
+      url: 'http://localhost:3111',
+    },
     'issues:list': (args) => issues.list(deps, args),
     'issues:list-archived': () => issues.listArchived(deps),
     'issues:get': (args) => issues.get(deps, args),

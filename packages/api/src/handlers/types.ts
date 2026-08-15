@@ -1,6 +1,7 @@
 import type { IssueSource } from '@kanbots/core';
 import type { AgentRunProvider } from '@kanbots/dispatcher';
-import type { Store } from '@kanbots/local-store';
+import type { MemoryConfig, Store } from '@kanbots/local-store';
+import type { AgentMemoryClient } from '../memory/client.js';
 import type { AgentSupervisor } from '../agent-runs/supervisor.js';
 import type { AutopilotManager } from '../autopilot/orchestrator.js';
 import type {
@@ -95,6 +96,11 @@ export interface HandlerDeps {
   acpCommand?: WorkspaceAcpCommandAccessor;
   revealPath?: (path: string) => Promise<void>;
   chatTools?: ChatToolRuntime;
+  memory?: {
+    client: AgentMemoryClient;
+    getConfig: () => MemoryConfig | undefined;
+  };
+  memoryStatus?: () => import('../bridge.js').MemoryStatus;
   /**
    * Optional sink for live planner activity from `composer:suggest`. The IPC
    * layer wires this up to broadcast events back to the renderer that

@@ -70,6 +70,22 @@ export interface StartAgentRunOptions {
   env?: Record<string, string>;
 }
 
+export type AdapterMcpSupport = 'file' | 'flags' | 'config-dir' | 'none';
+
+/**
+ * How a provider's CLI accepts MCP server configuration at spawn time, per its
+ * adapter declaration. Callers that build provider-specific spawn args (e.g.
+ * the desktop chat-tool runtime) must consult this rather than assuming every
+ * non-codex provider accepts `--mcp-config` — only `'file'` providers (Claude
+ * Code) do. Providers returning `'none'` (opencode, gemini, amp, …) cannot be
+ * wired at spawn time and must NOT receive MCP flags; the CLI rejects unknown
+ * flags and exits before the run starts.
+ */
+export function getAdapterMcpSupport(provider: AgentRunProvider): AdapterMcpSupport {
+  const adapter = ADAPTERS[provider];
+  return adapter?.mcpSupport ?? 'none';
+}
+
 export class UnsupportedProviderForAgentRunError extends Error {
   constructor(provider: AgentRunProvider) {
     super(
@@ -159,7 +175,14 @@ export function startAgentRun(opts: StartAgentRunOptions): AgentRunHandle {
   // time.
   const detached = !IS_WINDOWS;
   const spawnOpts: Parameters<SpawnFn>[2] = { cwd: opts.cwd, detached };
-  if (opts.env) spawnOpts.env = { ...process.env, ...opts.env };
+  // Always pass an explicit env so PWD matches the run's cwd. Some CLIs
+  // (notably opencode) resolve their working directory from the PWD env
+  // var rather than the process cwd — without this, agent runs inherit
+  // the PWD of whoever launched kanbots and edit files in the wrong
+  // directory. opts.env wins over the PWD default when it sets one.
+  const childEnv: Record<string, string> = { ...process.env, PWD: opts.cwd };
+  if (opts.env) Object.assign(childEnv, opts.env);
+  spawnOpts.env = childEnv;
   const child = spawnFn(command, args, spawnOpts);
   const emitter = new EventEmitter();
 

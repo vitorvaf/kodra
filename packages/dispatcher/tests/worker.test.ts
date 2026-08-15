@@ -72,6 +72,30 @@ describe('startAgentRun', () => {
     expect(args[args.indexOf('--resume') + 1]).toBe('session-123');
   });
 
+  it('sets PWD in the child env to the run cwd so CLIs that resolve cwd from PWD (opencode) edit the worktree', async () => {
+    const fake = makeFakeSpawn({ stdout: RESULT + '\n' });
+    const handle = startAgentRun({
+      cwd: '/wt/issue-1-run-x',
+      prompt: 'p',
+      spawn: fake.fn,
+    });
+    await handle.done;
+    expect(fake.calls[0]!.env?.PWD).toBe('/wt/issue-1-run-x');
+  });
+
+  it('lets opts.env override the PWD default', async () => {
+    const fake = makeFakeSpawn({ stdout: RESULT + '\n' });
+    const handle = startAgentRun({
+      cwd: '/wt',
+      prompt: 'p',
+      env: { PWD: '/custom', KANBOTS_TOKEN: 't' },
+      spawn: fake.fn,
+    });
+    await handle.done;
+    expect(fake.calls[0]!.env?.PWD).toBe('/custom');
+    expect(fake.calls[0]!.env?.KANBOTS_TOKEN).toBe('t');
+  });
+
   it('emits parsed events as they arrive on stdout', async () => {
     const stdout = [ASSISTANT_TEXT, TOOL_USE, TOOL_RESULT, RESULT].join('\n') + '\n';
     const fake = makeFakeSpawn({ stdout });

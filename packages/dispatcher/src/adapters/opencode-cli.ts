@@ -10,94 +10,60 @@ import type {
 
 /**
  * SST OpenCode CLI adapter. Spawns `opencode` and parses its
- * line-delimited stream-json output.
- *
- * Auth: opencode finds its own credentials. The CLI's own login flow
- * configures providers under `~/.local/share/opencode/`. The app does not
- * store or inject opencode credentials.
- *
- * `--auto-approve` is the permissive flag and is on by default — parity
- * with claude's `--permission-mode bypassPermissions` and codex's
- * `--dangerously-bypass-approvals-and-sandbox`. The dispatcher already
- * isolates each run in a worktree, so this is the same trust envelope.
- *
- * Stream envelope (defensive; opencode's run-mode JSON shape is still
- * evolving, so we accept several legal variants and drop the rest):
- *   { "type": "session",    "session_id": "...", "model": "..." }
- *   { "type": "assistant",  "text": "..." }                          // or { "text": { "delta": "..." } }
- *   { "type": "tool_use",   "id": "...", "name": "...", "input": {...} }
- *   { "type": "tool_result","tool_use_id": "...", "output": "...", "is_error": false }
- *   { "type": "result",     "is_error": false, "duration_ms": 1234 }
+ * line-delimited JSON output.
  */
 
-interface OpencodeSessionEvent {
-  type: 'session' | 'session_started' | 'init';
-  session_id?: string;
-  sessionId?: string;
-  model?: string;
-}
-
-interface OpencodeAssistantEvent {
-  type: 'assistant' | 'message' | 'text';
+interface OpencodePart {
+  sessionID?: unknown;
+  type?: unknown;
   text?: unknown;
-}
-
-interface OpencodeToolUseEvent {
-  type: 'tool_use' | 'tool_call';
-  id?: string;
-  name?: string;
-  tool?: string;
-  input?: unknown;
-  parameters?: unknown;
-}
-
-interface OpencodeToolResultEvent {
-  type: 'tool_result' | 'tool_response';
-  tool_use_id?: string;
-  output?: unknown;
-  result?: unknown;
-  is_error?: boolean;
-}
-
-interface OpencodeResultEvent {
-  type: 'result' | 'turn.completed' | 'done';
-  is_error?: boolean;
-  duration_ms?: number;
-  usage?: {
-    input_tokens?: number;
-    output_tokens?: number;
+  callID?: unknown;
+  tool?: unknown;
+  state?: {
+    status?: unknown;
+    input?: unknown;
+    output?: unknown;
   };
-  cost_usd?: number;
+  tokens?: {
+    input?: unknown;
+    output?: unknown;
+  };
+  reason?: unknown;
+  cost?: unknown;
+}
+
+interface OpencodeEvent {
+  type: string;
+  sessionID?: unknown;
+  part?: unknown;
   error?: unknown;
 }
 
-type OpencodeEvent =
-  | OpencodeSessionEvent
-  | OpencodeAssistantEvent
-  | OpencodeToolUseEvent
-  | OpencodeToolResultEvent
-  | OpencodeResultEvent
-  | { type: string };
+interface OpencodeAccum {
+  input: number;
+  output: number;
+  cost: number;
+  sessionId: string | null;
+}
 
+const accum: OpencodeAccum = { input: 0, output: 0, cost: 0, sessionId: null };
 const SYSTEM_PROMPT_DELIMITER = '\n\n---\n\n';
 
 export const opencodeCliAdapter: AgentCliAdapter = {
   command: 'opencode',
-  promptDelivery: 'stdin',
+  promptDelivery: 'argv',
+  mcpSupport: 'none',
 
   buildArgs(opts: BuildArgsInput): string[] {
-    // `run` is the non-interactive subcommand. --output-format=stream-json
-    // is the structured event channel; --auto-approve skips per-tool
-    // prompts so the agent runs unattended inside its sandbox. The
-    // dispatcher's worktree isolation gives the same trust envelope as
-    // claude's bypass mode.
-    const args: string[] = ['run', '--output-format=stream-json', '--auto-approve'];
-    if (opts.model) {
-      args.push('--model', opts.model);
+    const args: string[] = ['run', '--format', 'json', '--auto'];
+    // Continue the existing session so replies/approvals iterate on the
+    // same conversation (--session is opencode's equivalent of claude's
+    // --resume). Without this every turn spawns a fresh, context-free
+    // session and the /spec approval loop never iterates.
+    if (opts.resumeFromSessionId) {
+      args.push('--session', opts.resumeFromSessionId);
     }
-    if (opts.extraArgs && opts.extraArgs.length > 0) {
-      args.push(...opts.extraArgs);
-    }
+    if (opts.extraArgs && opts.extraArgs.length > 0) args.push(...opts.extraArgs);
     return args;
   },
 
@@ -110,11 +76,11 @@ export const opencodeCliAdapter: AgentCliAdapter = {
 
   parseLine(line: string): StreamEvent[] {
     const trimmed = line.trim();
-    if (trimmed.length === 0) return [];
-    if (!trimmed.startsWith('{')) return [];
-    let parsed: OpencodeEvent;
+    if (trimmed.length === 0 || !trimmed.startsWith('{')) return [];
+
+    let parsed: unknown;
     try {
-      parsed = JSON.parse(trimmed) as OpencodeEvent;
+      parsed = JSON.parse(trimmed);
     } catch (err) {
       return [
         {
@@ -124,8 +90,9 @@ export const opencodeCliAdapter: AgentCliAdapter = {
         },
       ];
     }
-    if (typeof (parsed as { type?: unknown }).type !== 'string') return [];
-    return mapEvent(parsed);
+
+    if (!isRecord(parsed) || typeof parsed.type !== 'string') return [];
+    return mapEvent(parsed as unknown as OpencodeEvent);
   },
 
   detectRateLimit(text: string) {
@@ -133,105 +100,166 @@ export const opencodeCliAdapter: AgentCliAdapter = {
   },
 };
 
-function extractText(raw: unknown): string {
-  if (typeof raw === 'string') return raw;
-  if (raw && typeof raw === 'object') {
-    const delta = (raw as { delta?: unknown }).delta;
-    if (typeof delta === 'string') return delta;
-    const text = (raw as { text?: unknown }).text;
-    if (typeof text === 'string') return text;
-  }
-  return '';
-}
+function mapEvent(event: OpencodeEvent): StreamEvent[] {
+  const part = isRecord(event.part) ? (event.part as OpencodePart) : null;
+  const incomingSessionId = getSessionId(event, part);
 
-function mapEvent(ev: OpencodeEvent): StreamEvent[] {
-  switch (ev.type) {
-    case 'session':
-    case 'session_started':
-    case 'init': {
-      const s = ev as OpencodeSessionEvent;
-      const sessionId = s.session_id ?? s.sessionId;
-      if (typeof sessionId !== 'string') return [];
-      return [
-        {
-          kind: 'session',
-          sessionId,
-          model: typeof s.model === 'string' ? s.model : null,
-        },
-      ];
+  // The adapter is a module singleton. A changed session indicates a new
+  // process stream, so discard any totals left by the previous one.
+  if (incomingSessionId !== null && accum.sessionId !== null && incomingSessionId !== accum.sessionId) {
+    resetAccum();
+  }
+  switch (event.type) {
+    case 'step_start': {
+      if (incomingSessionId === null) return [];
+      if (accum.sessionId !== null) return [];
+      accum.sessionId = incomingSessionId;
+      return [{ kind: 'session', sessionId: incomingSessionId, model: null }];
     }
-    case 'assistant':
-    case 'message':
     case 'text': {
-      const text = extractText((ev as OpencodeAssistantEvent).text);
+      const text = typeof part?.text === 'string' ? part.text : '';
       if (text.length === 0) return [];
-      return [{ kind: 'text', text }];
+      // Scan for kanbots-decision blocks so /spec approval loops pause
+      // with a decision card (supervisor reacts to 'decision' events).
+      // Without this the block renders as raw text and the run completes.
+      return extractTextWithDecisions(text);
     }
-    case 'tool_use':
-    case 'tool_call': {
-      const tu = ev as OpencodeToolUseEvent;
-      const id = typeof tu.id === 'string' ? tu.id : null;
-      const name = typeof tu.name === 'string' ? tu.name : typeof tu.tool === 'string' ? tu.tool : null;
-      if (id === null || name === null) return [];
-      return [
+    case 'tool_use': {
+      if (part?.type !== 'tool') return [];
+      const toolUseId = typeof part.callID === 'string' ? part.callID : null;
+      const name = typeof part.tool === 'string' ? part.tool : null;
+      if (toolUseId === null || name === null) return [];
+
+      const events: StreamEvent[] = [
         {
           kind: 'tool_use',
-          toolUseId: id,
+          toolUseId,
           name,
-          input: tu.input ?? tu.parameters ?? null,
+          input: part.state?.input ?? null,
         },
       ];
+      if (part.state?.output !== undefined) {
+        events.push({
+          kind: 'tool_result',
+          toolUseId,
+          isError: part.state?.status === 'error',
+          content: part.state.output,
+        });
+      }
+      return events;
     }
-    case 'tool_result':
-    case 'tool_response': {
-      const tr = ev as OpencodeToolResultEvent;
-      if (typeof tr.tool_use_id !== 'string') return [];
+    case 'error': {
+      // opencode emits {"type":"error","error":{name, data:{message}}}
+      // on failures (bad --model, server errors, auth issues). Surface it
+      // as a result so the run fails loudly instead of looking like a no-op.
+      let message = 'unknown opencode error';
+      if (isRecord(event.error)) {
+        const data = isRecord(event.error.data) ? event.error.data : null;
+        const raw =
+          typeof data?.message === 'string'
+            ? data.message
+            : typeof event.error.message === 'string'
+              ? event.error.message
+              : null;
+        if (raw !== null) message = raw;
+      }
       return [
         {
-          kind: 'tool_result',
-          toolUseId: tr.tool_use_id,
-          isError: tr.is_error === true,
-          content: tr.output ?? tr.result ?? null,
+          kind: 'result',
+          isError: true,
+          text: `opencode error: ${message}`,
+          tokenUsage: null,
+          durationMs: null,
+          totalCostUsd: null,
         },
       ];
     }
-    case 'result':
-    case 'turn.completed':
-    case 'done': {
-      const r = ev as OpencodeResultEvent;
-      const isError = r.is_error === true;
-      const out: StreamEvent[] = [];
-      if (isError && r.error !== undefined) {
-        const errText = typeof r.error === 'string' ? r.error : JSON.stringify(r.error);
-        const rl = detectRateLimitFromText(errText);
-        if (rl) out.push(rl);
-      }
-      out.push({
+    case 'step_finish': {
+      if (part === null) return [];
+      accum.input += Number(part.tokens?.input) || 0;
+      accum.output += Number(part.tokens?.output) || 0;
+      accum.cost += Number(part.cost) || 0;
+
+      if (part.reason !== 'stop') return [];
+
+      const result: StreamEvent = {
         kind: 'result',
-        isError,
-        text:
-          isError && r.error !== undefined
-            ? typeof r.error === 'string'
-              ? r.error
-              : JSON.stringify(r.error)
-            : '',
-        tokenUsage: tokenUsageFrom(r.usage),
-        durationMs: typeof r.duration_ms === 'number' ? r.duration_ms : null,
-        totalCostUsd: typeof r.cost_usd === 'number' ? r.cost_usd : null,
-      });
-      return out;
+        isError: false,
+        text: '',
+        tokenUsage: { input: accum.input, output: accum.output },
+        durationMs: null,
+        totalCostUsd: accum.cost,
+      };
+      resetAccum();
+      return [result];
     }
     default:
       return [];
   }
 }
 
-function tokenUsageFrom(
-  usage: { input_tokens?: number; output_tokens?: number } | undefined,
-): { input: number; output: number } | null {
-  if (!usage) return null;
-  if (typeof usage.input_tokens !== 'number' || typeof usage.output_tokens !== 'number') {
+function getSessionId(event: OpencodeEvent, part: OpencodePart | null): string | null {
+  if (typeof event.sessionID === 'string') return event.sessionID;
+  if (typeof part?.sessionID === 'string') return part.sessionID;
+  return null;
+}
+
+const DECISION_BLOCK_RE = /```kanbots-decision\s*\n([\s\S]*?)\n```/g;
+
+// Mirror of stream-parser.ts:extractTextEvents. Kept inline so the
+// opencode adapter doesn't depend on an internal helper that may evolve
+// separately for the Anthropic stream shape (same approach as codex).
+function extractTextWithDecisions(text: string): StreamEvent[] {
+  if (text.length === 0) return [];
+  const out: StreamEvent[] = [];
+  let lastIndex = 0;
+  for (const match of text.matchAll(DECISION_BLOCK_RE)) {
+    const before = text.slice(lastIndex, match.index ?? 0);
+    if (before.trim().length > 0) out.push({ kind: 'text', text: before });
+    const body = match[1] ?? '';
+    const decision = parseDecisionBody(body);
+    if (decision) out.push(decision);
+    lastIndex = (match.index ?? 0) + match[0].length;
+  }
+  const tail = text.slice(lastIndex);
+  if (tail.trim().length > 0) out.push({ kind: 'text', text: tail });
+  if (out.length === 0 && text.trim().length > 0) {
+    out.push({ kind: 'text', text });
+  }
+  return out;
+}
+
+function parseDecisionBody(body: string): StreamEvent | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
     return null;
   }
-  return { input: usage.input_tokens, output: usage.output_tokens };
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const obj = parsed as Record<string, unknown>;
+  const question = typeof obj.question === 'string' ? obj.question : null;
+  const rawOptions = Array.isArray(obj.options) ? obj.options : null;
+  if (!question || !rawOptions) return null;
+  const options: Array<{ value: string; label: string }> = [];
+  for (const opt of rawOptions) {
+    if (typeof opt !== 'object' || opt === null) continue;
+    const o = opt as Record<string, unknown>;
+    const value = typeof o.value === 'string' ? o.value : null;
+    const label = typeof o.label === 'string' ? o.label : value;
+    if (value && label) options.push({ value, label });
+  }
+  if (options.length === 0) return null;
+  return { kind: 'decision', question, options };
+}
+
+function resetAccum(): void {
+  accum.input = 0;
+  accum.output = 0;
+  accum.cost = 0;
+  accum.sessionId = null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }

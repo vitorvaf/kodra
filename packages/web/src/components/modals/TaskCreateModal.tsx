@@ -16,7 +16,13 @@ import {
   MarkdownEditor,
   type MarkdownEditorHandle,
 } from '../forms/MarkdownEditor.js';
-import { ModelPicker } from '../forms/ModelPicker.js';
+import {
+  AGENT_RUN_PROVIDERS,
+  MODELS,
+  PROVIDER_LABELS,
+  type ModelPickerValue,
+} from '../forms/ModelPicker.js';
+import { useFetch } from '../../hooks/useFetch.js';
 import { useFocusedRepo } from '../../hooks/useFocusedRepo.js';
 import { dispatchIssuesRefetch } from '../../hooks/useIssues.js';
 import { priorityFromLabels, tagFromLabels } from '../../labels.js';
@@ -123,8 +129,7 @@ export function TaskCreateModal({
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [tpl, setTpl] = useState<Template>('feature');
   const [assignee, setAssignee] = useState<Assignee>('claude');
-  const [modelSelection, setModelSelection] =
-    useState<import('../forms/ModelPicker.js').ModelPickerValue | null>(null);
+  const [modelSelection, setModelSelection] = useState<ModelPickerValue | null>(null);
   const model = modelSelection?.model ?? 'opus';
   const [effort, setEffort] = useState<Effort>('medium');
   const [tag, setTag] = useState<Tag>('feat');
@@ -144,6 +149,65 @@ export function TaskCreateModal({
   const showRepoCaption = repos.length > 1 && focused !== null;
   const [templates, setTemplates] = useState<CardTemplatePayload[]>([]);
   const [templateId, setTemplateId] = useState<number | ''>('');
+  const { data: providersData } = useFetch('providers', () => api.getProviders());
+
+  // Filtered agent providers — same rules as <ModelPicker agentRunsOnly>:
+  // enabled, has a key, and on the agent-runs allowlist. The agent and
+  // model pills both consume this so they can't drift.
+  const agentOptions = useMemo<Array<{ provider: ProviderId; modelIds: string[] }>>(() => {
+    if (!providersData) return [];
+    return providersData.providers
+      .filter((p) => p.hasKey && AGENT_RUN_PROVIDERS.includes(p.id))
+      .map((p) => ({ provider: p.id, modelIds: (MODELS[p.id] ?? []).map((m) => m.id) }));
+  }, [providersData]);
+
+  // Keep `modelSelection` in sync with the available providers:
+  //  - if it's null and providers have loaded, seed the first one (this
+  //    preserves the auto-pick behaviour the inline ModelPicker used to
+  //    do internally);
+  //  - if the currently selected provider was disabled / lost its key /
+  //    dropped from the allowlist, reset to the first available agent so
+  //    the user never sees a phantom selection in the model pill.
+  useEffect(() => {
+    if (agentOptions.length === 0) return;
+    const current = modelSelection;
+    if (!current) {
+      const first = agentOptions[0]!;
+      const firstModel = first.modelIds[0];
+      if (firstModel) setModelSelection({ provider: first.provider, model: firstModel });
+      return;
+    }
+    const available = agentOptions.find((o) => o.provider === current.provider);
+    if (!available || !available.modelIds.includes(current.model)) {
+      const first = agentOptions[0]!;
+      const firstModel = first.modelIds[0];
+      if (firstModel) setModelSelection({ provider: first.provider, model: firstModel });
+    }
+  }, [agentOptions, modelSelection]);
+
+  function onAgentChange(e: ChangeEvent<HTMLSelectElement>): void {
+    const provider = e.target.value as ProviderId;
+    if (!provider) return;
+    // Reset the model to the new provider's first catalogue entry. Users
+    // who care about a specific model re-pick it from the model pill,
+    // which is now strictly scoped to the selected agent.
+    const firstModel = (MODELS[provider] ?? [])[0]?.id ?? '';
+    if (!firstModel) return;
+    setModelSelection({ provider, model: firstModel });
+  }
+
+  function onModelChange(e: ChangeEvent<HTMLSelectElement>): void {
+    const model = e.target.value;
+    if (!modelSelection || !model) return;
+    setModelSelection({ provider: modelSelection.provider, model });
+  }
+
+  // Models visible in the model pill — strictly the catalogue for the
+  // currently selected agent, so the two pills can't go out of sync.
+  const modelOptions = useMemo(() => {
+    if (!modelSelection) return [] as Array<{ id: string; label: string }>;
+    return MODELS[modelSelection.provider] ?? [];
+  }, [modelSelection]);
 
   useEffect(() => {
     let cancelled = false;
@@ -587,19 +651,49 @@ export function TaskCreateModal({
                       onChange={(e) => setAssignee(e.target.value as Assignee)}
                       className="kb-pill-select-native"
                     >
-                      <option value="claude">claude (auto)</option>
+                      <option value="claude">agent (auto)</option>
                       <option value="me">me (manual)</option>
                     </select>
                     <span className="caret">▾</span>
                   </label>
                   <label className="kb-pill-select">
+                    <span className="lbl">agent</span>
+                    <select
+                      className="kb-pill-select-native"
+                      value={modelSelection?.provider ?? ''}
+                      onChange={onAgentChange}
+                      disabled={agentOptions.length === 0}
+                      aria-label="Agent"
+                    >
+                      {agentOptions.length === 0 ? (
+                        <option value="">(no agents configured)</option>
+                      ) : null}
+                      {agentOptions.map((o) => (
+                        <option key={o.provider} value={o.provider}>
+                          {PROVIDER_LABELS[o.provider]}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="caret">▾</span>
+                  </label>
+                  <label className="kb-pill-select">
                     <span className="lbl">model</span>
-                    <ModelPicker
-                      value={modelSelection}
-                      onChange={setModelSelection}
+                    <select
                       className="kb-pill-select-native mono"
-                      agentRunsOnly
-                    />
+                      value={modelSelection?.model ?? ''}
+                      onChange={onModelChange}
+                      disabled={modelOptions.length === 0}
+                      aria-label="Model"
+                    >
+                      {modelOptions.length === 0 ? (
+                        <option value="">(no models)</option>
+                      ) : null}
+                      {modelOptions.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
                     <span className="caret">▾</span>
                   </label>
                   <label className="kb-pill-select">

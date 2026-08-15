@@ -188,6 +188,8 @@ export {
   type GitHubWorkspaceConfig,
   type KanbotsDir,
   type LocalWorkspaceConfig,
+  type MemoryConfig,
+  type MemoryScope,
   type WorkspaceConfig,
   type WorkspaceDefaults,
   type WorkspaceMode,

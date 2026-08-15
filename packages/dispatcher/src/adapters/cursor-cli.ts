@@ -116,6 +116,7 @@ function shortNameFor(variant: string): string {
 export const cursorCliAdapter: AgentCliAdapter = {
   command: 'cursor-agent',
   promptDelivery: 'stdin',
+  mcpSupport: 'none',
 
   buildArgs(opts: BuildArgsInput): string[] {
     // -p switches the CLI into non-interactive print mode. --force makes

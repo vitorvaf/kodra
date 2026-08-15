@@ -93,6 +93,7 @@ export const acpAdapter: AgentCliAdapter = {
     return resolveAcpInvocation().command;
   },
   promptDelivery: 'stdin',
+  mcpSupport: 'none',
 
   buildArgs(opts: BuildArgsInput): string[] {
     const args: string[] = [...resolveAcpInvocation().args];

@@ -88,6 +88,7 @@ const SYSTEM_PROMPT_DELIMITER = '\n\n---\n\n';
 export const geminiCliAdapter: AgentCliAdapter = {
   command: 'gemini',
   promptDelivery: 'stdin',
+  mcpSupport: 'none',
 
   buildArgs(opts: BuildArgsInput): string[] {
     // `--yolo` is the default permissive flag (see catalogue defaults).

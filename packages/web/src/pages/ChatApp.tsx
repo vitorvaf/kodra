@@ -11,7 +11,7 @@ import {
   SessionDropdown,
   useActiveSessionId,
 } from '../components/chat/SessionDropdown.js';
-import { ModelPicker } from '../components/forms/ModelPicker.js';
+import { ModelPicker, PROVIDER_LABELS } from '../components/forms/ModelPicker.js';
 import { useAgentRunStream } from '../hooks/useAgentRunStream.js';
 import { ageString } from '../labels.js';
 import { ToolUseCard } from '../components/run/ToolUseCard.js';
@@ -204,6 +204,15 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
   const displayRun = sessionActiveRun ?? sessionLatestRun;
   const stream = useAgentRunStream(displayRun?.id ?? null, streamGen);
 
+  // Label for agent-authored messages: the run's actual provider (e.g.
+  // "OpenCode"), falling back to the raw id, then "agent" for legacy
+  // runs that predate the provider column.
+  const agentLabel =
+    displayRun?.provider != null
+      ? (PROVIDER_LABELS[displayRun.provider as keyof typeof PROVIDER_LABELS] ??
+        displayRun.provider)
+      : 'agent';
+
   // When the active run finishes (status flips to a terminal state) the
   // server-side row updates but our cached `activeRun` doesn't. Refetch
   // the conversation snapshot whenever the stream's status changes.
@@ -390,7 +399,7 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
         ) : null}
         {items.map((it) =>
           it.kind === 'message' ? (
-            <MessageRow key={it.id} message={it.message} cards={it.cards} onResolved={() => void refresh()} />
+            <MessageRow key={it.id} message={it.message} cards={it.cards} agentLabel={agentLabel} onResolved={() => void refresh()} />
           ) : it.event.type === 'tool_use' ? (
             <div key={it.id} className="kb-chat-toolwrap">
               <span className="kb-chat-toolwrap-rail" aria-hidden />
@@ -668,10 +677,14 @@ function ReplyFooter({
 function MessageRow({
   message,
   cards,
+  agentLabel,
   onResolved,
 }: {
   message: Message;
   cards: Card[];
+  /** Provider-derived label for agent messages (e.g. "OpenCode"); falls
+   *  back to the provider id, then "agent" for legacy runs. */
+  agentLabel: string;
   onResolved: () => void;
 }) {
   if (message.role === 'system') {
@@ -691,7 +704,7 @@ function MessageRow({
     );
   }
   const isUser = message.role === 'user';
-  const label = isUser ? 'you' : 'claude';
+  const label = isUser ? 'you' : agentLabel;
   return (
     <div className={`kb-chat-msg ${isUser ? 'kb-chat-msg-user' : 'kb-chat-msg-agent'}`}>
       <div className="kb-chat-msg-meta">

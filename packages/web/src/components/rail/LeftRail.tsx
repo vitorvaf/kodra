@@ -24,6 +24,7 @@ export interface LeftRailProps {
   onOpenScripts?: () => void;
   onOpenRepos?: () => void;
   onOpenSentry?: () => void;
+  onOpenMemory?: () => void;
   onOpenCardTemplates?: () => void;
 }
 
@@ -202,6 +203,7 @@ export function LeftRail({
   onOpenScripts,
   onOpenRepos,
   onOpenSentry,
+  onOpenMemory,
   onOpenCardTemplates,
 }: LeftRailProps) {
   const ws = useWorkspace();
@@ -404,6 +406,15 @@ export function LeftRail({
               Card templates
             </button>
             <div className="kb-rail-account-sep" role="separator" />
+            <button
+              type="button"
+              role="menuitem"
+              className="kb-rail-account-item"
+              onClick={() => pick(onOpenMemory)}
+            >
+              <span className="kb-rail-account-icon" aria-hidden>◌</span>
+              Memory
+            </button>
             <button
               type="button"
               role="menuitem"

@@ -82,7 +82,7 @@ export function PersonaPickerModal({
         const payload = await api.getProviders();
         if (cancelled) return;
         const configured = payload.providers
-          .filter((p) => p.enabled && p.hasKey)
+          .filter((p) => p.hasKey)
           .map((p) => p.id);
         setConfiguredProviders(new Set(configured));
         if (configured.length > 0) {

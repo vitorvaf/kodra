@@ -32,6 +32,7 @@ const SYSTEM_PROMPT_DELIMITER = '\n\n---\n\n';
 export const ampCliAdapter: AgentCliAdapter = {
   command: 'amp',
   promptDelivery: 'stdin',
+  mcpSupport: 'none',
 
   buildArgs(opts: BuildArgsInput): string[] {
     const args: string[] = ['--execute', '--stream-json', '--dangerously-allow-all'];

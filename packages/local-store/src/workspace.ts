@@ -15,6 +15,21 @@ export interface KanbotsDir {
 
 export type WorkspaceMode = 'github' | 'local';
 
+export type MemoryScope = 'shared' | 'team' | 'global';
+
+export interface MemoryConfig {
+  enabled: boolean;
+  provider: 'agentmemory'; // only agentmemory supported for now
+  url: string; // default applied in validator: http://localhost:3111
+  secret: string | null;
+  scope: MemoryScope; // default 'shared'
+  teamId: string | null; // required when scope === 'team'
+}
+
+export interface RtkConfig {
+  assumeInstalled: boolean;
+}
+
 export interface WorkspaceDefaults {
   /** Default per-run cost budget in USD. null/undefined = unbounded. */
   runCostBudgetUsd?: number | null;
@@ -49,6 +64,8 @@ export const WORKSPACE_SCRIPT_MAX_BYTES = 4 * 1024;
 interface WorkspaceConfigCommon {
   checks?: CheckCommandOverrides;
   scripts?: WorkspaceScripts;
+  memory?: MemoryConfig;
+  rtk?: RtkConfig;
   /**
    * Workspace-wide rules prepended to every agent prompt (issue runs, chat
    * runs, autopilot child runs). Stored verbatim; trimmed on read. Capped at
@@ -152,6 +169,109 @@ function validateCheckOverrides(input: unknown): CheckCommandOverrides | undefin
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+function validateMemory(input: unknown): MemoryConfig | undefined {
+  if (input === undefined) return undefined;
+  if (typeof input !== 'object' || input === null) {
+    if (input !== null) {
+      console.warn('[kanbots] ignoring invalid `memory` field in .kanbots/config.json (expected object)');
+    }
+    return undefined;
+  }
+
+  const obj = input as Record<string, unknown>;
+  const knownKeys = ['enabled', 'provider', 'url', 'secret', 'scope', 'teamId'];
+  for (const key of Object.keys(obj)) {
+    if (!knownKeys.includes(key)) {
+      console.warn(`[kanbots] ignoring unknown memory key "${key}" in .kanbots/config.json`);
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(obj, 'enabled') && typeof obj.enabled !== 'boolean') {
+    console.warn('[kanbots] ignoring invalid `memory.enabled` (expected boolean)');
+  }
+  if (obj.enabled !== true) {
+    return {
+      enabled: false,
+      provider: 'agentmemory',
+      url: 'http://localhost:3111',
+      secret: null,
+      scope: 'shared',
+      teamId: null,
+    };
+  }
+
+  let provider: MemoryConfig['provider'] = 'agentmemory';
+  if (obj.provider !== undefined && obj.provider !== 'agentmemory') {
+    console.warn('[kanbots] invalid `memory.provider`; defaulting to "agentmemory"');
+  }
+
+  let url = 'http://localhost:3111';
+  if (obj.url !== undefined) {
+    if (typeof obj.url !== 'string') {
+      console.warn('[kanbots] invalid `memory.url`; defaulting to http://localhost:3111');
+    } else if (obj.url.trim().length > 0) {
+      url = obj.url;
+    }
+  }
+
+  let secret: string | null = null;
+  if (obj.secret !== undefined && obj.secret !== null) {
+    if (typeof obj.secret === 'string') {
+      secret = obj.secret;
+    } else {
+      console.warn('[kanbots] invalid `memory.secret` (expected string or null); defaulting to null');
+    }
+  }
+
+  let scope: MemoryScope = 'shared';
+  if (obj.scope !== undefined) {
+    if (obj.scope === 'shared' || obj.scope === 'team' || obj.scope === 'global') {
+      scope = obj.scope;
+    } else {
+      console.warn('[kanbots] invalid `memory.scope`; defaulting to "shared"');
+    }
+  }
+
+  let teamId: string | null = null;
+  if (scope === 'team') {
+    if (typeof obj.teamId !== 'string' || obj.teamId.length === 0) {
+      console.warn('[kanbots] ignoring `memory.scope: "team"` without a valid `teamId`; defaulting to "shared"');
+      scope = 'shared';
+    } else {
+      teamId = obj.teamId;
+    }
+  }
+
+  return { enabled: true, provider, url, secret, scope, teamId };
+}
+
+function validateRtk(input: unknown): RtkConfig | undefined {
+  if (input === undefined) return undefined;
+  if (typeof input !== 'object' || input === null) {
+    if (input !== null) {
+      console.warn('[kanbots] ignoring invalid `rtk` field in .kanbots/config.json (expected object)');
+    }
+    return undefined;
+  }
+
+  const obj = input as Record<string, unknown>;
+  for (const key of Object.keys(obj)) {
+    if (key !== 'assumeInstalled') {
+      console.warn(`[kanbots] ignoring unknown rtk key "${key}" in .kanbots/config.json`);
+    }
+  }
+
+  let assumeInstalled = false;
+  if (obj.assumeInstalled !== undefined) {
+    if (typeof obj.assumeInstalled === 'boolean') {
+      assumeInstalled = obj.assumeInstalled;
+    } else {
+      console.warn('[kanbots] invalid `rtk.assumeInstalled` (expected boolean); defaulting to false');
+    }
+  }
+  return { assumeInstalled };
+}
+
 export function describeKanbotsDir(repoPath: string): KanbotsDir {
   const root = join(repoPath, '.kanbots');
   return {
@@ -194,6 +314,8 @@ function validateConfig(input: unknown): WorkspaceConfig | null {
   const defaults = parseDefaults(obj.defaults);
   const checks = validateCheckOverrides(obj.checks);
   const scripts = validateScripts(obj.scripts);
+  const memory = validateMemory(obj.memory);
+  const rtk = validateRtk(obj.rtk);
   const notify = typeof obj.notifyOnRunComplete === 'boolean' ? obj.notifyOnRunComplete : undefined;
   const houseRules = validateHouseRules(obj.houseRules);
   const acpCommand = validateAcpCommand(obj.acpCommand);
@@ -202,6 +324,8 @@ function validateConfig(input: unknown): WorkspaceConfig | null {
     if (defaults) cfg.defaults = defaults;
     if (checks) cfg.checks = checks;
     if (scripts) cfg.scripts = scripts;
+    if (memory) cfg.memory = memory;
+    if (rtk) cfg.rtk = rtk;
     if (notify !== undefined) cfg.notifyOnRunComplete = notify;
     if (houseRules !== undefined) cfg.houseRules = houseRules;
     if (acpCommand !== undefined) cfg.acpCommand = acpCommand;
@@ -212,6 +336,8 @@ function validateConfig(input: unknown): WorkspaceConfig | null {
     if (defaults) cfg.defaults = defaults;
     if (checks) cfg.checks = checks;
     if (scripts) cfg.scripts = scripts;
+    if (memory) cfg.memory = memory;
+    if (rtk) cfg.rtk = rtk;
     if (notify !== undefined) cfg.notifyOnRunComplete = notify;
     if (houseRules !== undefined) cfg.houseRules = houseRules;
     if (acpCommand !== undefined) cfg.acpCommand = acpCommand;

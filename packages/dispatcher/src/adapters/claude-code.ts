@@ -4,6 +4,7 @@ import type { AgentCliAdapter, BuildArgsInput } from './types.js';
 export const claudeCodeAdapter: AgentCliAdapter = {
   command: 'claude',
   promptDelivery: 'stdin',
+  mcpSupport: 'file',
   buildArgs(opts: BuildArgsInput): string[] {
     const args = [
       '-p',
@@ -22,9 +23,10 @@ export const claudeCodeAdapter: AgentCliAdapter = {
     if (opts.appendSystemPrompt) {
       args.push('--append-system-prompt', opts.appendSystemPrompt);
     }
-    if (opts.model) {
-      args.push('--model', opts.model);
-    }
+    // Default to Claude Sonnet 5 when the caller doesn't pin a model, so
+    // claude-code runs stay on the current smart model instead of falling
+    // back to the CLI's built-in default. An explicit opts.model wins.
+    args.push('--model', opts.model && opts.model.length > 0 ? opts.model : 'claude-sonnet-5');
     if (opts.extraArgs && opts.extraArgs.length > 0) {
       args.push(...opts.extraArgs);
     }

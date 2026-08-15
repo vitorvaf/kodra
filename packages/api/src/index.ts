@@ -35,6 +35,17 @@ export {
 export { dispatchChatTool } from './chat-tools-dispatch.js';
 
 export {
+  createAgentMemoryClient,
+  memoryNamespace,
+  memorySessionId,
+  type AgentMemoryClient,
+  type MemoryClientConfig,
+  type MemoryHit,
+  type SaveMemoryInput,
+  type SmartSearchInput,
+} from './memory/client.js';
+
+export {
   createCurator,
   CuratorError,
   CURATOR_JSON_SCHEMA,
@@ -62,6 +73,7 @@ export {
   type SentryRuntime,
   type SubscriptionRegistry,
 } from './handlers/index.js';
+export { hasProviderCredentials, resolveProviderWithCreds } from './handlers/provider-credentials.js';
 export type {
   AgentCheck,
   AgentEvent,
@@ -126,6 +138,7 @@ export type {
   IssueDetail,
   IssueRelationPayload,
   Message,
+  MemoryStatus,
   PendingDecisionPayload,
   PlannerEvent,
   PostMessageResult,

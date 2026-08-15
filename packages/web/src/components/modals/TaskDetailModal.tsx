@@ -14,6 +14,7 @@ import {
   SessionDropdown,
   useActiveSessionId,
 } from '../chat/SessionDropdown.js';
+import { PROVIDER_LABELS } from '../forms/ModelPicker.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useFocusedRepo } from '../../hooks/useFocusedRepo.js';
 import {
@@ -1444,6 +1445,14 @@ function ThreadTab({
       cards: cardsByMessageId.get(m.id) ?? [],
     });
   }
+  // Label for agent-authored messages: the run's actual provider (e.g.
+  // "OpenCode"), falling back to the raw id, then "agent" for legacy
+  // runs that predate the provider column.
+  const agentLabel =
+    displayRun?.provider != null
+      ? (PROVIDER_LABELS[displayRun.provider as keyof typeof PROVIDER_LABELS] ??
+        displayRun.provider)
+      : 'agent';
   for (const e of stream.events) {
     // tool_result events are folded into their tool_use parent.
     if (e.type === 'tool_result') continue;
@@ -1494,7 +1503,7 @@ function ThreadTab({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {items.map((it) =>
             it.kind === 'message' ? (
-              <MessageRow key={it.id} message={it.message} cards={it.cards} />
+              <MessageRow key={it.id} message={it.message} cards={it.cards} agentLabel={agentLabel} />
             ) : it.event.type === 'tool_use' ? (
               <ToolUseCard
                 key={it.id}
@@ -1938,7 +1947,16 @@ function CompletionActions({
   );
 }
 
-function MessageRow({ message, cards }: { message: Message; cards: Card[] }) {
+function MessageRow({
+  message,
+  cards,
+  agentLabel,
+}: {
+  message: Message;
+  cards: Card[];
+  /** Provider-derived label for agent messages (e.g. "OpenCode"). */
+  agentLabel: string;
+}) {
   if (message.role === 'system') {
     return (
       <div
@@ -1959,7 +1977,7 @@ function MessageRow({ message, cards }: { message: Message; cards: Card[] }) {
     );
   }
   const isUser = message.role === 'user';
-  const label = isUser ? 'you' : 'claude';
+  const label = isUser ? 'you' : agentLabel;
   const labelColor = isUser ? 'var(--ink-1)' : 'var(--accent)';
   const bg = isUser
     ? 'var(--bg-2)'

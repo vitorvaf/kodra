@@ -16,6 +16,7 @@ import type {
 } from '../bridge.js';
 import { chatSessionToPayload } from '../bridge.js';
 import { alreadyActive, notFound, parseArgs } from './errors.js';
+import { hasProviderCredentials, resolveProviderWithCreds } from './provider-credentials.js';
 import type { HandlerDeps } from './types.js';
 
 const KNOWN_PROVIDERS: ReadonlySet<AgentRunProvider> = new Set([
@@ -44,16 +45,18 @@ function resolveChatProvider(
     }
     return 'claude-code';
   }
-  if (explicit) return explicit;
+  let defaultProvider: AgentRunProvider | undefined;
   try {
     const def = deps.store.providerSettings.get().defaultProvider;
     if (def && KNOWN_PROVIDERS.has(def as AgentRunProvider)) {
-      return def as AgentRunProvider;
+      defaultProvider = def as AgentRunProvider;
     }
   } catch {
     // settings row may be missing on first run — fall through
   }
-  return 'claude-code';
+  const hasCreds = (id: AgentRunProvider) =>
+    hasProviderCredentials(id, () => deps.providers.hasClaudeCodeCredentials());
+  return resolveProviderWithCreds(explicit, defaultProvider, hasCreds);
 }
 
 /**

@@ -6,7 +6,7 @@
 > [KanBots Cloud](https://kanbots.dev).
 
 This walks you through downloading the desktop app, getting the
-Claude Code CLI installed, opening your first workspace, and
+an agent CLI installed, opening your first workspace, and
 dispatching an agent run.
 
 ## 1. Download and install
@@ -84,8 +84,8 @@ pnpm desktop:dev
 
 ## 2. Install Claude Code
 
-KanBots dispatches agents through the **Claude Code** CLI. Without it
-on your `PATH`, the **Dispatch** button will fail.
+KanBots dispatches agents through the **Claude Code** CLI by default. Without
+an agent CLI on your `PATH`, the **Dispatch** button will fail.
 
 1. Install from
    <https://docs.claude.com/en/docs/claude-code> (KanBots needs
@@ -98,9 +98,28 @@ KanBots inherits the environment of whatever launches it, so
 authenticate Claude Code in the same shell (or in your shell rc) that
 your desktop session inherits from.
 
-> Codex is supported as an alternative — install the `codex` CLI and
-> KanBots will offer it per dispatch. You need at least one of
-> `claude` or `codex` available.
+### Antigravity CLI (optional)
+
+Install Google's Antigravity CLI (`agy`) and use version 1.1.1 or newer for
+piped output:
+
+```sh
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+```
+
+On Windows PowerShell:
+
+```powershell
+irm https://antigravity.google/cli/install.ps1 | iex
+```
+
+Authenticate with browser OAuth on first launch. Alternatively, set
+`GEMINI_API_KEY` and `modelProvider "gemini"` in
+`~/.gemini/antigravity-cli/settings.json`.
+
+> Codex and Antigravity CLI are supported alternatives — install the `codex`
+> CLI or `agy` CLI and KanBots will offer them per dispatch. You need at least
+> one of `claude`, `codex`, or `agy` available.
 
 ## 3. Open KanBots
 
@@ -150,8 +169,8 @@ Nothing is written outside the workspace folder.
    - **Create & dispatch** — spawns an agent immediately on a fresh
      worktree.
    - **Queue for later** — sits in Backlog until you start it.
-3. Pick the agent CLI (`claude (auto)` defaults to Claude Code; you
-   can switch to Codex per dispatch), the model, and the effort.
+3. Pick the agent CLI (`claude (auto)` defaults to Claude Code; you can
+   switch to Codex or Antigravity CLI per dispatch), the model, and the effort.
 
    ![New task modal](assets/new-task-modal.png)
 
@@ -161,7 +180,8 @@ Nothing is written outside the workspace folder.
 ### Your first agent run
 
 1. Open the card and click **Dispatch**.
-2. Pick an agent identity (Claude Code or Codex) and a model. Confirm.
+2. Pick an agent identity (Claude Code, Codex, or Antigravity CLI) and a
+   model. Confirm.
 3. KanBots creates `.kanbots/worktrees/issue-<n>-<runId>/`, branches
    it from your default branch, and spawns the chosen CLI against it.
 4. The detail panel switches to the live thread. Every `tool_use` and

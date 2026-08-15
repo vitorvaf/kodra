@@ -5,7 +5,10 @@ import type {
   SuggestFeatureEntryStatus,
 } from '@kanbots/api';
 import type { CardSummary, CloudClient } from '@kanbots/cloud-client';
-import { createSuggester } from '@kanbots/dispatcher';
+import {
+  createSuggester,
+  type SuggestFeatureInput,
+} from '@kanbots/dispatcher';
 import { CHANNEL_PREFIX } from './ipc/register.js';
 import { toIpcError } from './ipc/errors.js';
 import type { ActiveCloudWorkspaceInfo } from './types.js';
@@ -41,6 +44,7 @@ interface SuggestArgs {
     | 'claude-code'
     | 'codex-cli'
     | 'gemini-cli'
+    | 'agy-cli'
     | 'amp-cli'
     | 'cursor-cli'
     | 'copilot-cli'
@@ -100,9 +104,18 @@ export function registerCloudComposerHandlers(
       // per call because the binding can change without reopening the
       // workspace (Cloud Settings → Bind local repo updates it in place).
       const suggest = createSuggester({ cwd: ws.localRepoPath });
+      // The dispatcher source type may lag the provider union while its
+      // generated declarations are being rebuilt. Keep the cloud composer
+      // input aligned with the desktop provider contract in the meantime.
+      type CloudSuggestFeatureInput = Omit<SuggestFeatureInput, 'provider'> & {
+        provider?: SuggestArgs['provider'];
+      };
+      const suggestWithCloudProvider = suggest as (
+        input: CloudSuggestFeatureInput,
+      ) => ReturnType<typeof suggest>;
 
       const trimmedNotes = args.userNotes?.trim();
-      return await suggest({
+      return await suggestWithCloudProvider({
         backlog,
         personaPrompt: args.personaPrompt,
         ...(args.provider !== undefined ? { provider: args.provider } : {}),

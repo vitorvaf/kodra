@@ -27,6 +27,8 @@ function providerShortLabel(provider: string): string {
       return 'Codex';
     case 'gemini-cli':
       return 'Gemini';
+    case 'agy-cli':
+      return 'Antigravity';
     case 'amp-cli':
       return 'Amp';
     case 'cursor-cli':
@@ -320,25 +322,27 @@ function ProviderChip({ provider }: { provider: string }): React.ReactElement {
       ? 'is-codex'
       : provider === 'gemini-cli'
         ? 'is-gemini'
-        : provider === 'amp-cli'
-          ? 'is-amp'
-          : provider === 'cursor-cli'
-            ? 'is-cursor'
-            : provider === 'copilot-cli'
-              ? 'is-copilot'
-              : provider === 'opencode-cli'
-                ? 'is-opencode'
-                : provider === 'droid-cli'
-                  ? 'is-droid'
-                  : provider === 'ccr-cli'
-                    ? 'is-ccr'
-                    : provider === 'qwen-cli'
-                      ? 'is-qwen'
-                      : provider === 'acp'
-                        ? 'is-acp'
-                        : provider === 'unknown' || provider === ''
-                          ? 'is-unknown'
-                          : '';
+        : provider === 'agy-cli'
+          ? 'is-agy'
+          : provider === 'amp-cli'
+            ? 'is-amp'
+            : provider === 'cursor-cli'
+              ? 'is-cursor'
+              : provider === 'copilot-cli'
+                ? 'is-copilot'
+                : provider === 'opencode-cli'
+                  ? 'is-opencode'
+                  : provider === 'droid-cli'
+                    ? 'is-droid'
+                    : provider === 'ccr-cli'
+                      ? 'is-ccr'
+                      : provider === 'qwen-cli'
+                        ? 'is-qwen'
+                        : provider === 'acp'
+                          ? 'is-acp'
+                          : provider === 'unknown' || provider === ''
+                            ? 'is-unknown'
+                            : '';
   const label = providerShortLabel(provider) || provider || 'unknown';
   return <span className={`kb-stats-provider-chip ${cls}`}>{label}</span>;
 }

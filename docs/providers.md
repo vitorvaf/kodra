@@ -1,7 +1,7 @@
 # AI providers
 
 The **AI providers** modal (Settings → Providers) is where you pick
-which CLI runs your agents and what model they default to. Two
+which CLI runs your agents and what model they default to. Three
 providers carry agent runs; the rest are HTTP-only backends used by
 the chat panel and a few drafting/analysis flows.
 
@@ -13,6 +13,7 @@ the chat panel and a few drafting/analysis flows.
 | --- | --- | --- |
 | **Claude Code subscription** | Runs agents through your existing Claude Code session. The default; best for agentic runs. | `claude /login` once. Kanbots inherits your CLI session. |
 | **Codex CLI (OpenAI)** | Runs agent tasks through OpenAI's `codex` CLI. Requires `codex` on `PATH`. | Click **Sign in with codex** (spawns `codex login` and opens auth.openai.com), or set `OPENAI_API_KEY` in your environment. |
+| **Antigravity CLI** | Runs agent tasks through Google's `agy` CLI. Requires `agy` on `PATH` (version 1.1.1+ for piped output). | Browser OAuth on first launch, or `GEMINI_API_KEY` with `modelProvider "gemini"` in `~/.gemini/antigravity-cli/settings.json`. |
 
 Per dispatch you can route to either — when you set the assignee to
 `claude (auto)`, kanbots uses whichever CLI is enabled and signed in.
@@ -30,6 +31,7 @@ provider IDs in the codebase:
 | `id` | Vendor | Use |
 | --- | --- | --- |
 | `claude-code` | Anthropic via `claude` CLI | Agents + chat |
+| `agy-cli` | Google via `agy` CLI | Agents |
 | `openai` | OpenAI API (Codex CLI maps here) | Agents (Codex) + chat |
 | `anthropic` | Anthropic API | Chat |
 | `google` | Gemini API | Chat |
@@ -59,8 +61,8 @@ discard all changes for issue-51-54") that don't deserve a card.*
 
 Two non-dismissible gates can appear:
 
-- **No agent provider configured** — appears when neither Claude
-  Code nor Codex is enabled and signed in. Set up at least one before
+- **No agent provider configured** — appears when Claude Code, Codex, and
+  Antigravity CLI are not enabled and signed in. Set up at least one before
   you can dispatch.
 - **`claude` not signed in** — appears when an agent dispatch fails
   because the Claude CLI can't authenticate. Run `claude /login`,

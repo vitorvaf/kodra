@@ -60,6 +60,7 @@ const PROVIDER_TO_CLI: Record<
   | 'claude_code'
   | 'codex'
   | 'gemini'
+  | 'agy'
   | 'amp'
   | 'cursor'
   | 'copilot'
@@ -72,6 +73,7 @@ const PROVIDER_TO_CLI: Record<
   'claude-code': 'claude_code',
   'codex-cli': 'codex',
   'gemini-cli': 'gemini',
+  'agy-cli': 'agy',
   'amp-cli': 'amp',
   'cursor-cli': 'cursor',
   'copilot-cli': 'copilot',
@@ -85,6 +87,7 @@ const PROVIDER_TO_PROVIDER_TAG: Record<AgentRunProvider, string> = {
   'claude-code': 'anthropic',
   'codex-cli': 'openai',
   'gemini-cli': 'google',
+  'agy-cli': 'google',
   'amp-cli': 'sourcegraph',
   'cursor-cli': 'cursor',
   'copilot-cli': 'github',

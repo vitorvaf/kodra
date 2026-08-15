@@ -389,6 +389,10 @@ export async function discoverSlashCommands(args: {
     return mergeAndDedupe([...KANBOTS_COMMANDS, ...ACP_BUILTINS]);
   }
 
+  if (args.agent === 'agy-cli') {
+    return [...KANBOTS_COMMANDS];
+  }
+
   // Exhaustiveness — if a new AgentKey lands, surface that explicitly
   // rather than silently returning an empty list.
   const exhaustive: never = args.agent;

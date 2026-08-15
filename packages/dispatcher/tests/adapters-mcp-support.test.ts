@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { acpAdapter } from '../src/adapters/acp.js';
 import { ampCliAdapter } from '../src/adapters/amp-cli.js';
+import { agyCliAdapter } from '../src/adapters/agy-cli.js';
 import { ccrCliAdapter } from '../src/adapters/ccr-cli.js';
 import { claudeCodeAdapter } from '../src/adapters/claude-code.js';
 import { codexCliAdapter } from '../src/adapters/codex-cli.js';
@@ -16,6 +17,7 @@ const adapters = {
   'claude-code': claudeCodeAdapter,
   'codex-cli': codexCliAdapter,
   'gemini-cli': geminiCliAdapter,
+  'agy-cli': agyCliAdapter,
   'amp-cli': ampCliAdapter,
   'cursor-cli': cursorCliAdapter,
   'copilot-cli': copilotCliAdapter,
@@ -49,6 +51,7 @@ describe('adapter MCP support', () => {
       // run with an unknown-flag error before it starts.
       expect(getAdapterMcpSupport('opencode-cli')).toBe('none');
       expect(getAdapterMcpSupport('gemini-cli')).toBe('none');
+      expect(getAdapterMcpSupport('agy-cli')).toBe('config-dir');
       expect(getAdapterMcpSupport('amp-cli')).toBe('none');
       expect(getAdapterMcpSupport('copilot-cli')).toBe('none');
       expect(getAdapterMcpSupport('cursor-cli')).toBe('none');

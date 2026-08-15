@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import type { AgentRunProvider } from '@kanbots/dispatcher';
 
 /**
@@ -21,6 +21,7 @@ export const PROVIDER_FALLBACK_ORDER: readonly AgentRunProvider[] = [
   'opencode-cli',
   'codex-cli',
   'gemini-cli',
+  'agy-cli',
   'amp-cli',
   'cursor-cli',
   'copilot-cli',
@@ -46,6 +47,22 @@ export function hasGeminiCliCredentials(): boolean {
   if (h && existsSync(`${h}/.gemini/oauth_creds.json`)) return true;
   if (process.env.GEMINI_API_KEY) return true;
   return false;
+}
+
+export function hasAgyCliCredentials(): boolean {
+  const h = home();
+  const settingsPath = `${h}/.gemini/antigravity-cli/settings.json`;
+  if (!h || !existsSync(settingsPath)) return false;
+
+  try {
+    const settings = JSON.parse(readFileSync(settingsPath, 'utf8')) as {
+      modelProvider?: unknown;
+    };
+    if (settings.modelProvider === 'gemini') return Boolean(process.env.GEMINI_API_KEY);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function hasAmpCliCredentials(): boolean {
@@ -137,6 +154,8 @@ export function hasProviderCredentials(
       return hasCodexCliCredentials();
     case 'gemini-cli':
       return hasGeminiCliCredentials();
+    case 'agy-cli':
+      return hasAgyCliCredentials();
     case 'amp-cli':
       return hasAmpCliCredentials();
     case 'cursor-cli':

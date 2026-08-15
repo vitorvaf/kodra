@@ -177,6 +177,7 @@ export interface KanbotsBridge {
       | 'claude-code'
       | 'codex-cli'
       | 'gemini-cli'
+      | 'agy-cli'
       | 'amp-cli'
       | 'cursor-cli'
       | 'copilot-cli'

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { validateProvider, type ProviderCredentials } from '@kanbots/llm';
 import type { ProviderId, Store } from '@kanbots/local-store';
 import { z } from 'zod';
@@ -27,6 +27,7 @@ const PROVIDER_ID_SCHEMA = z.enum([
   'claude-code',
   'codex-cli',
   'gemini-cli',
+  'agy-cli',
   'amp-cli',
   'cursor-cli',
   'copilot-cli',
@@ -101,7 +102,7 @@ export async function testConnection(
       credentialsPath: claudeCodeCredentialsPath(),
     };
   } else {
-    // codex-cli, gemini-cli, amp-cli: validate is a no-op; their adapters
+    // codex-cli, gemini-cli, agy-cli, amp-cli: validate is a no-op; their adapters
     // don't read creds — they rely on the CLI finding its own auth.
     creds = { kind: 'api-key', apiKey: '' };
   }
@@ -181,6 +182,25 @@ function hasGeminiCliCredentials(): boolean {
   if (home && existsSync(`${home}/.gemini/oauth_creds.json`)) return true;
   if (process.env.GEMINI_API_KEY) return true;
   return false;
+}
+
+function hasAgyCliCredentials(): boolean {
+  // Antigravity uses the Gemini OAuth keyring by default. When configured to
+  // use the Gemini API, it requires GEMINI_API_KEY and modelProvider: "gemini"
+  // in its settings file.
+  const home = process.env.HOME ?? process.env.USERPROFILE ?? '';
+  const settingsPath = `${home}/.gemini/antigravity-cli/settings.json`;
+  if (!home || !existsSync(settingsPath)) return false;
+
+  try {
+    const settings = JSON.parse(readFileSync(settingsPath, 'utf8')) as {
+      modelProvider?: unknown;
+    };
+    if (settings.modelProvider === 'gemini') return Boolean(process.env.GEMINI_API_KEY);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function hasAmpCliCredentials(): boolean {
@@ -267,6 +287,8 @@ function apiKeyHintFor(id: ProviderId): string {
       return 'Use `codex login` or set OPENAI_API_KEY in your environment.';
     case 'gemini-cli':
       return 'Run `gemini /login` or set GEMINI_API_KEY in your environment.';
+    case 'agy-cli':
+      return 'Sign in with Antigravity OAuth, or set GEMINI_API_KEY with modelProvider "gemini" in ~/.gemini/antigravity-cli/settings.json.';
     case 'amp-cli':
       return 'Run `amp /login` or set AMP_API_KEY in your environment.';
     case 'cursor-cli':
@@ -301,6 +323,8 @@ function detectProviderCredentials(
       return hasCodexCliCredentials();
     case 'gemini-cli':
       return hasGeminiCliCredentials();
+    case 'agy-cli':
+      return hasAgyCliCredentials();
     case 'amp-cli':
       return hasAmpCliCredentials();
     case 'cursor-cli':

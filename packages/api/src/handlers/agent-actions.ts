@@ -24,6 +24,7 @@ const PROVIDER_ENUM = z.enum([
   'claude-code',
   'codex-cli',
   'gemini-cli',
+  'agy-cli',
   'amp-cli',
   'cursor-cli',
   'copilot-cli',
@@ -112,6 +113,7 @@ export interface StartAgentArgs {
     | 'claude-code'
     | 'codex-cli'
     | 'gemini-cli'
+    | 'agy-cli'
     | 'amp-cli'
     | 'cursor-cli'
     | 'copilot-cli'

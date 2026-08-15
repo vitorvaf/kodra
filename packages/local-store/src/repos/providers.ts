@@ -10,6 +10,7 @@ const PROVIDER_IDS: readonly ProviderId[] = [
   'claude-code',
   'codex-cli',
   'gemini-cli',
+  'agy-cli',
   'amp-cli',
   'cursor-cli',
   'copilot-cli',

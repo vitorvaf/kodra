@@ -30,6 +30,7 @@ const suggestSchema = z
         'claude-code',
         'codex-cli',
         'gemini-cli',
+        'agy-cli',
         'amp-cli',
         'cursor-cli',
         'copilot-cli',
@@ -50,6 +51,7 @@ export interface SuggestArgs {
     | 'claude-code'
     | 'codex-cli'
     | 'gemini-cli'
+    | 'agy-cli'
     | 'amp-cli'
     | 'cursor-cli'
     | 'copilot-cli'

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { acpAdapter } from '../src/adapters/acp.js';
+import { agyCliAdapter } from '../src/adapters/agy-cli.js';
 import { ccrCliAdapter } from '../src/adapters/ccr-cli.js';
 import { claudeCodeAdapter } from '../src/adapters/claude-code.js';
 import { copilotCliAdapter } from '../src/adapters/copilot-cli.js';
@@ -16,6 +17,93 @@ function feed(lines: readonly string[], parse: (line: string) => StreamEvent[]):
   }
   return out;
 }
+
+describe('agyCliAdapter', () => {
+  it('builds headless stream-json args and maps model, conversation, and extras', () => {
+    expect(agyCliAdapter.buildArgs({})).toEqual([
+      '-p',
+      '--output-format',
+      'stream-json',
+      '--dangerously-skip-permissions',
+    ]);
+    expect(agyCliAdapter.buildArgs({
+      model: 'gemini-3.6-flash-low',
+      resumeFromSessionId: 'conversation-1',
+      extraArgs: ['--verbose'],
+    })).toEqual([
+      '-p',
+      '--output-format',
+      'stream-json',
+      '--dangerously-skip-permissions',
+      '--model',
+      'gemini-3.6-flash-low',
+      '--conversation',
+      'conversation-1',
+      '--verbose',
+    ]);
+    // `default` is the catalogue placeholder for "let agy pick" — it must
+    // never reach argv (the CLI rejects unknown model slugs with exit 1).
+    expect(agyCliAdapter.buildArgs({ model: 'default' })).toEqual([
+      '-p',
+      '--output-format',
+      'stream-json',
+      '--dangerously-skip-permissions',
+    ]);
+  });
+
+  it('parses init, step updates, results, ignored output, and malformed JSON', () => {
+    const events = feed([
+      JSON.stringify({ event: 'init', conversation_id: 'conversation-1' }),
+      JSON.stringify({ event: 'step_update', step_update: { text_delta: 'Hello' } }),
+      JSON.stringify({
+        event: 'step_update',
+        step_update: { tool_use: { id: 'tool-1', name: 'Read', input: { path: 'a.ts' } } },
+      }),
+      JSON.stringify({
+        event: 'result',
+        result: {
+          status: 'SUCCESS',
+          response: 'done',
+          duration_seconds: 1.25,
+          usage: { input_tokens: 10, output_tokens: 5 },
+        },
+      }),
+      'status: working',
+      '{malformed',
+    ], (line) => agyCliAdapter.parseLine(line));
+
+    expect(events.map((event) => event.kind)).toEqual([
+      'session',
+      'text',
+      'tool_use',
+      'result',
+      'parse_error',
+    ]);
+    expect(events[0]).toEqual({ kind: 'session', sessionId: 'conversation-1', model: null });
+    expect(events[3]).toEqual({
+      kind: 'result',
+      isError: false,
+      text: 'done',
+      tokenUsage: { input: 10, output: 5 },
+      durationMs: 1250,
+      totalCostUsd: null,
+    });
+  });
+
+  it('maps a non-success result to an error result', () => {
+    expect(agyCliAdapter.parseLine(JSON.stringify({
+      event: 'result',
+      result: { status: 'ERROR', response: 'failed' },
+    }))).toEqual([{
+      kind: 'result',
+      isError: true,
+      text: 'failed',
+      tokenUsage: null,
+      durationMs: null,
+      totalCostUsd: null,
+    }]);
+  });
+});
 
 describe('claudeCodeAdapter', () => {
   it('defaults to claude-sonnet-5 when no model is provided', () => {

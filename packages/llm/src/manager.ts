@@ -1,5 +1,6 @@
 import { acpAdapter } from './adapters/acp.js';
 import { ampCliAdapter } from './adapters/amp-cli.js';
+import { agyCliAdapter } from './adapters/agy-cli.js';
 import { ccrCliAdapter } from './adapters/ccr-cli.js';
 import { claudeCodeAdapter } from './adapters/claude-code.js';
 import { codexCliAdapter } from './adapters/codex-cli.js';
@@ -22,6 +23,7 @@ const ADAPTERS: Record<ProviderId, ProviderAdapter> = {
   'claude-code': claudeCodeAdapter,
   'codex-cli': codexCliAdapter,
   'gemini-cli': geminiCliAdapter,
+  'agy-cli': agyCliAdapter,
   'amp-cli': ampCliAdapter,
   'cursor-cli': cursorCliAdapter,
   'copilot-cli': copilotCliAdapter,

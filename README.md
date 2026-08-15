@@ -4,9 +4,9 @@
 
 # kanbots
 
-> **A kanban board that runs 11 agent CLIs in parallel.**
-> Claude Code, Codex, Gemini, Cursor, Copilot, Amp, OpenCode, Droid,
-> CCR, Qwen, plus any ACP-compatible CLI. Drop a folder. Get a board.
+> **A kanban board that runs 12 agent CLIs in parallel.**
+> Claude Code, Codex, Gemini, Antigravity, Cursor, Copilot, Amp, OpenCode,
+> Droid, CCR, Qwen, plus any ACP-compatible CLI. Drop a folder. Get a board.
 > Dispatch agents on every card — at the same time, each in its own
 > worktree. Or hit autopilot and let them split tasks, run them in
 > parallel slots, and check their own work while you sleep.
@@ -20,8 +20,8 @@
   as `status:*` label edits.
 - **Local-first issues** by default — stored in SQLite. Switch to
   GitHub mode to drive real issues on a repo.
-- **11 agent CLIs supported** — Claude Code, Codex, Gemini, Cursor,
-  Copilot, Amp, OpenCode, Droid, CCR, Qwen, plus any ACP-compatible
+- **12 agent CLIs supported** — Claude Code, Codex, Gemini, Antigravity,
+  Cursor, Copilot, Amp, OpenCode, Droid, CCR, Qwen, plus any ACP-compatible
   CLI. Each run is isolated in a per-run worktree; a pre-push hook
   prevents agents from pushing.
 - **Live agent thread** — every `tool_use`/`tool_result` streams in.
@@ -48,6 +48,7 @@ that's already on your `PATH`).
 | Claude Code | `claude` | `claude /login` |
 | Codex | `codex` | `codex login` or `OPENAI_API_KEY` |
 | Gemini | `gemini` | `gemini auth` |
+| Antigravity CLI | `agy` | browser OAuth on first launch |
 | Cursor CLI | `cursor-agent` | `cursor-agent login` |
 | GitHub Copilot CLI | `gh-copilot` | `gh auth login` (needs Copilot subscription) |
 | Amp | `amp` | `amp login` |
@@ -113,7 +114,7 @@ pnpm desktop:dev      # Vite + tsup --watch + electronmon
 
 You'll need **Node 20+**, **pnpm 10+**, **git**, and at least one of
 the supported agent CLIs on your `PATH` (see [Supported
-agents](#supported-agents) above — `claude`, `codex`, `gemini`,
+agents](#supported-agents) above — `claude`, `codex`, `gemini`, `agy`,
 `cursor-agent`, etc.). Add `gh` + `gh auth login` if you'll be
 driving GitHub issues.
 
@@ -200,7 +201,7 @@ Details: [docs/agents.md#autopilot](docs/agents.md#autopilot).
 | Topic | What's there |
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Install, first run, picking a workspace |
-| [Agents](docs/agents.md) | All 11 agent CLI runs, decision prompts, containment, costs, autopilot, personas |
+| [Agents](docs/agents.md) | All 12 agent CLI runs, decision prompts, containment, costs, autopilot, personas |
 | [Providers](docs/providers.md) | AI providers modal — picking the agent CLI, API key storage |
 | [Issues](docs/issues.md) | Local mode, GitHub mode, auth, Sentry import |
 | [MCP server](docs/mcp-server.md) | Wiring `kanbots-mcp-server` into Cursor or Claude Desktop |

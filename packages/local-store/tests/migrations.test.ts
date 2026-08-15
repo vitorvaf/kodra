@@ -79,6 +79,7 @@ describe('migrations', () => {
       '0028_chat_sessions_threads',
       '0029_card_templates',
       '0030_issue_relations',
+      '0031_agy_cli_provider',
     ]);
     store.close();
   });

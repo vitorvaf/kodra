@@ -34,6 +34,7 @@ const PROVIDER_OPTIONS: ReadonlyArray<{ id: ProviderId; label: string }> = [
   { id: 'claude-code', label: 'Claude Code' },
   { id: 'codex-cli', label: 'Codex CLI' },
   { id: 'gemini-cli', label: 'Gemini CLI' },
+  { id: 'agy-cli', label: 'Antigravity CLI' },
   { id: 'amp-cli', label: 'Amp' },
   { id: 'cursor-cli', label: 'Cursor Agent' },
   { id: 'copilot-cli', label: 'GitHub Copilot' },

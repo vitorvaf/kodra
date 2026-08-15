@@ -27,6 +27,7 @@ import { migration as m0027 } from './0027-chat-sessions.js';
 import { migration as m0028 } from './0028-chat-sessions-threads.js';
 import { migration as m0029 } from './0029-card-templates.js';
 import { migration as m0030 } from './0030-issue-relations.js';
+import { migration as m0031 } from './0031-agy-cli-provider.js';
 import type { Migration } from './types.js';
 
 // 0019-project-scope.ts is intentionally not imported here — it scaffolds
@@ -64,6 +65,7 @@ export const migrations: readonly Migration[] = [
   m0028,
   m0029,
   m0030,
+  m0031,
 ];
 
 export type { Migration };

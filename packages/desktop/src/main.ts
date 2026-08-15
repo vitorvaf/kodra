@@ -640,7 +640,10 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
   });
   const supervisor = wrapNotifyingSupervisor(rawSupervisor);
   const draftIssue = createComposer({ cwd: gitRoot });
-  const suggestIssue = createSuggester({ cwd: gitRoot });
+  // The dispatcher and API packages expose the same suggester contract, but
+  // their generated declarations can briefly disagree while provider unions
+  // are rebuilt. Keep the desktop bridge on the API contract.
+  const suggestIssue = createSuggester({ cwd: gitRoot }) as unknown as SuggestFeatureFn;
   const draftPrDescription = createPrDescriptionDrafter({ cwd: gitRoot });
   const analyzeSentryError = createSentryAnalyzer({ cwd: gitRoot });
 
@@ -1723,6 +1726,7 @@ function registerIpc(): void {
           | 'claude-code'
           | 'codex-cli'
           | 'gemini-cli'
+          | 'agy-cli'
           | 'amp-cli'
           | 'cursor-cli'
           | 'copilot-cli'
@@ -1747,7 +1751,7 @@ function registerIpc(): void {
           'This cloud project is not bound to a local repository. Open Cloud Settings → Bind local repo, then try again.',
         );
       }
-      const handle = await startCloudRun({
+      const cloudRunOptions = {
         cloudClient,
         orgSlug: args.orgSlug,
         projectSlug: args.projectSlug,
@@ -1759,8 +1763,10 @@ function registerIpc(): void {
         ...(args.model !== undefined ? { model: args.model } : {}),
         ...(args.provider !== undefined ? { provider: args.provider } : {}),
         cwd: activeCloudWorkspace.localRepoPath,
-        onFileTouched: (payload) => broadcastWorkspaceTouched(payload),
-      });
+        onFileTouched: (payload: { filePath: string; worktreePath: string }) =>
+          broadcastWorkspaceTouched(payload),
+      } as unknown as Parameters<typeof startCloudRun>[0];
+      const handle = await startCloudRun(cloudRunOptions);
       activeCloudRuns.set(handle.runId, handle);
       // Reap the handle once the run finishes so the map doesn't grow
       // unbounded across a long-lived desktop session.

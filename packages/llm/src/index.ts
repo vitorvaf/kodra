@@ -9,6 +9,7 @@ export {
 
 export { acpAdapter } from './adapters/acp.js';
 export { ampCliAdapter } from './adapters/amp-cli.js';
+export { agyCliAdapter } from './adapters/agy-cli.js';
 export { ccrCliAdapter } from './adapters/ccr-cli.js';
 export { claudeCodeAdapter } from './adapters/claude-code.js';
 export { codexCliAdapter } from './adapters/codex-cli.js';

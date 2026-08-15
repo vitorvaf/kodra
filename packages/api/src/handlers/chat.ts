@@ -23,6 +23,7 @@ const KNOWN_PROVIDERS: ReadonlySet<AgentRunProvider> = new Set([
   'claude-code',
   'codex-cli',
   'gemini-cli',
+  'agy-cli',
   'amp-cli',
   'cursor-cli',
   'copilot-cli',
@@ -127,6 +128,7 @@ const PROVIDER_ENUM = z.enum([
   'claude-code',
   'codex-cli',
   'gemini-cli',
+  'agy-cli',
   'amp-cli',
   'cursor-cli',
   'copilot-cli',
@@ -323,6 +325,7 @@ export async function postMessage(
       | 'claude-code'
       | 'codex-cli'
       | 'gemini-cli'
+      | 'agy-cli'
       | 'amp-cli'
       | 'cursor-cli'
       | 'copilot-cli'

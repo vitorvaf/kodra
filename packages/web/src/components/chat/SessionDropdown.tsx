@@ -11,6 +11,7 @@ const PROVIDER_LABELS: Record<ProviderId, string> = {
   'claude-code': 'Claude Code',
   'codex-cli': 'Codex CLI',
   'gemini-cli': 'Gemini CLI',
+  'agy-cli': 'Antigravity CLI',
   'amp-cli': 'Amp',
   'cursor-cli': 'Cursor Agent',
   'copilot-cli': 'GitHub Copilot',

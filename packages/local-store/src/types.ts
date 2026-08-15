@@ -385,6 +385,7 @@ export type ProviderId =
   | 'claude-code'
   | 'codex-cli'
   | 'gemini-cli'
+  | 'agy-cli'
   | 'amp-cli'
   | 'cursor-cli'
   | 'copilot-cli'

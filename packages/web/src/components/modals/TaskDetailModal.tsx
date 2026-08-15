@@ -451,6 +451,7 @@ function ReplyFooter({
             activeRun?.provider === 'claude-code' ||
             activeRun?.provider === 'codex-cli' ||
             activeRun?.provider === 'gemini-cli' ||
+            activeRun?.provider === 'agy-cli' ||
             activeRun?.provider === 'amp-cli' ||
             activeRun?.provider === 'cursor-cli' ||
             activeRun?.provider === 'copilot-cli' ||
@@ -502,6 +503,7 @@ function ReplyFooter({
       p === 'claude-code' ||
       p === 'codex-cli' ||
       p === 'gemini-cli' ||
+      p === 'agy-cli' ||
       p === 'amp-cli' ||
       p === 'cursor-cli' ||
       p === 'copilot-cli' ||
@@ -2809,4 +2811,3 @@ function PlanningSlotRow({ slot }: { slot: AutopilotPlanningSlot }) {
     </div>
   );
 }
-

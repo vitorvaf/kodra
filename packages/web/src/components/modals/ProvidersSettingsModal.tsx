@@ -58,6 +58,17 @@ const SPECS: ProviderSpec[] = [
       'Run `gemini /login` in your terminal to authorize. You can also set GEMINI_API_KEY in your environment.',
   },
   {
+    id: 'agy-cli',
+    name: 'Google Antigravity CLI',
+    description:
+      'Run agent tasks through Google’s Antigravity CLI. Requires `agy` on PATH (install via `curl -fsSL https://antigravity.google/cli/install.sh | bash`).',
+    externalAuth: true,
+    signupUrl: 'https://antigravity.google/product/antigravity-cli',
+    signInLabel: 'Open sign-in instructions',
+    authHint:
+      'Authenticate with browser OAuth on first launch. You can also set GEMINI_API_KEY and modelProvider "gemini" in ~/.gemini/antigravity-cli/settings.json.',
+  },
+  {
     id: 'amp-cli',
     name: 'Sourcegraph Amp',
     description:
@@ -162,6 +173,23 @@ const MODELS_BY_PROVIDER: Record<ProviderId, Array<{ id: string; label: string }
     { id: 'gemini-3-pro-preview', label: 'Gemini 3 Pro' },
     { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash' },
   ],
+  'agy-cli': [
+    { id: 'default', label: 'Antigravity (default)' },
+    { id: 'gemini-3.1-pro-high', label: 'Gemini 3.1 Pro (High)' },
+    { id: 'gemini-3.1-pro-low', label: 'Gemini 3.1 Pro (Low)' },
+    { id: 'gemini-3.7-flash-high', label: 'Gemini 3.7 Flash (High)' },
+    { id: 'gemini-3.7-flash-medium', label: 'Gemini 3.7 Flash (Medium)' },
+    { id: 'gemini-3.7-flash-low', label: 'Gemini 3.7 Flash (Low)' },
+    { id: 'gemini-3.6-flash-high', label: 'Gemini 3.6 Flash (High)' },
+    { id: 'gemini-3.6-flash-medium', label: 'Gemini 3.6 Flash (Medium)' },
+    { id: 'gemini-3.6-flash-low', label: 'Gemini 3.6 Flash (Low)' },
+    { id: 'gemini-3.5-flash-high', label: 'Gemini 3.5 Flash (High)' },
+    { id: 'gemini-3.5-flash-medium', label: 'Gemini 3.5 Flash (Medium)' },
+    { id: 'gemini-3.5-flash-low', label: 'Gemini 3.5 Flash (Low)' },
+    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (Antigravity)' },
+    { id: 'claude-opus-4-6-thinking', label: 'Claude Opus 4.6 Thinking (Antigravity)' },
+    { id: 'gpt-oss-120b-medium', label: 'GPT-OSS 120B (Antigravity)' },
+  ],
   'amp-cli': [{ id: 'default', label: 'Amp (default)' }],
   'cursor-cli': [
     { id: 'auto', label: 'Cursor (auto)' },
@@ -195,6 +223,12 @@ function runLoginForProvider(
       return bridge.codexLoginStart();
     case 'gemini-cli':
       return bridge.geminiLoginStart();
+    case 'agy-cli':
+      return Promise.resolve({
+        ok: false,
+        error:
+          'Antigravity CLI authenticates itself with browser OAuth on first launch. Configure it with the agy CLI or GEMINI_API_KEY.',
+      });
     case 'amp-cli':
       return bridge.ampLoginStart();
     case 'cursor-cli':
@@ -240,6 +274,10 @@ function cancelLoginForProvider(
     case 'gemini-cli':
       void bridge.geminiLoginCancel();
       return;
+    case 'agy-cli':
+      // Antigravity CLI owns its authentication flow; there is no desktop
+      // login process to cancel.
+      return;
     case 'amp-cli':
       void bridge.ampLoginCancel();
       return;
@@ -279,6 +317,8 @@ function signedInLabelFor(id: ProviderId): string {
       return '✓ codex credentials detected.';
     case 'gemini-cli':
       return '✓ gemini credentials detected.';
+    case 'agy-cli':
+      return '✓ agy credentials detected.';
     case 'amp-cli':
       return '✓ amp credentials detected.';
     case 'cursor-cli':

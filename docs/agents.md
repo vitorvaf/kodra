@@ -1,12 +1,13 @@
 # Agents
 
 kanbots dispatches one **agent run** per issue, in an isolated git worktree,
-backed by either **Claude Code** (`claude -p`) or **Codex** (`codex exec`).
+backed by **Claude Code** (`claude -p`), **Codex** (`codex exec`), or
+**Antigravity CLI** (`agy -p`).
 This page describes that lifecycle in detail.
 
 ## What runs
 
-Two CLI agents are supported, behind a single
+Three CLI agents are supported, behind a single
 `AgentCliAdapter` interface (`packages/dispatcher/src/`). The adapter
 encapsulates argument construction, stream parsing, and decision
 plumbing — the rest of the dispatcher doesn't care which CLI is
@@ -16,6 +17,7 @@ underneath.
 | --- | --- | --- |
 | Claude Code | `claude -p` | Reuses your `claude /login` credentials. Best default. |
 | Codex | `codex exec` | Requires `codex` on `PATH`. Sign in via "Sign in with codex" or `OPENAI_API_KEY`. Issue drafting and Sentry analysis still run on Claude. |
+| Antigravity CLI | `agy -p` | Requires `agy` on `PATH` (version 1.1.1+ for piped output). Uses browser OAuth on first launch or the configured Gemini API key. |
 
 You pick which one to use per dispatch from the **AI providers** modal:
 
@@ -43,6 +45,17 @@ Containment is enforced separately (see below) and a pre-push hook in
 the worktree prevents network pushes regardless. Codex's equivalent
 flags are configured by its adapter in the same place.
 
+### Antigravity CLI headless runs
+
+- Non-interactive invocation: `agy -p "<prompt>" --output-format stream-json`.
+- Use `--dangerously-skip-permissions` for yolo mode.
+- Select a model with `--model <model>`.
+- Resume a conversation with `--conversation <uuid>`.
+- Install with `curl -fsSL https://antigravity.google/cli/install.sh | bash`;
+  on Windows use `irm https://antigravity.google/cli/install.ps1 | iex`.
+- Authenticate with browser OAuth on first launch, or set `GEMINI_API_KEY`
+  and `modelProvider "gemini"` in `~/.gemini/antigravity-cli/settings.json`.
+
 ## Worktree lifecycle
 
 For each run kanbots:
@@ -64,8 +77,8 @@ across many issues.
 
 ## The stream
 
-Both CLIs emit one JSON object per line (Claude's `stream-json` and Codex's
-equivalent). The dispatcher's
+All three CLIs emit one JSON object per line (Claude's `stream-json`, Codex's
+equivalent, and Antigravity's `stream-json`). The dispatcher's
 [`stream-parser`](../packages/dispatcher/src/stream-parser.ts) classifies
 each line into one of:
 
@@ -152,7 +165,8 @@ cooldown clears.
 Each invocation produces a session id (in the `session` event). The
 dispatcher persists it on the run row; on resume, the next process is
 spawned with the CLI's resume flag (`--resume <sessionId>` for Claude;
-the Codex equivalent for Codex) so context is reused without
+`--conversation <uuid>` for Antigravity; the Codex equivalent for Codex)
+so context is reused without
 re-sending the full history.
 
 ## Promotion

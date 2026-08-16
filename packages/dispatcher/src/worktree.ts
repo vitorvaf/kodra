@@ -1,11 +1,14 @@
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
-import { isAbsolute, resolve } from 'node:path';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
 const AGENT_BRANCH_PREFIX = 'refs/heads/kanbots/issue-';
+const LEGACY_DIR = '.kanbots';
+const CURRENT_DIR = '.kodra';
 
 const PRE_PUSH_HOOK = `#!/bin/sh
 # Installed by kanbots to block pushes of agent worktree branches.
@@ -51,6 +54,7 @@ export interface Worktree {
 }
 
 export async function createWorktree(input: CreateWorktreeInput): Promise<Worktree> {
+  await mkdir(dirname(input.worktreePath), { recursive: true });
   const args = ['worktree', 'add', '-b', input.branch, input.worktreePath];
   if (input.baseRef) args.push(input.baseRef);
   await execFileAsync('git', args, { cwd: input.repoPath });
@@ -86,12 +90,24 @@ export async function removeWorktree(input: RemoveWorktreeInput): Promise<void> 
   await execFileAsync('git', args, { cwd: input.repoPath });
 }
 
+export function resolveWorktreePath(
+  repoPath: string,
+  issueNumber: number | string,
+  runId: string,
+): string {
+  const worktreeName = `issue-${issueNumber}-${runId}`;
+  const legacyPath = join(repoPath, LEGACY_DIR, 'worktrees', worktreeName);
+  return existsSync(legacyPath)
+    ? legacyPath
+    : join(repoPath, CURRENT_DIR, 'worktrees', worktreeName);
+}
+
 export function defaultWorktreePath(opts: {
   repoPath: string;
   issueNumber: number;
   runId: number;
 }): string {
-  return `${opts.repoPath}/.kanbots/worktrees/issue-${opts.issueNumber}-${opts.runId}`;
+  return resolveWorktreePath(opts.repoPath, opts.issueNumber, String(opts.runId));
 }
 
 export function defaultBranchName(opts: { issueNumber: number; runId: number }): string {

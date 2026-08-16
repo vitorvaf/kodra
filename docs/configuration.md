@@ -7,6 +7,9 @@ checking it into a project template.
 
 ## `.kanbots/config.json`
 
+The app reads `.kanbots/config.json` when that directory exists; otherwise it
+reads `.kodra/config.json` for new workspaces.
+
 Two shapes, one per workspace mode. Both share a common
 `WorkspaceConfigCommon` extension.
 
@@ -156,15 +159,15 @@ not at runtime.
 
 ```
 ~/.kanbots/token           # global GitHub token fallback (3rd in priority)
-<repo>/.kanbots/config.json
-<repo>/.kanbots/db.sqlite
-<repo>/.kanbots/worktrees/issue-<n>-<runId>/
-<repo>/.kanbots/mcp-runtime/mcp-<uuid>.json    # transient
+<repo>/.kanbots/config.json                   # or .kodra/config.json for new workspaces
+<repo>/.kanbots/db.sqlite                     # or .kodra/db.sqlite for new workspaces
+<repo>/.kodra/worktrees/issue-<n>-<runId>/    # new runs; legacy runs use .kanbots if present
+<repo>/.kodra/mcp-runtime/mcp-<uuid>.json     # new workspaces; transient
 ```
 
-Anything in `<repo>/.kanbots/` is created and managed by the app. The
-file under `~/.kanbots/` is the only thing Kodra ever writes to your
-home directory, and only if you put it there yourself.
+Anything in either `<repo>/.kanbots/` or `<repo>/.kodra/` is created and
+managed by the app. The file under `~/.kanbots/` is the only thing Kodra ever
+writes to your home directory, and only if you put it there yourself.
 
 ## Validation
 

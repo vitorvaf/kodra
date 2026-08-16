@@ -12,8 +12,8 @@ on-disk data, or runtime integration points:
 - npm package and command: `npx kanbots` (the published package is still
   upstream-owned)
 - package scope: `@kanbots/*`
-- workspace data: `.kanbots/`, including `db.sqlite`, `config.json`,
-  `worktrees/`, and `mcp-runtime/`
+- legacy workspace data: `.kanbots/`, including `db.sqlite`, `config.json`,
+  and `mcp-runtime/`
 - environment variables beginning with `KANBOTS_`
 - executable: `kanbots-mcp-server`
 - Electron IPC channels using `kanbots:*`
@@ -33,6 +33,16 @@ on-disk data, or runtime integration points:
 These identifiers are compatibility debt, not new Kodra branding. A future
 migration can introduce Kodra-native names without invalidating existing
 workspaces, integrations, or package consumers.
+
+## Migrated
+
+- New agent worktrees are created under `.kodra/worktrees/`.
+- Historical runs resolve through an existence check and continue using their
+  `.kanbots/worktrees/` path when it exists.
+- Existing workspaces keep `.kanbots/` as the root for their database and
+  configuration; new workspaces use `.kodra/`.
+- `.kodra/` is added to the repository's `.gitignore` automatically (alongside
+  the legacy `.kanbots/` entry).
 
 ## Migration debt
 

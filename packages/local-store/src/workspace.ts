@@ -6,6 +6,9 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
+const LEGACY_DIR = '.kanbots';
+const CURRENT_DIR = '.kodra';
+
 export interface KanbotsDir {
   root: string;
   dbPath: string;
@@ -273,7 +276,8 @@ function validateRtk(input: unknown): RtkConfig | undefined {
 }
 
 export function describeKanbotsDir(repoPath: string): KanbotsDir {
-  const root = join(repoPath, '.kanbots');
+  const legacyRoot = join(repoPath, LEGACY_DIR);
+  const root = existsSync(legacyRoot) ? legacyRoot : join(repoPath, CURRENT_DIR);
   return {
     root,
     dbPath: join(root, 'db.sqlite'),

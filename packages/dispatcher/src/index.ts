@@ -62,6 +62,7 @@ export { setAcpWorkspaceCommand } from './adapters/acp.js';
 export {
   createWorktree,
   removeWorktree,
+  resolveWorktreePath,
   defaultWorktreePath,
   defaultBranchName,
   type CreateWorktreeInput,

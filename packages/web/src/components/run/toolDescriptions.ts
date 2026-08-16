@@ -35,10 +35,11 @@ function asString(x: unknown): string | null {
 }
 
 function getDisplayPath(p: string): string {
-  // Worktrees live at <repoPath>/.kanbots/worktrees/<worktree-name>/<...>.
-  // Strip the absolute prefix so the user sees the path inside the repo
-  // tree, which is the part with actual signal.
-  const m = p.match(/[/\\]\.kanbots[/\\]worktrees[/\\][^/\\]+[/\\](.+)$/);
+  // Worktrees live at <repoPath>/.kodra/worktrees/<worktree-name>/<...>
+  // (legacy runs still resolve under .kanbots/worktrees). Strip the absolute
+  // prefix so the user sees the path inside the repo tree, which is the
+  // part with actual signal.
+  const m = p.match(/[/\\]\.(?:kanbots|kodra)[/\\]worktrees[/\\][^/\\]+[/\\](.+)$/);
   if (m && m[1]) return m[1];
   return p;
 }

@@ -129,15 +129,19 @@ Packaged fork builds are not yet available. They will land on the
 ### First run
 
 A workspace picker opens. Pick any folder that contains a git
-repository — Kodra creates `.kanbots/` (db + config + worktrees)
+repository — Kodra creates `.kodra/` (db + config + worktrees)
 inside it and drops you on the board.
 
 Full walkthrough: [docs/getting-started.md](docs/getting-started.md).
 
-## The `.kanbots/` directory
+## Workspace data directory
+
+New workspaces use `.kodra/`. Existing workspaces keep `.kanbots/` so their
+database and configuration continue to work. Both directories are added to
+`.gitignore` automatically. The layout below applies to either name:
 
 ```
-.kanbots/
+.kodra/ (or .kanbots/)
 ├── db.sqlite        # all issues, threads, runs, providers, settings
 ├── config.json      # workspace mode + defaults (see docs/configuration.md)
 ├── worktrees/       # one subdir per agent run
@@ -152,7 +156,7 @@ Nothing is written outside this directory or the worktrees it creates.
 
 | Mode | Source of issues | Use it for |
 | --- | --- | --- |
-| `local` | SQLite in `.kanbots/db.sqlite` | Solo work, side projects, anywhere you don't want GitHub Issues |
+| `local` | SQLite in the workspace data directory | Solo work, side projects, anywhere you don't want GitHub Issues |
 | `github` | GitHub REST via Octokit | When the repo's issues already live on GitHub |
 
 See [docs/issues.md](docs/issues.md) for auth setup and the
@@ -161,7 +165,7 @@ See [docs/issues.md](docs/issues.md) for auth setup and the
 ## How an agent run works
 
 1. Click **Dispatch** on a card.
-2. Kodra creates `.kanbots/worktrees/issue-<n>-<runId>/`, branched
+2. Kodra creates `.kodra/worktrees/issue-<n>-<runId>/` for new runs, branched
    from the repo's default branch.
 3. It spawns `claude -p` (or `codex` exec mode) against that worktree
    with stream-JSON output, parses every event, and forwards it to the

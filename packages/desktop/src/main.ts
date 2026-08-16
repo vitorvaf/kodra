@@ -899,6 +899,9 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
   await ensureGitignoreEntry(gitRoot, '.kanbots/').catch(() => {
     // best-effort
   });
+  await ensureGitignoreEntry(gitRoot, '.kodra/').catch(() => {
+    // best-effort
+  });
 
   const displayName = config.mode === 'local' ? config.name : `${config.owner}/${config.repo}`;
   await recordRecent(gitRoot, displayName);

@@ -38,6 +38,7 @@ const HIDDEN_EXCLUDES = new Set<string>([
   '.git',
   '.DS_Store',
   '.kanbots',
+  '.kodra',
   'node_modules',
   '.next',
   '.turbo',
@@ -598,4 +599,3 @@ export function repoRelativePath(absPath: string): string | null {
   if (rel.startsWith('..') || isAbsolute(rel)) return null;
   return rel.split(sep).join('/');
 }
-

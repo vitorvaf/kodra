@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { CloudClient } from '@kanbots/cloud-client';
 import {
   createWorktree,
+  resolveWorktreePath,
   startAgentRun,
   type AgentRunProvider,
   type StreamEvent,
@@ -15,7 +16,7 @@ import {
  *   1. POST /orgs/:slug/projects/:slug/cards/:n/runs  → creates a pending run
  *   2. POST /agent/runs/:id/claim                     → marks claimed
  *   3. create an isolated git worktree at
- *      .kanbots/worktrees/issue-<N>-<R>/ (R = cloud run id) so the agent
+ *      .kodra/worktrees/issue-<N>-<R>/ (R = cloud run id) so the agent
  *      doesn't trample on whatever's in the user's main checkout, and
  *      the FileChangeViewer can attribute touched files back to a task
  *   4. spawn the user's local Claude/Codex CLI in that worktree
@@ -110,7 +111,7 @@ function worktreeSuffixForRun(runId: string): string {
 }
 
 function worktreePathFor(repoRoot: string, cardNumber: number, runId: string): string {
-  return `${repoRoot}/.kanbots/worktrees/issue-${cardNumber}-${worktreeSuffixForRun(runId)}`;
+  return resolveWorktreePath(repoRoot, cardNumber, worktreeSuffixForRun(runId));
 }
 
 function branchNameFor(cardNumber: number, runId: string): string {

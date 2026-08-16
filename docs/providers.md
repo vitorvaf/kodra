@@ -11,16 +11,16 @@ the chat panel and a few drafting/analysis flows.
 
 | Provider | What it does | How to authenticate |
 | --- | --- | --- |
-| **Claude Code subscription** | Runs agents through your existing Claude Code session. The default; best for agentic runs. | `claude /login` once. Kanbots inherits your CLI session. |
+| **Claude Code subscription** | Runs agents through your existing Claude Code session. The default; best for agentic runs. | `claude /login` once. Kodra inherits your CLI session. |
 | **Codex CLI (OpenAI)** | Runs agent tasks through OpenAI's `codex` CLI. Requires `codex` on `PATH`. | Click **Sign in with codex** (spawns `codex login` and opens auth.openai.com), or set `OPENAI_API_KEY` in your environment. |
 | **Antigravity CLI** | Runs agent tasks through Google's `agy` CLI. Requires `agy` on `PATH` (version 1.1.1+ for piped output). | Browser OAuth on first launch, or `GEMINI_API_KEY` with `modelProvider "gemini"` in `~/.gemini/antigravity-cli/settings.json`. |
 
 Per dispatch you can route to either — when you set the assignee to
-`claude (auto)`, kanbots uses whichever CLI is enabled and signed in.
+`claude (auto)`, Kodra uses whichever CLI is enabled and signed in.
 
 > Even when Codex is your default, **issue drafting and Sentry
 > analysis still run on Claude.** Those are short-form prompts where
-> Claude's output format is currently what kanbots expects.
+> Claude's output format is currently what Kodra expects.
 
 ## Chat-only providers
 
@@ -53,7 +53,7 @@ discard all changes for issue-51-54") that don't deserve a card.*
   `keyEncryption: 'safe' | 'plain'` so you can tell which.
 - If `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY` /
   `DEEPSEEK_API_KEY` / `XAI_API_KEY` are set in your environment on
-  first run, kanbots imports them once and then forgets them.
+  first run, Kodra imports them once and then forgets them.
 - Keys never leave the workspace folder. They are not synced or
   pushed even if you commit `.kanbots/`.
 

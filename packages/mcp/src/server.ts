@@ -55,7 +55,7 @@ async function callBridge(name: string, args: unknown): Promise<unknown> {
 }
 
 const server = new Server(
-  { name: 'kanbots', version: '0.0.0' },
+  { name: 'kodra', version: '0.0.0' },
   { capabilities: { tools: {} } },
 );
 

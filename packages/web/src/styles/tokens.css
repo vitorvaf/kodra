@@ -1,49 +1,59 @@
 /* =========================================================================
-   kanbots — design tokens & base typography
-   Sourced from design_handoff_kanbots/source/styles.css.
-   Loaded BEFORE legacy widget styles so existing components are unaffected
-   visually until they are rewritten phase by phase.
+   Kodra — design tokens & base typography (Orbital identity)
+   Adapted for Kodra (Orbital identity) from the original kanbots design
+   handoff. Token names/structure unchanged so dependent CSS is unaffected
+   visually beyond the re-value.
+
+   Kodra palette reference (Orbital pack, docs/assets/brand/):
+     bg      #0A0C10    surface  #11151C    surface2 #171C26
+     border  #252C38    white    #F5F7FA    muted    #98A2B3
+     blue    #5B7CFF    blue2    #7A95FF    mint     #35E0A1
+     violet  #8B7CFF    red      #EF5B67
+   State semantics: mint = running/execution, violet = awaiting/coordination,
+   blue2 = review, red = failed/del.
    ========================================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
 
 :root[data-theme='dark'] {
-  /* Surfaces — deep warm near-black */
-  --bg: oklch(0.165 0.008 60);
-  --bg-1: oklch(0.195 0.009 60);
-  --bg-2: oklch(0.225 0.01 60);
-  --bg-3: oklch(0.265 0.011 60);
-  --bg-inset: oklch(0.14 0.008 60);
-  --hairline: oklch(0.305 0.011 60);
-  --hairline-soft: oklch(0.26 0.01 60);
+  /* Surfaces — deep cool near-black */
+  --bg: #0a0c10;
+  --bg-1: #11151c;
+  --bg-2: #171c26;
+  --bg-3: #1d2430;
+  --bg-inset: #07080b;
+  --hairline: #252c38;
+  --hairline-soft: #1e2530;
 
   /* Ink */
-  --ink: oklch(0.965 0.008 80);
-  --ink-1: oklch(0.87 0.009 80);
-  --ink-2: oklch(0.7 0.01 80);
-  --ink-3: oklch(0.56 0.01 80);
-  --ink-4: oklch(0.43 0.01 60);
+  --ink: #f5f7fa;
+  --ink-1: #d7dde5;
+  --ink-2: #98a2b3;
+  --ink-3: #6b7686;
+  --ink-4: #47505e;
 
-  /* Accent — Anthropic clay/terracotta */
-  --accent: oklch(0.745 0.155 45);
-  --accent-soft: oklch(0.745 0.155 45 / 0.14);
-  --accent-line: oklch(0.745 0.155 45 / 0.45);
-  --accent-ink: oklch(0.2 0.05 50);
+  /* Accent — Kodra blue. accent-ink is near-black: 5.4:1 on #5B7CFF
+     (white text is only ~3.4:1, failing AA for 12–14px button labels). */
+  --accent: #5b7cff;
+  --accent-soft: rgba(91, 124, 255, 0.14);
+  --accent-line: rgba(91, 124, 255, 0.45);
+  --accent-ink: #0a0c10;
 
-  /* State — share L≈0.74, c≈0.13–0.18 for equal perceived weight */
-  --running: oklch(0.745 0.155 45);
-  --awaiting: oklch(0.78 0.14 75);
-  --review: oklch(0.78 0.13 155);
-  --failed: oklch(0.7 0.18 25);
-  --queued: oklch(0.74 0.1 240);
-  --idle: oklch(0.55 0.005 60);
-  --add: oklch(0.78 0.13 155);
-  --del: oklch(0.7 0.18 25);
+  /* State — mint=running, violet=awaiting, blue2=review (distinct hue AND
+     lightness from mint), red=failed, muted indigo=queued, gray=idle */
+  --running: #35e0a1;
+  --awaiting: #8b7cff;
+  --review: #7a95ff;
+  --failed: #ef5b67;
+  --queued: #6b7bd6;
+  --idle: #6b7686;
+  --add: #35e0a1;
+  --del: #ef5b67;
 
-  --shadow-1: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 0 0 1px var(--hairline-soft);
+  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 0 0 1px var(--hairline-soft);
   --shadow-2:
-    0 1px 0 oklch(1 0 0 / 0.05) inset, 0 0 0 1px var(--hairline), 0 8px 30px oklch(0 0 0 / 0.45);
-  --shadow-pop: 0 24px 60px oklch(0 0 0 / 0.55), 0 0 0 1px var(--hairline);
+    0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 0 0 1px var(--hairline), 0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--hairline);
 
   /* Font families */
   --ff-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
@@ -58,37 +68,39 @@
 }
 
 :root[data-theme='paper'] {
-  --bg: oklch(0.965 0.008 80);
-  --bg-1: oklch(0.945 0.01 75);
-  --bg-2: oklch(0.985 0.006 80);
-  --bg-3: oklch(1 0 0);
-  --bg-inset: oklch(0.92 0.012 75);
-  --hairline: oklch(0.87 0.014 70);
-  --hairline-soft: oklch(0.91 0.01 75);
+  --bg: #f7f9fc;
+  --bg-1: #eef1f6;
+  --bg-2: #fbfcfe;
+  --bg-3: #ffffff;
+  --bg-inset: #e6eaf1;
+  --hairline: #d8dee8;
+  --hairline-soft: #e3e8f0;
 
-  --ink: oklch(0.22 0.012 60);
-  --ink-1: oklch(0.33 0.012 60);
-  --ink-2: oklch(0.46 0.012 60);
-  --ink-3: oklch(0.58 0.011 60);
-  --ink-4: oklch(0.7 0.01 60);
+  --ink: #101318;
+  --ink-1: #2e3644;
+  --ink-2: #5a6478;
+  --ink-3: #7b8598;
+  --ink-4: #a5aebf;
 
-  --accent: oklch(0.585 0.155 45);
-  --accent-soft: oklch(0.585 0.155 45 / 0.1);
-  --accent-line: oklch(0.585 0.155 45 / 0.4);
-  --accent-ink: oklch(0.985 0.006 80);
+  /* Accent darkened to #3D5BF5 for contrast on light surfaces.
+     accent-ink flips to near-white here: 4.9:1 vs only ~3.7:1 for dark ink. */
+  --accent: #3d5bf5;
+  --accent-soft: rgba(61, 91, 245, 0.1);
+  --accent-line: rgba(61, 91, 245, 0.4);
+  --accent-ink: #f5f7fa;
 
-  --running: oklch(0.585 0.155 45);
-  --awaiting: oklch(0.62 0.14 75);
-  --review: oklch(0.55 0.13 155);
-  --failed: oklch(0.55 0.2 25);
-  --queued: oklch(0.55 0.1 240);
-  --idle: oklch(0.65 0.005 60);
-  --add: oklch(0.55 0.13 155);
-  --del: oklch(0.55 0.2 25);
+  --running: #0a7e57;
+  --awaiting: #6a5be0;
+  --review: #4c63d6;
+  --failed: #d92c3a;
+  --queued: #5b63b8;
+  --idle: #8a93a5;
+  --add: #0a7e57;
+  --del: #d92c3a;
 
   --shadow-1: 0 0 0 1px var(--hairline-soft);
-  --shadow-2: 0 0 0 1px var(--hairline), 0 8px 22px oklch(0 0 0 / 0.05);
-  --shadow-pop: 0 24px 60px oklch(0 0 0 / 0.18), 0 0 0 1px var(--hairline);
+  --shadow-2: 0 0 0 1px var(--hairline), 0 8px 22px rgba(0, 0, 0, 0.05);
+  --shadow-pop: 0 24px 60px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--hairline);
 
   --ff-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   --ff-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;

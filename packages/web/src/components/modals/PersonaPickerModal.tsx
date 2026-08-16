@@ -13,7 +13,7 @@ export interface PersonaPickerModalProps {
   multiSelectConfirmLabel?: string;
   /** Called with the selected personas when the user confirms in multi-select mode. */
   onConfirm?: (personas: Persona[], provider?: ProviderId, userNotes?: string) => void;
-  /** Headline shown next to the kanbots crumb. */
+  /** Headline shown next to the Kodra crumb. */
   title?: string;
   /** Subhead shown above the persona grid. */
   subtitle?: string;

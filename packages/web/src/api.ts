@@ -692,7 +692,7 @@ export const api = {
   /**
    * List the slash commands available for the given agent CLI. Combines
    * the CLI's built-in catalog with user-authored commands and skills
-   * discovered on disk, plus kanbots orchestration commands. Result is
+   * discovered on disk, plus Kodra orchestration commands. Result is
    * cached server-side for 30s so a burst of `/` keypresses in the
    * composer typeahead is cheap.
    */
@@ -863,7 +863,7 @@ export const api = {
     invoke('cards:dismiss', { cardId }),
   listCardTemplates: (): Promise<CardTemplatePayload[]> => {
     // Card templates are workspace-scoped local-store rows. Cloud
-    // workspaces don't host a kanbots store today, so the list is
+    // workspaces don't host a Kodra store today, so the list is
     // empty until a cloud-side endpoint is added.
     if (cloudCtx !== null) return Promise.resolve([]);
     return invoke('card-templates:list', undefined);

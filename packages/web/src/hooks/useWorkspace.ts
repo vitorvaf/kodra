@@ -30,7 +30,7 @@ export interface WorkspaceState {
 
 const FALLBACK_WORKSPACE: Workspace = {
   id: 'default',
-  name: 'kanbots workspace',
+  name: 'Kodra workspace',
   currentFolderId: 'unknown',
 };
 

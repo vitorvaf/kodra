@@ -1,7 +1,7 @@
 {
   "name": "@kanbots/core",
   "version": "0.1.0",
-  "description": "Domain types, GitHub issue source contract, and shared utilities for kanbots",
+  "description": "Domain types, GitHub issue source contract, and shared utilities for Kodra",
   "license": "MIT",
   "author": "Leonardo Cunha",
   "homepage": "https://github.com/leodavinci1/kanbots#readme",

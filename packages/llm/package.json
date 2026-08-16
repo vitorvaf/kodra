@@ -1,7 +1,7 @@
 {
   "name": "@kanbots/llm",
   "version": "0.1.0",
-  "description": "Provider catalogue and CLI adapters for kanbots agents",
+  "description": "Provider catalogue and CLI adapters for Kodra agents",
   "license": "MIT",
   "author": "Leonardo Cunha",
   "homepage": "https://github.com/leodavinci1/kanbots#readme",

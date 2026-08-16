@@ -1,7 +1,7 @@
 {
   "name": "@kanbots/local-store",
   "version": "0.1.0",
-  "description": "SQLite storage layer (schema, migrations, repos) for kanbots",
+  "description": "SQLite storage layer (schema, migrations, repos) for Kodra",
   "license": "MIT",
   "author": "Leonardo Cunha",
   "homepage": "https://github.com/leodavinci1/kanbots#readme",

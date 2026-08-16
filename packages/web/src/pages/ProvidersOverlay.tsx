@@ -57,7 +57,7 @@ export function ProvidersOverlay({ reason, onConfigured }: ProvidersOverlayProps
           <h1 id="providers-overlay-title" className="kb-providers-overlay-title">
             {reason === 'all-failed'
               ? 'AI provider authentication failed'
-              : 'Kanbots needs an AI provider to work'}
+              : 'Kodra needs an AI provider to work'}
           </h1>
           <p className="kb-providers-overlay-body">
             {reason === 'all-failed'

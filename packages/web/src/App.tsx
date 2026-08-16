@@ -13,7 +13,7 @@ import { Board } from './pages/Board.js';
 import { CloudWorkspacePicker } from './pages/CloudWorkspacePicker.js';
 import { ProvidersOverlay } from './pages/ProvidersOverlay.js';
 // Local-first launch: the local workspace picker is reachable again.
-// Users can open a folder without signing in to Kanbots Cloud.
+// Users can open a folder without signing in to Kodra Cloud.
 import { WorkspacePicker } from './pages/WorkspacePicker.js';
 import { api, setCloudCtx } from './api.js';
 import { Window } from './components/shell/Window.js';
@@ -231,7 +231,7 @@ function ShellHost({
   return (
     <>
       <Window
-        workspaceName="kanbots workspace"
+        workspaceName="Kodra workspace"
         folderName={describeFolder(config)}
         branch="main"
         showRail={tweaks.showRail}
@@ -504,4 +504,3 @@ export function App({
     </IssuesProvider>
   );
 }
-

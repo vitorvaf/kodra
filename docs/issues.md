@@ -32,7 +32,7 @@ used in mentions. It defaults to `git config user.name` on first open.
 
 ## GitHub mode
 
-Issues live on github.com; kanbots is a UI over the REST API plus a
+Issues live on github.com; Kodra is a UI over the REST API plus a
 local cache for performance.
 
 - Reads/writes go through `@octokit/core` with the
@@ -50,7 +50,7 @@ local cache for performance.
 ```json
 {
   "mode": "github",
-  "owner": "leodavinci1",
+  "owner": "vitorvaf",
   "repo": "kanbots"
 }
 ```
@@ -68,7 +68,7 @@ Personal access tokens need at least `repo` scope. For private repos,
 fine-grained tokens with `Contents: read/write`, `Issues: read/write`,
 and `Pull requests: read/write` are enough.
 
-If all three fail, kanbots stays in read-only display until you fix it —
+If all three fail, Kodra stays in read-only display until you fix it —
 no silent failures on writes.
 
 ## The `IssueSource` contract
@@ -102,7 +102,7 @@ issues, post them to GitHub manually, then switch.
 ## Sentry import
 
 If you've configured Sentry (see [Sentry](#sentry-integration)), the
-poller pulls new error groups and creates kanbots issues for them. Each
+poller pulls new error groups and creates Kodra issues for them. Each
 imported issue:
 
 - Lands in the **Inbox** (no `status:*` label) until you triage it.

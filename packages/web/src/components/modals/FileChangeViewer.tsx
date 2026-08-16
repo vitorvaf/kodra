@@ -171,7 +171,7 @@ function StartAgentOnFilePanel({
     return (
       <div className="kb-fcv-start kb-fcv-start-disabled">
         <span className="kb-fcv-hint">
-          Sign in to Kanbots Cloud to start an agent on this file from here.
+          Sign in to Kodra Cloud to start an agent on this file from here.
         </span>
       </div>
     );

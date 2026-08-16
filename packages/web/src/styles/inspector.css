@@ -1,5 +1,5 @@
 /* =========================================================================
-   kanbots — inspector dock
+   Kodra — inspector dock
    Mirrors design_handoff_kanbots/source/styles.css §Right Inspector and the
    `Inspector` function in design_handoff_kanbots/source/inspector.jsx.
    ========================================================================= */
@@ -621,7 +621,7 @@
 }
 .kb-diff-line.hunk {
   color: var(--accent);
-  background: oklch(0.745 0.155 45 / 0.05);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
 }
 .kb-diff-empty {
   padding: 18px;

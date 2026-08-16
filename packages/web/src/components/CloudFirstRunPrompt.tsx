@@ -47,7 +47,7 @@ const HeroIcon = (
 );
 
 /**
- * Local-first launch: shown on first run to introduce Kanbots Cloud as an
+ * Local-first launch: shown on first run to introduce Kodra Cloud as an
  * optional add-on. Users can sign in OR continue locally; either choice
  * dismisses the prompt for future sessions.
  */
@@ -94,7 +94,7 @@ export function CloudFirstRunPrompt({ onSignedIn, onDismissed }: CloudFirstRunPr
       <div className="kb-cloud-modal" onMouseDown={stopInner}>
         <div className="kb-cloud-modal-head">
           <Logo size={14} />
-          <span className="kb-cloud-modal-head-title">Welcome to kanbots</span>
+          <span className="kb-cloud-modal-head-title">Welcome to Kodra</span>
           <span className="grow" />
         </div>
 
@@ -103,9 +103,9 @@ export function CloudFirstRunPrompt({ onSignedIn, onDismissed }: CloudFirstRunPr
             <div className="kb-cloud-hero-icon" style={{ color: 'var(--accent)' }}>
               {HeroIcon}
             </div>
-            <h2 className="kb-cloud-hero-title">Sign in to Kanbots Cloud?</h2>
+            <h2 className="kb-cloud-hero-title">Sign in to Kodra Cloud?</h2>
             <p className="kb-cloud-hero-tagline">
-              kanbots works fully offline on your machine. Kanbots Cloud is
+              Kodra works fully offline on your machine. Kodra Cloud is
               optional and adds team sync, cross-device boards, and shared
               run history.
             </p>
@@ -125,7 +125,7 @@ export function CloudFirstRunPrompt({ onSignedIn, onDismissed }: CloudFirstRunPr
             </li>
             <li className="kb-cloud-feature">
               <span className="kb-cloud-feature-icon">{CheckIcon}</span>
-              <span>One account works on every device you install kanbots on</span>
+              <span>One account works on every device you install Kodra on</span>
             </li>
           </ul>
 
@@ -136,7 +136,7 @@ export function CloudFirstRunPrompt({ onSignedIn, onDismissed }: CloudFirstRunPr
               onClick={() => setShowSettings(true)}
               disabled={busy}
             >
-              Sign in to Kanbots Cloud
+              Sign in to Kodra Cloud
             </button>
             <button
               type="button"

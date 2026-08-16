@@ -14,23 +14,27 @@ export const TWEAK_DEFAULTS = STORE_TWEAK_DEFAULTS;
 function applyTheme(t: Tweaks): void {
   if (typeof document === 'undefined') return;
   document.documentElement.setAttribute('data-theme', t.theme);
-  const lightness = t.theme === 'paper' ? '0.585' : '0.745';
+  // Kodra accent: dark #5B7CFF ≈ oklch(0.631 0.198 269), paper #3D5BF5 ≈
+  // oklch(0.548 0.231 269). Only the hue is user-tweakable; lightness and
+  // chroma stay pinned to the brand accent so the slider cannot drift into
+  // low-contrast territory.
+  const lightness = t.theme === 'paper' ? '0.548' : '0.631';
+  const chroma = t.theme === 'paper' ? '0.231' : '0.198';
   document.documentElement.style.setProperty(
     '--accent',
-    `oklch(${lightness} 0.155 ${t.accentHue})`,
+    `oklch(${lightness} ${chroma} ${t.accentHue})`,
   );
   document.documentElement.style.setProperty(
     '--accent-line',
-    `oklch(${lightness} 0.155 ${t.accentHue} / 0.45)`,
+    `oklch(${lightness} ${chroma} ${t.accentHue} / 0.45)`,
   );
   document.documentElement.style.setProperty(
     '--accent-soft',
-    `oklch(${lightness} 0.155 ${t.accentHue} / 0.14)`,
+    `oklch(${lightness} ${chroma} ${t.accentHue} / 0.14)`,
   );
-  document.documentElement.style.setProperty(
-    '--running',
-    `oklch(${lightness} 0.155 ${t.accentHue})`,
-  );
+  // NOTE: --running is intentionally NOT overridden here. Mint (#35E0A1) is
+  // Kodra's activity/execution color and comes from tokens.css; coupling it
+  // to the accent hue would break the state-color semantics.
 }
 
 /**

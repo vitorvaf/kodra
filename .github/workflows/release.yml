@@ -1,6 +1,6 @@
-name: Release desktop
+name: Release Kodra desktop
 
-# Triggers a multi-OS desktop build and uploads artifacts to a GitHub
+# Triggers a multi-OS Kodra desktop build and uploads artifacts to a GitHub
 # Release. Builds run in parallel on three OS runners; once all succeed,
 # a single publish job collects every artifact and creates one draft
 # release. The draft is left unpublished so a human can review the
@@ -11,9 +11,9 @@ name: Release desktop
 #   * Or run manually from the Actions tab via workflow_dispatch.
 #
 # What ships per platform:
-#   linux   → kanbots-<v>-linux-x64.AppImage, kanbots-<v>-linux-x64.tar.xz
-#   macos   → kanbots-<v>-mac-arm64.dmg/zip, kanbots-<v>-mac-x64.dmg/zip
-#   windows → kanbots-<v>-win-x64.exe (nsis installer)
+#   linux   → kodra-<v>-linux-x64.AppImage, kodra-<v>-linux-x64.tar.xz
+#   macos   → kodra-<v>-mac-arm64.dmg/zip, kodra-<v>-mac-x64.dmg/zip
+#   windows → kodra-<v>-win-x64.exe (nsis installer)
 #
 # Builds are unsigned for now. macOS users will need to right-click → Open
 # the first time; Windows users will see SmartScreen and click "More info →

@@ -1,4 +1,7 @@
-# kanbots — npx launcher
+# Kanbots — npx launcher
+
+> This launcher ships the upstream Kanbots distribution; the Kodra fork
+> currently builds from source.
 
 A one-command installer for the [kanbots](https://github.com/leodavinci1/kanbots)
 desktop app: a kanban board that runs Claude Code and Codex agents in parallel.

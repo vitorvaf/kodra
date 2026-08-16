@@ -2,7 +2,7 @@
   "name": "@kanbots/desktop",
   "version": "1.1.0",
   "private": true,
-  "description": "kanbots desktop app (Electron)",
+  "description": "Kodra desktop app (Electron)",
   "main": "./dist/main.cjs",
   "scripts": {
     "build:deps": "pnpm --filter \"@kanbots/desktop^...\" --workspace-concurrency=1 build",
@@ -56,9 +56,9 @@
     "logLevel": "quiet"
   },
   "build": {
-    "appId": "io.kanbots.desktop",
-    "productName": "kanbots",
-    "executableName": "kanbots",
+    "appId": "dev.kodra.desktop",
+    "productName": "Kodra",
+    "executableName": "kodra",
     "beforePack": "./scripts/before-pack.cjs",
     "asar": true,
     "asarUnpack": [
@@ -74,21 +74,19 @@
       "dist/**/*",
       "package.json"
     ],
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "leodavinci1",
-        "repo": "kanbots",
-        "releaseType": "draft"
-      }
-    ],
+    "publish": {
+      "provider": "github",
+      "owner": "vitorvaf",
+      "repo": "kanbots",
+      "releaseType": "draft"
+    },
     "linux": {
       "target": [
         "AppImage",
         "tar.xz"
       ],
       "category": "Development",
-      "artifactName": "kanbots-${version}-linux-x64.${ext}"
+      "artifactName": "kodra-${version}-linux-x64.${ext}"
     },
     "mac": {
       "target": [
@@ -108,7 +106,7 @@
         }
       ],
       "category": "public.app-category.developer-tools",
-      "artifactName": "kanbots-${version}-mac-${arch}.${ext}",
+      "artifactName": "kodra-${version}-mac-${arch}.${ext}",
       "identity": null,
       "hardenedRuntime": false,
       "gatekeeperAssess": false
@@ -125,14 +123,14 @@
           ]
         }
       ],
-      "artifactName": "kanbots-${version}-win-x64.${ext}"
+      "artifactName": "kodra-${version}-win-x64.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
-      "shortcutName": "kanbots"
+      "shortcutName": "Kodra"
     },
     "npmRebuild": false,
     "nodeGypRebuild": false

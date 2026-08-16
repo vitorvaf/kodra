@@ -1,6 +1,6 @@
 # Agents
 
-kanbots dispatches one **agent run** per issue, in an isolated git worktree,
+Kodra dispatches one **agent run** per issue, in an isolated git worktree,
 backed by **Claude Code** (`claude -p`), **Codex** (`codex exec`), or
 **Antigravity CLI** (`agy -p`).
 This page describes that lifecycle in detail.
@@ -58,7 +58,7 @@ flags are configured by its adapter in the same place.
 
 ## Worktree lifecycle
 
-For each run kanbots:
+For each run Kodra:
 
 1. Creates a worktree at `.kanbots/worktrees/issue-<n>-<runId>/`.
 2. Branches from the repo's default branch as
@@ -72,7 +72,7 @@ For each run kanbots:
 
 When the run ends, the worktree stays on disk until you promote it,
 discard it, or run another action that removes it. Worktrees and their
-branches are first-class kanbots state — you can have many parked runs
+branches are first-class Kodra state — you can have many parked runs
 across many issues.
 
 ## The stream
@@ -117,7 +117,7 @@ and respond.
 ## Containment
 
 Either CLI can technically `Edit` or `Write` to any path the user can
-access. kanbots watches every `tool_use` and compares the target path
+access. Kodra watches every `tool_use` and compares the target path
 to the worktree root. Behaviour is governed by **containment mode**:
 
 | Mode | Effect on out-of-worktree edits |
@@ -266,7 +266,7 @@ suggestions, code reviews, and split decisions shift accordingly.
 ![Pick a perspective modal showing persona tiles](assets/persona-picker.png)
 
 Personas are stored locally (in the SQLite db). Built-in ones ship
-with kanbots; **New persona** lets you write your own — define the
+with Kodra; **New persona** lets you write your own — define the
 prompt, save, reuse forever. Custom personas never leave your machine.
 
 In one-off dispatches the chosen persona is applied via

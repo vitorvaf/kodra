@@ -1,6 +1,6 @@
 # Configuration
 
-Reference for `.kanbots/config.json` and the environment variables kanbots
+Reference for `.kanbots/config.json` and the environment variables Kodra
 reads at startup. Most users never edit the file by hand — the desktop UI
 covers all of it — but knowing the schema is useful for scripting or for
 checking it into a project template.
@@ -38,7 +38,7 @@ Two shapes, one per workspace mode. Both share a common
 ```jsonc
 {
   "mode": "github",
-  "owner": "leodavinci1",
+  "owner": "vitorvaf",
   "repo": "kanbots",
 
   // same optional fields as local mode
@@ -117,7 +117,7 @@ when `teamId` is provided; `global` uses the global namespace. See
 ## RTK
 
 The optional `rtk` section controls the repository tool kit integration.
-Set `assumeInstalled` to `true` when RTK is already installed and kanbots
+Set `assumeInstalled` to `true` when RTK is already installed and Kodra
 should not require an installation check. See [ADR-0006](adr/0006-rtk-cli-output-compression.md)
 for the design details.
 
@@ -136,7 +136,7 @@ Can also be set via `KANBOTS_CONTAINMENT_MODE` environment variable.
 
 ## Environment variables
 
-kanbots reads the following at startup. Most are dev-only.
+Kodra reads the following at startup. Most are dev-only.
 
 | Var | Used by | Meaning |
 | --- | --- | --- |
@@ -163,7 +163,7 @@ not at runtime.
 ```
 
 Anything in `<repo>/.kanbots/` is created and managed by the app. The
-file under `~/.kanbots/` is the only thing kanbots ever writes to your
+file under `~/.kanbots/` is the only thing Kodra ever writes to your
 home directory, and only if you put it there yourself.
 
 ## Validation
@@ -171,5 +171,5 @@ home directory, and only if you put it there yourself.
 `packages/local-store/src/workspace.ts` exposes `readWorkspaceConfig()`
 which validates the JSON shape, drops unknown check kinds, and returns
 `null` if the file is malformed. Bad fields are warned to the console
-but don't crash the app — kanbots falls back to defaults so a typo
+but don't crash the app — Kodra falls back to defaults so a typo
 doesn't lock you out.

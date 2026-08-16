@@ -2,8 +2,8 @@
 
 RTK (Rust Token Killer) is an optional, user-installed CLI that compresses
 verbose shell command output so spawned agents spend fewer tokens reading
-build, test, and git noise. kanbots does **not** bundle or auto-install RTK;
-this page is opt-in guidance for installing it alongside kanbots. See the
+build, test, and git noise. Kodra does **not** bundle or auto-install RTK;
+this page is opt-in guidance for installing it alongside Kodra. See the
 [upstream RTK README](https://github.com/rtk-ai/rtk/blob/develop/README.md) and
 [rtk-ai.app](https://www.rtk-ai.app) for the current upstream documentation.
 
@@ -26,10 +26,10 @@ purely a CLI output optimization. In the architecture described by
 the cost-optimization axis and is orthogonal to `agentmemory`. See also
 [ADR-0006](adr/0006-rtk-cli-output-compression.md).
 
-## Why it matters for kanbots
+## Why it matters for Kodra
 
 Agent runs inside worktrees generate a lot of build, test, and git output that
-the agent reads back. RTK reduces that share of the output, so kanbots cost
+the agent reads back. RTK reduces that share of the output, so Kodra cost
 budgets can go further and autopilot sessions can run longer before reaching
 their caps. The relevant settings are `runCostBudgetUsd` and
 `sessionCostBudgetUsd` in `.kanbots/config.json`; see
@@ -42,7 +42,7 @@ approximate. The savings apply to command-output bytes, not to the whole bill.
 
 ## Install
 
-RTK is installed separately from kanbots:
+RTK is installed separately from Kodra:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/master/install.sh | sh
@@ -55,14 +55,14 @@ There is an unrelated package named `reachingforthejack/rtk` (Rust Type Kit).
 If `rtk gain` says `command not found`, you have the wrong package or the
 binary is not on your `PATH`. Verification requires that `rtk gain` works.
 
-## How it reaches kanbots-spawned agents
+## How it reaches Kodra-spawned agents
 
 RTK's hook lives in the user's agent CLI configuration, for example
-`~/.claude/settings.json`. kanbots spawns the same agent CLIs (Claude Code,
+`~/.claude/settings.json`. Kodra spawns the same agent CLIs (Claude Code,
 Codex, and others), so spawned runs inherit the transparent rewrite
 automatically. No per-worktree setup is needed.
 
-If kanbots spawns an agent with an explicit `--mcp-config` or settings override
+If Kodra spawns an agent with an explicit `--mcp-config` or settings override
 that bypasses the user-global configuration, RTK's hook may not apply. This is
 unusual; RTK still works for the common case.
 
@@ -79,8 +79,8 @@ available:
 }
 ```
 
-When `assumeInstalled: true`, kanbots will annotate the cost-budget UI with
-projected savings. This is a hint, not a measurement: kanbots does not invoke
+When `assumeInstalled: true`, Kodra will annotate the cost-budget UI with
+projected savings. This is a hint, not a measurement: Kodra does not invoke
 RTK and cannot measure its savings. RTK keeps its own analytics at
 `~/.local/share/rtk/history.db`. The default is omitted or `false`, which
 means no annotation. Omitting the whole `rtk` section is fine.
@@ -106,5 +106,5 @@ means no annotation. Omitting the whole `rtk` section is fine.
 - `.kanbots/config.json` → `rtk.assumeInstalled` — validated by
   `packages/local-store/src/workspace.ts`
 
-kanbots does not manage RTK in v1; the config field is the only kanbots-side
+Kodra does not manage RTK in v1; the config field is the only Kodra-side
 touchpoint for now.

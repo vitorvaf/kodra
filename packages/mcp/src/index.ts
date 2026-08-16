@@ -25,7 +25,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
   {
     name: 'listIssues',
     description:
-      'List issues in the current kanbots workspace. Returns title, number, status, agent, labels, etc.',
+      'List issues in the current Kodra workspace. Returns title, number, status, agent, labels, etc.',
     inputSchema: {
       type: 'object',
       additionalProperties: false,

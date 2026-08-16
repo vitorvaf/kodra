@@ -1,7 +1,7 @@
 {
   "name": "@kanbots/api",
   "version": "0.1.0",
-  "description": "Pure handler library and agent supervisor for kanbots (no HTTP server)",
+  "description": "Pure handler library and agent supervisor for Kodra (no HTTP server)",
   "license": "MIT",
   "author": "Leonardo Cunha",
   "homepage": "https://github.com/leodavinci1/kanbots#readme",

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Kodra app icon">
+      <title>Kodra</title>
+      
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#151D31"/>
+          <stop offset="0.58" stop-color="#0D1422"/>
+          <stop offset="1" stop-color="#080B11"/>
+        </linearGradient>
+        <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#7A95FF"/>
+          <stop offset="0.55" stop-color="#5B7CFF"/>
+          <stop offset="1" stop-color="#3155EC"/>
+        </linearGradient>
+        <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#FFFFFF"/>
+          <stop offset="1" stop-color="#BFC8D8"/>
+        </linearGradient>
+        <filter id="softglow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="18" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="nodeglow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="9" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+    
+      <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+      <rect x="18" y="18" width="988" height="988" rx="210" fill="none" stroke="#5B7CFF" stroke-width="4" opacity="0.42"/>
+      
+          <circle cx="512" cy="512" r="300" fill="none" stroke="#293A67" stroke-width="14" opacity="0.72"/>
+          <circle cx="512" cy="512" r="238" fill="none" stroke="#3155EC" stroke-width="8" stroke-dasharray="13 18" opacity="0.62"/>
+          <g stroke-linecap="round" stroke-linejoin="round">
+            <path d="M318 350 C390 372 424 428 484 486" fill="none" stroke="url(#blue)" stroke-width="48"/>
+            <path d="M304 512 H486" fill="none" stroke="#35E0A1" stroke-width="48"/>
+            <path d="M318 674 C390 652 424 596 484 538" fill="none" stroke="#8B7CFF" stroke-width="48"/>
+            <circle cx="290" cy="342" r="42" fill="#5B7CFF" filter="url(#nodeglow)"/>
+            <circle cx="280" cy="512" r="42" fill="#35E0A1" filter="url(#nodeglow)"/>
+            <circle cx="290" cy="682" r="42" fill="#8B7CFF" filter="url(#nodeglow)"/>
+            <path d="M480 510 L660 330" stroke="url(#blue)" stroke-width="88"/>
+            <path d="M480 514 L660 694" stroke="url(#silver)" stroke-width="88"/>
+            <circle cx="744" cy="296" r="17" fill="#5B7CFF"/>
+            <circle cx="700" cy="746" r="14" fill="#35E0A1"/>
+          </g>
+        
+    </svg>

@@ -1,10 +1,10 @@
 {
-  "name": "kanbots",
+  "name": "kodra",
   "version": "0.0.0",
   "private": true,
-  "description": "Local collaboration interface for working on GitHub Issues with Claude Code agents",
+  "description": "Kodra — agentic development workspace",
   "license": "MIT",
-  "author": "hello@kanbots.dev",
+  "author": "Kodra contributors",
   "type": "module",
   "engines": {
     "node": ">=20"

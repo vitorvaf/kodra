@@ -1,7 +1,7 @@
 # Architecture
 
 A map of how the pieces fit together. Read this if you're contributing,
-debugging an obscure issue, or wiring kanbots into something else.
+debugging an obscure issue, or wiring Kodra into something else.
 
 ## Process model
 

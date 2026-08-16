@@ -6,7 +6,7 @@ clients — Cursor, Claude Desktop, the Claude Code CLI itself — can use
 it to read issues, dispatch runs, or resolve decisions on your behalf.
 
 > The desktop app does **not** need the MCP server to function. This is
-> for letting external clients drive kanbots.
+> for letting external clients drive Kodra.
 
 ## How it works
 
@@ -17,7 +17,7 @@ bridge over HTTP with a token, and streams back the response.
 
 ```
 ┌────────────┐  stdio   ┌─────────────────┐  HTTP   ┌──────────────────┐
-│ MCP client │ ───────► │ kanbots-mcp-    │ ──────► │ kanbots tool     │
+│ MCP client │ ───────► │ kanbots-mcp-    │ ──────► │ Kodra tool       │
 │ (Cursor…)  │ ◄─────── │ server          │ ◄────── │ bridge (Electron)│
 └────────────┘          └─────────────────┘         └──────────────────┘
 ```
@@ -64,7 +64,7 @@ Cursor reads MCP server configs from
 ```json
 {
   "mcpServers": {
-    "kanbots": {
+    "kodra": {
       "command": "kanbots-mcp-server",
       "env": {
         "KANBOTS_TOOL_BRIDGE_URL": "http://127.0.0.1:34567",
@@ -92,7 +92,7 @@ Same shape as Cursor:
 ```json
 {
   "mcpServers": {
-    "kanbots": {
+    "kodra": {
       "command": "kanbots-mcp-server",
       "env": {
         "KANBOTS_TOOL_BRIDGE_URL": "http://127.0.0.1:34567",
@@ -107,18 +107,18 @@ Restart Claude Desktop after editing.
 
 ## Wiring it into the Claude Code CLI
 
-The Claude Code CLI accepts a `--mcp-config` file. kanbots already uses
+The Claude Code CLI accepts a `--mcp-config` file. Kodra already uses
 this internally for chat sessions, but you can pass your own:
 
 ```sh
-claude --mcp-config ~/kanbots-mcp.json -p "list open issues"
+claude --mcp-config ~/kodra-mcp.json -p "list open issues"
 ```
 
 ```json
-// ~/kanbots-mcp.json
+// ~/kodra-mcp.json
 {
   "mcpServers": {
-    "kanbots": {
+    "kodra": {
       "command": "kanbots-mcp-server",
       "env": {
         "KANBOTS_TOOL_BRIDGE_URL": "http://127.0.0.1:34567",

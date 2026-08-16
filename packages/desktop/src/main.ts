@@ -219,6 +219,29 @@ process.on('unhandledRejection', (reason) => {
   console.error('[main] unhandledRejection:', reason);
 });
 
+/**
+ * Packaged builds pin the app name to the historical "kanbots" so userData
+ * keeps pointing at the pre-rebrand directory (electron-builder changed
+ * productName to "Kodra"; Electron derives userData from it). In dev the pin
+ * must NOT apply — dev runs historically resolve userData to
+ * ~/.config/Electron, and pinning here would orphan the developer's data.
+ * Migration to a Kodra-named directory is deliberate future debt — see
+ * docs/rebranding.md.
+ */
+if (app.isPackaged) {
+  app.setName('kanbots');
+} else {
+  // Dev runs launch the prebuilt `electron` binary against dist/main.cjs,
+  // which loads no app package.json — the OS identity would fall back to
+  // "Electron" (taskbar/dock tooltip, WM_CLASS). Show up as Kodra instead,
+  // then re-pin userData to the historical dev directory: setName changes
+  // the path Electron derives (~/.config/Electron → ~/.config/Kodra), and
+  // dev data has always lived in ~/.config/Electron.
+  const devUserData = app.getPath('userData');
+  app.setName('Kodra');
+  app.setPath('userData', devUserData);
+}
+
 let activeWorkspace: ActiveWorkspace | null = null;
 /**
  * Free-floating cloud workspace (no git repo). Mutually exclusive
@@ -1898,7 +1921,7 @@ function registerIpc(): void {
   ipcMain.handle('kanbots:pick-folder', async (): Promise<string | null> => {
     if (!mainWindow) return null;
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: 'Open kanbots workspace',
+      title: 'Open Kodra workspace',
       properties: ['openDirectory', 'createDirectory'],
     });
     if (result.canceled) return null;
@@ -2023,7 +2046,7 @@ async function createWindow(): Promise<void> {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: 'kanbots',
+    title: 'Kodra',
     ...appIconOption(),
     frame: false,
     titleBarStyle: 'hidden',
@@ -2061,7 +2084,7 @@ async function createChatWindow(conversationId: number | null): Promise<BrowserW
   const win = new BrowserWindow({
     width: 880,
     height: 760,
-    title: 'kanbots chat',
+    title: 'Kodra chat',
     ...appIconOption(),
     autoHideMenuBar: true,
     webPreferences: {

@@ -122,7 +122,7 @@ export function CloudWorkspacePicker({
           <Logo size={28} withWordmark />
         </h1>
         <p className="picker-sub">
-          Pick a Kanbots Cloud project to open. Tasks and runs are stored on the cloud
+          Pick a Kodra Cloud project to open. Tasks and runs are stored on the cloud
           and shared with your team.
         </p>
 

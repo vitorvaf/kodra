@@ -1,10 +1,12 @@
-# Releasing kanbots desktop
+# Releasing Kodra desktop
 
 The desktop app ships as binary downloads on the
-[GitHub releases page](https://github.com/leodavinci1/kanbots/releases).
-Builds are produced by the
+[Kodra fork releases page](https://github.com/vitorvaf/kanbots/releases).
+Builds for the `vitorvaf/kanbots` fork are produced by the
 [`release.yml`](../.github/workflows/release.yml) workflow on three OS
 runners and uploaded to a draft release.
+The publish target is the `vitorvaf` fork repository; the repository name
+remains `kanbots` for now.
 
 ## Cutting a release
 
@@ -37,7 +39,7 @@ The workflow:
    runners append to the same draft release.
 
 When all three jobs succeed, go to the
-[releases page](https://github.com/leodavinci1/kanbots/releases), open
+[fork releases page](https://github.com/vitorvaf/kanbots/releases), open
 the draft, write the changelog, and click **Publish**. Until you publish
 it, the artifacts aren't reachable from
 `releases/latest/download/<file>`.
@@ -52,14 +54,14 @@ the marketing site keep working across versions:
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| Linux x64 | `kanbots-<version>-linux-x64.AppImage` | Make executable: `chmod +x kanbots-<v>-linux-x64.AppImage`. |
-| Linux x64 | `kanbots-<version>-linux-x64.tar.xz` | Extract anywhere; run `./kanbots`. |
-| macOS arm64 | `kanbots-<version>-mac-arm64.dmg` | Apple Silicon (M1+). |
-| macOS arm64 | `kanbots-<version>-mac-arm64.zip` | For auto-update use; same payload as `.dmg`. |
-| macOS x64 | `kanbots-<version>-mac-x64.dmg` | Intel Macs. |
-| macOS x64 | `kanbots-<version>-mac-x64.zip` | For auto-update use; same payload as `.dmg`. |
-| Windows x64 | `kanbots-<version>-win-x64.exe` | NSIS installer (recommended). |
-| Windows x64 | `kanbots-<version>-win-x64.exe` | Portable build (different artifact ID). |
+| Linux x64 | `kodra-<version>-linux-x64.AppImage` | Make executable: `chmod +x kodra-<v>-linux-x64.AppImage`. |
+| Linux x64 | `kodra-<version>-linux-x64.tar.xz` | Extract anywhere; run `./kodra`. |
+| macOS arm64 | `kodra-<version>-mac-arm64.dmg` | Apple Silicon (M1+). |
+| macOS arm64 | `kodra-<version>-mac-arm64.zip` | For auto-update use; same payload as `.dmg`. |
+| macOS x64 | `kodra-<version>-mac-x64.dmg` | Intel Macs. |
+| macOS x64 | `kodra-<version>-mac-x64.zip` | For auto-update use; same payload as `.dmg`. |
+| Windows x64 | `kodra-<version>-win-x64.exe` | NSIS installer (recommended). |
+| Windows x64 | `kodra-<version>-win-x64.exe` | Portable build (different artifact ID). |
 
 `releases/latest/download/<file>` resolves to the newest published
 release, so the marketing site can hardcode these names.
@@ -74,23 +76,15 @@ covers it). The runtime impact:
 
 The exact Gatekeeper message depends on the macOS version:
 
-- macOS 14 and earlier: _"kanbots cannot be opened because Apple cannot
+- macOS 14 and earlier: _"Kodra cannot be opened because Apple cannot
   check it for malicious software."_ Bypassed by right-click → **Open**.
-- macOS 15+ (incl. macOS 26 / Tahoe): _"kanbots is damaged and can't
+- macOS 15+ (incl. macOS 26 / Tahoe): _"Kodra is damaged and can't
   be opened. You should move it to the Trash."_ Right-click → **Open**
   no longer works on this wording; the only manual workaround is the
   `xattr` command below.
 
-We ship a one-line installer to take the manual step off users'
-plates — it downloads the latest .dmg and clears the quarantine flag
-automatically:
-
-```sh
-curl -fsSL https://kanbots.dev/install-mac.sh | bash
-```
-
-Source: [`marketing/public/install-mac.sh`](https://kanbots.dev/install-mac.sh)
-(canonical copy lives in the `kanbots-marketing` repo, served by Vercel).
+The Kodra fork does not yet ship an install script. Packaged fork builds
+and their installation flow are planned for the fork releases page.
 
 Users who prefer a manual install:
 
@@ -98,7 +92,7 @@ Users who prefer a manual install:
    (only works on macOS 14 and earlier).
 2. From a terminal:
    ```sh
-   xattr -dr com.apple.quarantine "/Applications/kanbots.app"
+   xattr -dr com.apple.quarantine "/Applications/Kodra.app"
    ```
 
 ### Windows

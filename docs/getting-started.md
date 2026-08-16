@@ -1,68 +1,58 @@
-# Getting started with KanBots OSS Desktop
+# Getting started with Kodra OSS Desktop
 
 > This is the **OSS desktop edition** — local-first, runs entirely on
-> your machine, no account required. For team collaboration (shared
-> boards, hosted runs, billing for agent usage), see
-> [KanBots Cloud](https://kanbots.dev).
+> your machine, no account required. Packaged Kodra fork builds are not yet
+> available; run from source as described below.
 
-This walks you through downloading the desktop app, getting the
-an agent CLI installed, opening your first workspace, and
+This walks you through building the desktop app from source, getting an
+agent CLI installed, opening your first workspace, and
 dispatching an agent run.
 
-## 1. Download and install
+## 1. Install
 
-Grab the latest build from the
-[GitHub releases page](https://github.com/leodavinci1/kanbots/releases/latest).
-Pick the artifact that matches your platform:
+Packaged fork builds are planned for the
+[Kodra fork releases page](https://github.com/vitorvaf/kanbots/releases).
+Until they are available, [build Kodra from source](#build-from-source-any-platform).
+When they become available, the artifact names will be:
 
 | Platform | Artifact | Notes |
 | --- | --- | --- |
-| Linux x64 | `kanbots-<version>-linux-x64.AppImage` | `chmod +x` and run, or wire into your launcher. |
-| Linux x64 | `kanbots-<version>-linux-x64.tar.xz` | Extract anywhere, run `./kanbots`. |
-| macOS Apple Silicon | `kanbots-<version>-mac-arm64.dmg` | Drag to `/Applications`. See [unsigned-builds](#unsigned-builds). |
-| macOS Intel | `kanbots-<version>-mac-x64.dmg` | Drag to `/Applications`. See [unsigned-builds](#unsigned-builds). |
-| Windows x64 | `kanbots-<version>-win-x64.exe` | NSIS installer. See [unsigned-builds](#unsigned-builds). |
+| Linux x64 | `kodra-<version>-linux-x64.AppImage` | `chmod +x` and run, or wire into your launcher. |
+| Linux x64 | `kodra-<version>-linux-x64.tar.xz` | Extract anywhere, run `./kodra`. |
+| macOS Apple Silicon | `kodra-<version>-mac-arm64.dmg` | Drag to `/Applications`. See [unsigned-builds](#unsigned-builds). |
+| macOS Intel | `kodra-<version>-mac-x64.dmg` | Drag to `/Applications`. See [unsigned-builds](#unsigned-builds). |
+| Windows x64 | `kodra-<version>-win-x64.exe` | NSIS installer. See [unsigned-builds](#unsigned-builds). |
 
 The releasing pipeline lives in
 [docs/releasing.md](releasing.md); to run from source instead, see
 [build-from-source](#build-from-source-macos--windows) below.
 
-### Unsigned builds
+### Unsigned builds (planned)
 
-KanBots binaries are not yet code-signed (Apple Developer ID and
+Future Kodra binaries are not yet expected to be code-signed (Apple Developer ID and
 Windows EV certs are paid; we'll add them when revenue covers it).
 First-launch friction is small but real:
 
-**macOS — one-line installer (recommended).** The easiest path is to
-let our installer download the .dmg, copy `kanbots.app` to
-`/Applications`, and strip the Gatekeeper quarantine flag for you:
+**macOS — one-line installer (planned).** A Kodra installer does not yet
+exist. Do not use an upstream Kanbots installer as a Kodra install path.
 
-```sh
-curl -fsSL https://kanbots.dev/install-mac.sh | bash
-```
-
-This avoids the Gatekeeper errors below. Inspect the script first if
-you're cautious about `curl | bash` — it's plain bash, hosted by the
-kanbots.dev marketing site, and only downloads our GitHub Releases
-artifact and clears `com.apple.quarantine`.
-
-**macOS — manual install.** If you'd rather drag the .dmg yourself,
+**macOS — manual install (when builds are available).** If you'd rather drag the .dmg yourself,
 Gatekeeper will block first launch with one of two messages depending
 on your macOS version:
 
-- macOS 14 and earlier: _"kanbots cannot be opened because Apple cannot
+- macOS 14 and earlier: _"Kodra cannot be opened because Apple cannot
   check it for malicious software."_ Right-click the app, choose
   **Open**, then click **Open** again in the prompt.
-- macOS 15+ (incl. macOS 26 / Tahoe): _"kanbots is damaged and can't be
+- macOS 15+ (incl. macOS 26 / Tahoe): _"Kodra is damaged and can't be
   opened. You should move it to the Trash."_ The right-click trick no
   longer works on this wording — you have to clear the quarantine flag
   from a terminal:
 
   ```sh
-  xattr -dr com.apple.quarantine "/Applications/kanbots.app"
+  xattr -dr com.apple.quarantine "/Applications/Kodra.app"
   ```
 
-**Windows** — Microsoft Defender SmartScreen pops up: _"Windows
+**Windows (when builds are available)** — Microsoft Defender SmartScreen pops up: _"Windows
 protected your PC."_ Click **More info → Run anyway**.
 
 After the first launch you don't see these prompts again on the same
@@ -74,7 +64,7 @@ If you'd rather run from source, you'll need **Node 20+**, **pnpm 10+**,
 and **git**:
 
 ```sh
-git clone https://github.com/leodavinci1/kanbots
+git clone https://github.com/vitorvaf/kanbots.git
 cd kanbots
 pnpm install
 pnpm desktop          # build everything, open Electron
@@ -84,17 +74,17 @@ pnpm desktop:dev
 
 ## 2. Install Claude Code
 
-KanBots dispatches agents through the **Claude Code** CLI by default. Without
+Kodra dispatches agents through the **Claude Code** CLI by default. Without
 an agent CLI on your `PATH`, the **Dispatch** button will fail.
 
 1. Install from
-   <https://docs.claude.com/en/docs/claude-code> (KanBots needs
+   <https://docs.claude.com/en/docs/claude-code> (Kodra needs
    Claude Code 1.0+).
 2. Sign in once: `claude /login`.
 3. Verify: `which claude` should print a path; `claude --version`
    should report a version.
 
-KanBots inherits the environment of whatever launches it, so
+Kodra inherits the environment of whatever launches it, so
 authenticate Claude Code in the same shell (or in your shell rc) that
 your desktop session inherits from.
 
@@ -118,15 +108,15 @@ Authenticate with browser OAuth on first launch. Alternatively, set
 `~/.gemini/antigravity-cli/settings.json`.
 
 > Codex and Antigravity CLI are supported alternatives — install the `codex`
-> CLI or `agy` CLI and KanBots will offer them per dispatch. You need at least
+> CLI or `agy` CLI and Kodra will offer them per dispatch. You need at least
 > one of `claude`, `codex`, or `agy` available.
 
-## 3. Open KanBots
+## 3. Open Kodra
 
 Launching the app drops you on the **workspace picker**. Browse to
 any folder that contains a git repository and click **Open**.
 
-On first open, KanBots will:
+On first open, Kodra will:
 
 1. Resolve the git toplevel via `git rev-parse --show-toplevel`.
 2. Create `.kanbots/` next to it (`db.sqlite`, `config.json`,
@@ -182,7 +172,7 @@ Nothing is written outside the workspace folder.
 1. Open the card and click **Dispatch**.
 2. Pick an agent identity (Claude Code, Codex, or Antigravity CLI) and a
    model. Confirm.
-3. KanBots creates `.kanbots/worktrees/issue-<n>-<runId>/`, branches
+3. Kodra creates `.kanbots/worktrees/issue-<n>-<runId>/`, branches
    it from your default branch, and spawns the chosen CLI against it.
 4. The detail panel switches to the live thread. Every `tool_use` and
    `tool_result` streams in.
@@ -205,21 +195,21 @@ step.
 
 ### "Dispatch failed: claude not found" (Claude Code not installed)
 
-KanBots couldn't locate the `claude` binary on your `PATH`.
+Kodra couldn't locate the `claude` binary on your `PATH`.
 
 - Check from a terminal: `which claude` should print a path.
 - If empty, install Claude Code:
   <https://docs.claude.com/en/docs/claude-code>.
 - After installing, sign in once: `claude /login`.
 - If `which claude` works in your terminal but the app still fails,
-  the desktop launcher is using a different `PATH`. Restart KanBots
+  the desktop launcher is using a different `PATH`. Restart Kodra
   from the same shell where `claude` resolves, or add the install
   directory to your shell rc (e.g. `~/.zshrc`, `~/.bashrc`,
   `~/.config/fish/config.fish`) and log out / back in.
 
 ### "Not a git repository" (repo not cloned locally)
 
-KanBots only opens **folders that contain a git repository** — it
+Kodra only opens **folders that contain a git repository** — it
 runs `git rev-parse --show-toplevel` to find the project root and
 creates worktrees relative to it. If the picker rejects a folder:
 
@@ -229,7 +219,7 @@ creates worktrees relative to it. If the picker rejects a folder:
 - If the folder _is_ a clone, run `git status` inside it from a
   terminal to confirm — submodules and shallow clones are fine.
 - If you want to start a brand-new project: `git init` in an empty
-  folder before pointing KanBots at it.
+  folder before pointing Kodra at it.
 
 ### "Port 8474 already in use" (dispatcher port conflict)
 
@@ -240,10 +230,10 @@ runs won't start.
 - Find what's holding the port:
   - Linux / macOS: `lsof -i :8474` or `ss -ltnp 'sport = :8474'`.
   - Windows: `netstat -ano | findstr 8474`.
-- Often it's a stale KanBots from a previous session. Kill that
+- Often it's a stale Kodra from a previous session. Kill that
   process and relaunch.
 - If you need a different port, set `KANBOTS_DISPATCHER_PORT=<port>`
-  in the environment KanBots inherits, then relaunch.
+  in the environment Kodra inherits, then relaunch.
 
 ## Next steps
 

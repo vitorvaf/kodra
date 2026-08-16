@@ -1,5 +1,5 @@
 /* =========================================================================
-   kanbots — modal chrome (Task Detail + Task Create)
+   Kodra — modal chrome (Task Detail + Task Create)
    Mirrors design_handoff_kanbots/source/styles.css §Modals.
    ========================================================================= */
 
@@ -898,7 +898,7 @@
 }
 .kb-idiff-line.hunk {
   color: var(--accent);
-  background: oklch(0.745 0.155 45 / 0.05);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
 }
 .kb-idiff-line.hunk .kb-idiff-text {
   color: var(--accent);

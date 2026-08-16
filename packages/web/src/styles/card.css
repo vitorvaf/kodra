@@ -1,5 +1,5 @@
 /* =========================================================================
-   kanbots — Card 2.0 + Column refactor
+   Kodra — Card 2.0 + Column refactor
    Mirrors design_handoff_kanbots/source/styles.css §Center / §Column / §Card.
    ========================================================================= */
 
@@ -105,7 +105,7 @@
   line-height: 1;
 }
 /* On a primary (accent-fill) button the default ink-3 / hairline kbd
-   becomes a low-contrast yellowish chip against the orange. Tint the kbd
+   becomes a low-contrast chip against the accent. Tint the kbd
    to use the accent ink (dark) over a slightly inset translucent surface
    so it reads as a key-cap, not a mystery badge. */
 .kb-btn.primary .kb-kbd {
@@ -251,9 +251,9 @@
   border-color: var(--accent-line);
 }
 .kb-pill.on.kb-pill-running {
-  background: oklch(0.745 0.155 45 / 0.1);
+  background: color-mix(in srgb, var(--running) 10%, transparent);
   color: var(--running);
-  border-color: oklch(0.745 0.155 45 / 0.45);
+  border-color: color-mix(in srgb, var(--running) 45%, transparent);
 }
 .kb-pill .kb-pill-x {
   width: 6px;
@@ -752,9 +752,9 @@
   gap: 5px;
   padding: 2px 7px 2px 6px;
   border-radius: 999px;
-  background: oklch(0.745 0.155 45 / 0.12);
+  background: color-mix(in srgb, var(--running) 12%, transparent);
   color: var(--running);
-  border: 1px solid oklch(0.745 0.155 45 / 0.3);
+  border: 1px solid color-mix(in srgb, var(--running) 30%, transparent);
 }
 .kb-status-pill .kb-pulse {
   width: 5px;
@@ -1009,7 +1009,7 @@
 }
 
 /* Decision-option buttons on a card. Mirrors the tray's `.kb-tray-opts .o`
-   vocabulary — neutral surface + thin border instead of the orange accent
+   vocabulary — neutral surface + thin border instead of the accent
    fill the generic `.kb-btn primary` would give. The decision needs to
    read as "make a choice", not "press the primary CTA". */
 .kb-card-decision-opts {

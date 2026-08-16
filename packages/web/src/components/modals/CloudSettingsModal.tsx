@@ -265,7 +265,7 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
 
   async function handleSignOut(): Promise<void> {
     if (signingOut) return;
-    if (!window.confirm('Sign out of Kanbots Cloud on this device?')) return;
+    if (!window.confirm('Sign out of Kodra Cloud on this device?')) return;
     const bridge = getBridge();
     if (!bridge) return;
     setSigningOut(true);
@@ -282,7 +282,7 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
       <div className="kb-cloud-modal" onMouseDown={stopInner}>
         <div className="kb-cloud-modal-head">
           <Logo size={14} />
-          <span className="kb-cloud-modal-head-title">Kanbots Cloud</span>
+          <span className="kb-cloud-modal-head-title">Kodra Cloud</span>
           <span className="grow" />
           <button
             type="button"
@@ -389,7 +389,7 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
         <div className="kb-cloud-signedin-status">
           <span className="kb-cloud-signedin-dot" />
           <span className="kb-cloud-signedin-label">
-            Signed in to Kanbots Cloud
+            Signed in to Kodra Cloud
           </span>
         </div>
 
@@ -535,7 +535,7 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
           <div className="kb-cloud-hero-icon" style={{ color: 'var(--accent)' }}>
             {CloudIcon}
           </div>
-          <h2 className="kb-cloud-hero-title">Connect to Kanbots Cloud</h2>
+          <h2 className="kb-cloud-hero-title">Connect to Kodra Cloud</h2>
           <p className="kb-cloud-hero-tagline">
             Sync your tasks across devices and collaborate with your team.
             Your local data never leaves this machine until you sign in.
@@ -571,7 +571,7 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
                   Opening browser…
                 </>
               ) : (
-                'Sign in to Kanbots Cloud'
+                'Sign in to Kodra Cloud'
               )}
             </button>
             <a

@@ -125,7 +125,7 @@ export function describeToolUse(name: string, rawInput: unknown): ToolHeader {
     default: {
       // Unknown / MCP / custom — strip the `mcp__<server>__` prefix that
       // claude-code attaches to MCP tools, then show the bare name. The
-      // kanbots MCP server exposes things like `createIssue`, which the
+      // Kodra MCP server exposes things like `createIssue`, which the
       // CLI surfaces as `mcp__kanbots__createIssue`; trimming the prefix
       // keeps the chat transcript readable.
       const verb = name.replace(/^mcp__[^_]+__/, '');

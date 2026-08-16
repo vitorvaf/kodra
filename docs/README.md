@@ -1,7 +1,7 @@
-# kanbots docs
+# Kodra docs
 
 Reference for the local desktop edition. The [main README](../README.md)
-covers what kanbots is, install, and a quick run; this directory goes
+covers what Kodra is, install, and a quick run; this directory goes
 deeper.
 
 ## By topic
@@ -22,6 +22,8 @@ deeper.
   database schema, dependency graph.
 - **[Providers](providers.md)** — picking the agent CLI (Claude Code
   vs. Codex), API key storage, and the chat panel's HTTP backends.
+- **[Rebranding notes](rebranding.md)** — preserved compatibility identifiers
+  and migration debt.
 
 ## Conventions
 

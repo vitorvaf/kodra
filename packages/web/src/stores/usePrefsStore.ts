@@ -118,10 +118,20 @@ export const DIFF_PREFS_DEFAULTS: DiffPrefs = {
 
 export const TWEAK_DEFAULTS: Tweaks = {
   theme: 'dark',
-  accentHue: 45,
+  accentHue: 269,
   showRail: true,
   showTray: true,
 };
+
+// Hue of the pre-rebrand (Kanbots) default accent. Persisted prefs holding
+// this exact value are almost certainly the old default rather than a
+// deliberate user choice, so they migrate to the Kodra accent hue. Any other
+// persisted hue is a real user customization and is kept.
+const LEGACY_DEFAULT_ACCENT_HUE = 45;
+
+function migrateAccentHue(hue: number): number {
+  return hue === LEGACY_DEFAULT_ACCENT_HUE ? TWEAK_DEFAULTS.accentHue : hue;
+}
 
 export const BOARD_PREFS_DEFAULTS: BoardPrefs = {
   sortMode: 'manual',
@@ -206,7 +216,7 @@ function readLegacyTweaks(): Tweaks {
           : TWEAK_DEFAULTS.theme,
       accentHue:
         typeof parsed.accentHue === 'number'
-          ? parsed.accentHue
+          ? migrateAccentHue(parsed.accentHue)
           : TWEAK_DEFAULTS.accentHue,
       showRail:
         typeof parsed.showRail === 'boolean'
@@ -480,7 +490,17 @@ export const usePrefsStore = create<PrefsState & PrefsActions>()(
           ...current,
           ...p,
           diff: { ...current.diff, ...(p.diff ?? {}) },
-          tweaks: { ...current.tweaks, ...(p.tweaks ?? {}) },
+          tweaks: {
+            ...current.tweaks,
+            ...(p.tweaks ?? {}),
+            // Re-run the hue migration on rehydrated blobs so installs that
+            // persisted the old default (45) before the rebrand land on the
+            // Kodra accent, while custom hues survive.
+            accentHue:
+              typeof p.tweaks?.accentHue === 'number'
+                ? migrateAccentHue(p.tweaks.accentHue)
+                : current.tweaks.accentHue,
+          },
           board: { ...current.board, ...(p.board ?? {}) },
           boardViews: { ...current.boardViews, ...(p.boardViews ?? {}) },
         };

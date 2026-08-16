@@ -1,17 +1,17 @@
-<p align="left">
-  <img src="docs/assets/brand/kanbots-icon-256.png" alt="kanbots" width="96" height="96">
-</p>
+<p align="left"><img src="docs/assets/brand/kodra-icon-256.png" alt="Kodra" width="96" height="96"></p>
 
-# kanbots
+# Kodra
 
-> **A kanban board that runs 12 agent CLIs in parallel.**
-> Claude Code, Codex, Gemini, Antigravity, Cursor, Copilot, Amp, OpenCode,
-> Droid, CCR, Qwen, plus any ACP-compatible CLI. Drop a folder. Get a board.
-> Dispatch agents on every card — at the same time, each in its own
-> worktree. Or hit autopilot and let them split tasks, run them in
-> parallel slots, and check their own work while you sleep.
+> **Agentic development workspace.**
 
-![Kanbots board overview](docs/assets/board-overview.png)
+A kanban board that runs 12 agent CLIs in parallel.
+Claude Code, Codex, Gemini, Antigravity, Cursor, Copilot, Amp, OpenCode,
+Droid, CCR, Qwen, plus any ACP-compatible CLI. Drop a folder. Get a board.
+Dispatch agents on every card — at the same time, each in its own
+worktree. Or hit autopilot and let them split tasks, run them in
+parallel slots, and check their own work while you sleep.
+
+![Kodra board overview](docs/assets/board-overview.png)
 
 ## Highlights
 
@@ -40,7 +40,7 @@
 ## Supported agents
 
 Pick the CLI per dispatch from the New Task modal. Each one reuses
-its own auth (you don't sign into kanbots — kanbots calls the CLI
+its own auth (you don't sign into Kodra — Kodra calls the CLI
 that's already on your `PATH`).
 
 | Provider | CLI binary | Sign-in |
@@ -56,20 +56,40 @@ that's already on your `PATH`).
 | Droid | `droid` | `droid auth` (Factory account) |
 | CCR (Claude Code Router) | `ccr` | reuses Claude Code auth + routes to alternative models |
 | Qwen Code | `qwen` | `qwen auth` |
-| **Any ACP-compatible CLI** | (your binary) | per CLI — kanbots speaks the Agent Client Protocol over stdio |
+| **Any ACP-compatible CLI** | (your binary) | per CLI — Kodra speaks the Agent Client Protocol over stdio |
 
 Install the ones you want on your `PATH`. You only need at least one.
 
 ## Getting started
 
-### Install via npx (recommended)
+### Run from source (fork; primary path)
+
+```sh
+git clone https://github.com/vitorvaf/kanbots.git
+cd kanbots
+pnpm install
+pnpm desktop          # build everything, open Electron
+# or, for hot-reload:
+pnpm desktop:dev      # Vite + tsup --watch + electronmon
+```
+
+You'll need **Node 20+**, **pnpm 10+**, **git**, and at least one of
+the supported agent CLIs on your `PATH` (see [Supported
+agents](#supported-agents) above — `claude`, `codex`, `gemini`, `agy`,
+`cursor-agent`, etc.). Add `gh` + `gh auth login` if you'll be
+driving GitHub issues.
+
+### Upstream Kanbots distribution (npx)
+
+The published `kanbots` package and its packaged binaries are the upstream
+Kanbots distribution, not Kodra:
 
 ```sh
 npx kanbots
 ```
 
-That's it. On first run, the right binary downloads automatically (~80MB)
-from the [releases page](https://github.com/leodavinci1/kanbots/releases),
+On first run, the right binary downloads automatically (~80MB) from the
+[upstream releases page](https://github.com/leodavinci1/kanbots/releases),
 and the app opens.
 
 To upgrade later: `npx kanbots@latest`.
@@ -78,9 +98,9 @@ macOS arm64/x64 and Linux x64 are fully automated. On Windows, the npx
 launcher points you at the `.exe` installer for v1 — see
 [`npx-cli/README.md`](npx-cli/README.md).
 
-### Install a packaged build
+### Upstream Kanbots packaged builds
 
-Latest binaries: [releases page](https://github.com/leodavinci1/kanbots/releases).
+Latest upstream binaries: [releases page](https://github.com/leodavinci1/kanbots/releases).
 
 **macOS** — builds are currently unsigned, so Gatekeeper rejects the
 .dmg on first launch with *"kanbots is damaged and can't be opened"*.
@@ -101,27 +121,15 @@ into `/Applications`, then run
 **Windows** — `.exe` installer. SmartScreen warns on first launch —
 *More info → Run anyway*. Like macOS, the build is unsigned.
 
-### Or run from source
+### Planned Kodra packaged builds
 
-```sh
-git clone https://github.com/leodavinci1/kanbots.git
-cd kanbots
-pnpm install
-pnpm desktop          # build everything, open Electron
-# or, for hot-reload:
-pnpm desktop:dev      # Vite + tsup --watch + electronmon
-```
-
-You'll need **Node 20+**, **pnpm 10+**, **git**, and at least one of
-the supported agent CLIs on your `PATH` (see [Supported
-agents](#supported-agents) above — `claude`, `codex`, `gemini`, `agy`,
-`cursor-agent`, etc.). Add `gh` + `gh auth login` if you'll be
-driving GitHub issues.
+Packaged fork builds are not yet available. They will land on the
+[fork releases page](https://github.com/vitorvaf/kanbots/releases).
 
 ### First run
 
 A workspace picker opens. Pick any folder that contains a git
-repository — kanbots creates `.kanbots/` (db + config + worktrees)
+repository — Kodra creates `.kanbots/` (db + config + worktrees)
 inside it and drops you on the board.
 
 Full walkthrough: [docs/getting-started.md](docs/getting-started.md).
@@ -153,7 +161,7 @@ See [docs/issues.md](docs/issues.md) for auth setup and the
 ## How an agent run works
 
 1. Click **Dispatch** on a card.
-2. kanbots creates `.kanbots/worktrees/issue-<n>-<runId>/`, branched
+2. Kodra creates `.kanbots/worktrees/issue-<n>-<runId>/`, branched
    from the repo's default branch.
 3. It spawns `claude -p` (or `codex` exec mode) against that worktree
    with stream-JSON output, parses every event, and forwards it to the
@@ -207,6 +215,7 @@ Details: [docs/agents.md#autopilot](docs/agents.md#autopilot).
 | [MCP server](docs/mcp-server.md) | Wiring `kanbots-mcp-server` into Cursor or Claude Desktop |
 | [Configuration](docs/configuration.md) | `.kanbots/config.json`, env vars, check command overrides |
 | [Architecture](docs/architecture.md) | Packages, IPC bridge, database, dependency graph |
+| [Rebranding notes](docs/rebranding.md) | Compatibility identifiers and migration debt |
 
 ## Packages
 
@@ -220,6 +229,15 @@ Details: [docs/agents.md#autopilot](docs/agents.md#autopilot).
 | [`@kanbots/mcp`](packages/mcp) | MCP server (`kanbots-mcp-server` bin) |
 | [`@kanbots/web`](packages/web) | React + Vite UI |
 | [`@kanbots/desktop`](packages/desktop) | Electron shell, IPC bridge, workspace picker |
+
+## Origins
+
+Kodra is a fork of [Kanbots](https://github.com/leodavinci1/kanbots) by
+Leonardo Cunha, rebranded and adapted. The original MIT license and
+attribution are retained — see [LICENSE](LICENSE).
+
+See [Rebranding notes](docs/rebranding.md) for the preserved compatibility
+identifiers, pending screenshots, and other migration debt.
 
 ## License
 

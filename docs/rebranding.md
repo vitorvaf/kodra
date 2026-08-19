@@ -47,7 +47,11 @@ workspaces, integrations, or package consumers.
 ## Migration debt
 
 - Screenshots in `docs/assets/` have not yet been recaptured; some still show
-  the old Kanbots UI.
+  the old Kanbots UI. Automated recapture was ruled out (native workspace
+  picker dialog, per-user data in real boards). To recapture manually: run
+  `pnpm desktop`, open the target workspace, frame approximately the same
+  crops (board-overview is 1200x796; the others are 765-1128px wide) and
+  overwrite the PNGs in `docs/assets/`.
 - The `kanbots` npm package remains upstream-owned. Kodra does not currently
   have a separate npm package or install URL. **TODO: decide whether to
   publish a Kodra package and document its name.**

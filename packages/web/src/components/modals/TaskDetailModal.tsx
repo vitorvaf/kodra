@@ -1,3 +1,4 @@
+import { KodraPulse } from '../KodraPulse.js';
 import { Logo } from '../Logo.js';
 import {
   useCallback,
@@ -1501,6 +1502,9 @@ function ThreadTab({
               {isLive ? '' : ` · ended ${ageString(displayRun.endedAt ?? displayRun.startedAt)} ago`}
             </span>
           ) : null}
+          {displayRun != null && (displayRun.status === 'running' || displayRun.status === 'starting') ? (
+            <KodraPulse tone="mint" style={{ alignSelf: 'center' }} />
+          ) : null}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {items.map((it) =>
@@ -2043,6 +2047,14 @@ function DecisionInline({ card }: { card: Card<DecisionPayload> }) {
   return (
     <div className="kb-decision" role="region" aria-label="Agent question" style={{ marginTop: 10 }}>
       <div className="kb-decision-opts">
+        {isPending ? (
+          <KodraPulse
+            tone="violet"
+            size={7}
+            label="Awaiting your decision"
+            style={{ alignSelf: 'center' }}
+          />
+        ) : null}
         {card.payload.options.map((opt, i) => (
           <button
             key={opt.value}

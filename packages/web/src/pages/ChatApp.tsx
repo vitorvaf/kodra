@@ -412,7 +412,7 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
               </div>
             </div>
           ) : (
-            <EventRow key={it.id} event={it.event} />
+            <EventRow key={it.id} event={it.event} agentLabel={agentLabel} />
           ),
         )}
         {isLive && displayRun ? (
@@ -799,13 +799,13 @@ function DecisionInline({
   );
 }
 
-function EventRow({ event }: { event: AgentEvent }) {
+function EventRow({ event, agentLabel }: { event: AgentEvent; agentLabel: string }) {
   if (event.type === 'text') {
     const text = (event.payload as { text?: string }).text ?? '';
     return (
       <div className="kb-chat-msg kb-chat-msg-agent">
         <div className="kb-chat-msg-meta">
-          <b className="kb-chat-msg-author">claude</b>
+          <b className="kb-chat-msg-author">{agentLabel}</b>
           <span className="kb-chat-msg-time"> · {ageString(event.createdAt)} ago</span>
         </div>
         <div className="kb-chat-msg-body">{text}</div>

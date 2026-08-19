@@ -688,12 +688,19 @@ export function buildThreadPayload(
   const activeRun = deps.store.agentRuns.findActiveForThread(thread.id);
   const latestRun = activeRun ?? deps.store.agentRuns.findLatestForThread(thread.id);
   const messages: Message[] = deps.store.messages.list(thread.id);
+  // Provider of every run in the thread so the renderer can attribute each
+  // agent message to the provider that actually authored it (threads can
+  // mix providers when the user switches agents between runs).
+  const runs = deps.store.agentRuns
+    .listByThread(thread.id)
+    .map((r) => ({ id: r.id, provider: r.provider }));
   return {
     id: thread.id,
     createdAt: thread.createdAt,
     messages,
     activeRun,
     latestRun,
+    runs,
   };
 }
 

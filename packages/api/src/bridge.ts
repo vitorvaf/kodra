@@ -363,12 +363,23 @@ export interface DecoratedIssue extends Issue {
   subIssueCount?: number;
 }
 
+/** Minimal run summary used for per-message attribution in threads: a
+ * thread can mix providers across runs, so the renderer labels each agent
+ * message with the provider of the run that actually authored it. */
+export interface ThreadRunSummary {
+  id: number;
+  provider: string | null;
+}
+
 export interface ThreadPayload {
   id: number;
   createdAt: string;
   messages: Message[];
   activeRun: AgentRun | null;
   latestRun: AgentRun | null;
+  /** Every run in this thread (id + provider). Optional because synthetic
+   * payloads (e.g. cloud-mode threads) have no local run rows. */
+  runs?: ThreadRunSummary[];
 }
 
 export interface IssueDetail {

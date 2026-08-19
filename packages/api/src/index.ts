@@ -178,6 +178,7 @@ export type {
   SplitResult,
   StatusKey,
   ThreadPayload,
+  ThreadRunSummary,
   UpdateIssuePatch,
   UploadAttachmentResult,
   Workspace,

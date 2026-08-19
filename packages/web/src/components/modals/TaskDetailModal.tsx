@@ -347,6 +347,7 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
                       activeRun={activeRun}
                       displayRun={displayRun}
                       cloudRunId={issue.cloudLatestRunId ?? issue.activeRun?.cloudRunId ?? null}
+                      runs={data?.thread?.runs}
                       messages={messages}
                       issueNumber={issueNumber}
                       issueLabels={issue.labels}
@@ -1408,6 +1409,7 @@ function ThreadTab({
   activeRun,
   displayRun,
   cloudRunId,
+  runs,
   messages,
   issueNumber,
   issueLabels,
@@ -1417,6 +1419,10 @@ function ThreadTab({
   activeRun: AgentRun | null;
   displayRun: AgentRun | null;
   cloudRunId: string | null;
+  /** Provider of every run in the thread — used to attribute each agent
+   * message to the provider that actually authored it. Undefined for
+   * legacy/cloud payloads without local run rows. */
+  runs: readonly { id: number; provider: string | null }[] | undefined;
   messages: Message[];
   issueNumber: number;
   issueLabels: readonly string[];
@@ -1456,6 +1462,18 @@ function ThreadTab({
       ? (PROVIDER_LABELS[displayRun.provider as keyof typeof PROVIDER_LABELS] ??
         displayRun.provider)
       : 'agent';
+  // Threads can mix providers across runs (the user picks a different
+  // agent per run), so prefer the provider of the run that authored each
+  // message over the thread-wide displayRun label.
+  const providerByRunId = new Map<number, string | null>();
+  for (const r of runs ?? []) providerByRunId.set(r.id, r.provider);
+  function labelForMessage(m: Message): string {
+    if (m.agentRunId === null || !providerByRunId.has(m.agentRunId)) return agentLabel;
+    const provider = providerByRunId.get(m.agentRunId) ?? null;
+    return provider != null
+      ? (PROVIDER_LABELS[provider as keyof typeof PROVIDER_LABELS] ?? provider)
+      : 'agent';
+  }
   for (const e of stream.events) {
     // tool_result events are folded into their tool_use parent.
     if (e.type === 'tool_result') continue;
@@ -1509,7 +1527,12 @@ function ThreadTab({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {items.map((it) =>
             it.kind === 'message' ? (
-              <MessageRow key={it.id} message={it.message} cards={it.cards} agentLabel={agentLabel} />
+              <MessageRow
+                key={it.id}
+                message={it.message}
+                cards={it.cards}
+                agentLabel={labelForMessage(it.message)}
+              />
             ) : it.event.type === 'tool_use' ? (
               <ToolUseCard
                 key={it.id}
@@ -1518,7 +1541,7 @@ function ThreadTab({
                 isLive={isLive}
               />
             ) : (
-              <EventRow key={it.id} event={it.event} />
+              <EventRow key={it.id} event={it.event} agentLabel={agentLabel} />
             ),
           )}
           {isRunning && displayRun ? (
@@ -2087,7 +2110,7 @@ function DecisionInline({ card }: { card: Card<DecisionPayload> }) {
   );
 }
 
-function EventRow({ event }: { event: AgentEvent }) {
+function EventRow({ event, agentLabel }: { event: AgentEvent; agentLabel: string }) {
   if (event.type === 'text') {
     const text = (event.payload as { text?: string }).text ?? '';
     return (
@@ -2100,7 +2123,7 @@ function EventRow({ event }: { event: AgentEvent }) {
         }}
       >
         <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 5 }}>
-          <b style={{ color: 'var(--accent)' }}>claude</b> · {ageString(event.createdAt)} ago
+          <b style={{ color: 'var(--accent)' }}>{agentLabel}</b> · {ageString(event.createdAt)} ago
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--ink-1)', whiteSpace: 'pre-wrap' }}>
           {text}

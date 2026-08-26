@@ -243,6 +243,10 @@ export type ChatHandlers = Pick<
   | 'chat:sessions:rename'
   | 'chat:sessions:delete'
   | 'chat:sessions:set-active'
+  | 'chat:thread-sessions:list'
+  | 'chat:thread-sessions:create'
+  | 'chat:thread-sessions:rename'
+  | 'chat:thread-sessions:delete'
 >;
 
 export interface ChatHandlerDeps {
@@ -282,5 +286,9 @@ export function createChatHandlers(deps: ChatHandlerDeps): ChatHandlers {
     'chat:sessions:rename': (args) => chat.renameSession(fullDeps, args),
     'chat:sessions:delete': (args) => chat.deleteSession(fullDeps, args),
     'chat:sessions:set-active': (args) => chat.setActiveSession(fullDeps, args),
+    'chat:thread-sessions:list': (args) => chat.listThreadSessions(fullDeps, args),
+    'chat:thread-sessions:create': (args) => chat.createThreadSession(fullDeps, args),
+    'chat:thread-sessions:rename': (args) => chat.renameThreadSession(fullDeps, args),
+    'chat:thread-sessions:delete': (args) => chat.deleteThreadSession(fullDeps, args),
   };
 }

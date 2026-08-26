@@ -1113,6 +1113,10 @@ function registerDeviceChatIpc(): void {
     'chat:sessions:rename',
     'chat:sessions:delete',
     'chat:sessions:set-active',
+    'chat:thread-sessions:list',
+    'chat:thread-sessions:create',
+    'chat:thread-sessions:rename',
+    'chat:thread-sessions:delete',
   ];
   for (const channel of channels) {
     ipcMain.handle(

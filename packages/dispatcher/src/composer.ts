@@ -3,11 +3,14 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
+import { AGENT_CLI_ADAPTERS } from './adapters/registry.js';
+import type { StreamEvent } from './stream-parser.js';
 
 export type SuggesterProvider =
   | 'claude-code'
   | 'codex-cli'
   | 'gemini-cli'
+  | 'agy-cli'
   | 'amp-cli'
   | 'cursor-cli'
   | 'copilot-cli'
@@ -52,6 +55,12 @@ export interface SuggestFeatureInput {
   backlog: BacklogEntry[];
   personaPrompt: string;
   provider?: SuggesterProvider;
+  /**
+   * Model slug for the ideation run. `'default'` (the catalogue
+   * placeholder for "let the CLI pick") and undefined both mean "no
+   * --model flag"; adapters that don't take a model ignore it.
+   */
+  model?: string;
   /** Free-form scope from the user — narrows the suggestion to a topic, area, or constraint. */
   userNotes?: string;
   onEvent?: OnPlannerEvent;
@@ -317,7 +326,10 @@ async function runClaudeForDraftedIssue(opts: RunClaudeOptions): Promise<Drafted
     throw new ComposerError(`composer timed out after ${opts.timeoutMs}ms`, stderr);
   }
   if (exitCode !== 0) {
-    throw new ComposerError(`claude exited with code ${exitCode}`, stderr);
+    throw new ComposerError(
+      `claude exited with code ${exitCode}${describeClaudeFailure(stdout, resultEvent)}`,
+      stderr,
+    );
   }
 
   const parsedJson = streaming ? resultEvent : parseJsonOrThrow(stdout, stderr);
@@ -341,8 +353,30 @@ async function runClaudeForDraftedIssue(opts: RunClaudeOptions): Promise<Drafted
   return drafted.data;
 }
 
-function summarizeToolUse(name: string, input: unknown): string {
-  if (!input || typeof input !== 'object') return '';
+/**
+ * When the planner CLI exits non-zero, its most useful diagnostic is often
+ * the `result` field of the JSON it still printed on stdout (e.g.
+ * "Not logged in · Please run /login") rather than the bare exit code.
+ * Surface that message so callers (autopilot notes, composer errors) show
+ * the root cause instead of an opaque "exited with code 1".
+ */
+function describeClaudeFailure(stdout: string, resultEvent: unknown): string {
+  let candidate: unknown = resultEvent;
+  if (candidate === null) {
+    try {
+      candidate = JSON.parse(stdout.trim());
+    } catch {
+      candidate = null;
+    }
+  }
+  if (!candidate || typeof candidate !== 'object') return '';
+  const result = (candidate as { result?: unknown }).result;
+  if (typeof result !== 'string' || result.trim().length === 0) return '';
+  const oneLine = result.trim().split('\n')[0]?.slice(0, 200) ?? '';
+  return oneLine.length > 0 ? `: ${oneLine}` : '';
+}
+
+function summarizeToolUse(name: string, input: unknown): string {  if (!input || typeof input !== 'object') return '';
   const i = input as Record<string, unknown>;
   switch (name) {
     case 'Read': {
@@ -460,11 +494,24 @@ export function createSuggester(opts: CreateSuggesterOptions): SuggestFeatureFn 
       if (input.onEvent) codexOpts.onEvent = input.onEvent;
       return runCodexForDraftedIssue(codexOpts);
     }
-    // gemini-cli and amp-cli don't have a dedicated issue-drafting runner
-    // yet — their stream parsers exist but the structured-JSON drafting
-    // helper is claude-specific. Fall back to claude for `composer:suggest`
-    // (a separate, non-agent-run path); their agent-run flows go through
-    // the dispatcher's worker.ts and are unaffected.
+    if (provider !== 'claude-code') {
+      // Every other provider ideates through its own CLI — same spawn
+      // envelope (argv/stdin, flags, stream parsing) as agent runs, so
+      // ideation uses that CLI's own login instead of requiring claude
+      // credentials. Structured output is enforced via the prompt contract
+      // (these CLIs have no --json-schema flag) and validated below.
+      const adapterOpts: RunAdapterCliOptions = {
+        provider,
+        cwd,
+        timeoutMs,
+        systemPrompt,
+        userPrompt,
+        spawn,
+      };
+      if (input.model !== undefined) adapterOpts.model = input.model;
+      if (input.onEvent) adapterOpts.onEvent = input.onEvent;
+      return runAdapterCliForDraftedIssue(adapterOpts);
+    }
     const runOpts: RunClaudeOptions = {
       command: claudeCommand,
       cwd,
@@ -704,6 +751,181 @@ async function spawnCodex(opts: RunCodexOptions, schemaPath: string): Promise<Dr
   }
   return drafted.data;
 }
+
+const ADAPTER_PROMPT_DELIMITER = '\n\n---\n\n';
+
+/**
+ * These CLIs have no --json-schema/--output-schema flag, so the JSON
+ * contract lives in the prompt: the model's FINAL message must be the
+ * drafted-issue object and nothing else. extractFirstJsonObject below
+ * still tolerates fences/prose around it.
+ */
+const JSON_OUTPUT_CONTRACT = `OUTPUT REQUIREMENT: Your final assistant message must be exactly one JSON object and nothing else — no markdown code fences, no prose before or after:
+
+{"title": "<concise imperative title, max 80 chars>", "body": "<the full issue body in markdown>"}`;
+
+interface RunAdapterCliOptions {
+  provider: Exclude<SuggesterProvider, 'claude-code' | 'codex-cli'>;
+  cwd: string;
+  timeoutMs: number;
+  systemPrompt: string;
+  userPrompt: string;
+  model?: string;
+  spawn: SpawnFn;
+  onEvent?: OnPlannerEvent;
+}
+
+/**
+ * One-shot ideation run through any non-claude/codex provider CLI, using
+ * the exact adapter the agent-run worker uses (same command, flags, prompt
+ * delivery, and stream parsing). The CLI's own login provides credentials;
+ * the final assistant text is validated against the drafted-issue schema.
+ */
+async function runAdapterCliForDraftedIssue(opts: RunAdapterCliOptions): Promise<DraftedIssue> {
+  const adapter = AGENT_CLI_ADAPTERS[opts.provider];
+  // `default` is the catalogue placeholder for "let the CLI pick" — most
+  // CLIs reject it as a model slug, so it must not reach argv.
+  const model = opts.model && opts.model !== 'default' ? opts.model : undefined;
+  const args = adapter.buildArgs(model !== undefined ? { model } : {});
+  const composedPrompt =
+    `${opts.systemPrompt}${ADAPTER_PROMPT_DELIMITER}${opts.userPrompt}` +
+    `${ADAPTER_PROMPT_DELIMITER}${JSON_OUTPUT_CONTRACT}`;
+  if (adapter.promptDelivery === 'argv') {
+    args.push(composedPrompt);
+  }
+
+  const child = opts.spawn(adapter.command, args, { cwd: opts.cwd });
+  let stderr = '';
+  let killedByTimeout = false;
+  let textBuffer = '';
+  let lineBuf = '';
+  // Held in an object so reads after the stdout closure use the declared
+  // types — plain `let x: string | null = null` gets flow-narrowed to
+  // `null` at the read site because TS can't see the callback assignment.
+  const state: { resultText: string | null; resultError: string | null } = {
+    resultText: null,
+    resultError: null,
+  };
+
+  const timer = setTimeout(() => {
+    killedByTimeout = true;
+    child.kill('SIGTERM');
+  }, opts.timeoutMs);
+
+  const handleEvents = (events: readonly StreamEvent[]): void => {
+    for (const ev of events) {
+      if (ev.kind === 'text' && typeof ev.text === 'string') {
+        textBuffer += ev.text;
+        if (opts.onEvent) {
+          const oneLine = ev.text.trim().split('\n')[0]?.slice(0, 160) ?? '';
+          if (oneLine.length > 0) opts.onEvent({ kind: 'thought', text: oneLine });
+        }
+      } else if (ev.kind === 'tool_use') {
+        if (opts.onEvent) {
+          opts.onEvent({ kind: 'tool', name: ev.name, summary: summarizeToolUse(ev.name, ev.input) });
+        }
+      } else if (ev.kind === 'result') {
+        if (ev.isError) {
+          state.resultError = ev.text.length > 0 ? ev.text : `${opts.provider} run failed`;
+        } else if (ev.text.length > 0) {
+          // Some adapters (agy) carry the final response on the result
+          // event; others (opencode, gemini) emit it as text events and
+          // leave result.text empty — textBuffer covers those.
+          state.resultText = ev.text;
+        }
+      }
+    }
+  };
+
+  child.stdout?.on('data', (chunk: Buffer) => {
+    const text = chunk.toString('utf8');
+    lineBuf += text;
+    let idx = lineBuf.indexOf('\n');
+    while (idx !== -1) {
+      const line = lineBuf.slice(0, idx);
+      lineBuf = lineBuf.slice(idx + 1);
+      handleEvents(adapter.parseLine(line));
+      idx = lineBuf.indexOf('\n');
+    }
+  });
+  child.stderr?.on('data', (chunk: Buffer) => {
+    stderr += chunk.toString('utf8');
+  });
+
+  if (adapter.promptDelivery === 'stdin' && child.stdin) {
+    child.stdin.write(composedPrompt);
+  }
+  // Always close stdin — argv-delivered prompts must not leave the CLI
+  // blocking on a pipe that never closes.
+  child.stdin?.end();
+
+  const exitCode: number = await new Promise((resolve, reject) => {
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      resolve(code ?? 0);
+    });
+  });
+
+  if (lineBuf.trim().length > 0) {
+    handleEvents(adapter.parseLine(lineBuf));
+    lineBuf = '';
+  }
+
+  if (killedByTimeout) {
+    throw new ComposerError(`composer timed out after ${opts.timeoutMs}ms`, stderr);
+  }
+  if (exitCode !== 0) {
+    const detail = state.resultError ?? state.resultText;
+    throw new ComposerError(
+      `${adapter.command} exited with code ${exitCode}${detail ? `: ${detail.split('\n')[0]?.slice(0, 200)}` : ''}`,
+      stderr,
+    );
+  }
+  if (state.resultError) {
+    throw new ComposerError(state.resultError, stderr);
+  }
+
+  const finalText = (state.resultText ?? textBuffer).trim();
+  if (finalText.length === 0) {
+    throw new ComposerError(`${opts.provider} produced no final output`, stderr);
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(finalText);
+  } catch {
+    // The model may have wrapped the JSON in prose or fences despite the
+    // contract — recover the first balanced object.
+    payload = extractFirstJsonObject(finalText);
+    if (payload === null) {
+      throw new ComposerError(`${opts.provider} output was not valid JSON`, stderr);
+    }
+  }
+
+  const drafted = draftedSchema.safeParse(payload);
+  if (!drafted.success) {
+    throw new ComposerError(
+      `${opts.provider} did not return a valid drafted issue: ${drafted.error.message}`,
+      stderr,
+    );
+  }
+  return drafted.data;
+}
+
+/**
+ * Structural subset of the worker's StreamEvent union — avoids importing
+ * the full discriminated union (which drags supervisor-adjacent types)
+ * while keeping the fields the generic runner consumes.
+ */
+type StreamEventLike =
+  | { kind: 'text'; text: string }
+  | { kind: 'tool_use'; name: string; input: unknown }
+  | { kind: 'result'; isError: boolean; text: string }
+  | { kind: string; [key: string]: unknown };
 
 function extractFirstJsonObject(text: string): unknown {
   const start = text.indexOf('{');

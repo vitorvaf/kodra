@@ -171,6 +171,8 @@ export interface SuggestFeatureInput {
   backlog: SuggestFeatureBacklogEntry[];
   personaPrompt: string;
   provider?: ProviderId;
+  /** Model slug for the ideation run; `'default'` or undefined lets the CLI pick. */
+  model?: string;
   /** Free-form scope from the user — narrows the suggestion to a topic, area, or constraint. */
   userNotes?: string;
   onEvent?: (event: PlannerEvent) => void;

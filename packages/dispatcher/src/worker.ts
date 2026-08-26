@@ -1,50 +1,14 @@
 import { spawn as nodeSpawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { acpAdapter } from './adapters/acp.js';
-import { ampCliAdapter } from './adapters/amp-cli.js';
-import { agyCliAdapter } from './adapters/agy-cli.js';
-import { ccrCliAdapter } from './adapters/ccr-cli.js';
-import { claudeCodeAdapter } from './adapters/claude-code.js';
-import { codexCliAdapter } from './adapters/codex-cli.js';
-import { copilotCliAdapter } from './adapters/copilot-cli.js';
-import { cursorCliAdapter } from './adapters/cursor-cli.js';
-import { droidCliAdapter } from './adapters/droid-cli.js';
-import { geminiCliAdapter } from './adapters/gemini-cli.js';
-import { opencodeCliAdapter } from './adapters/opencode-cli.js';
-import { qwenCliAdapter } from './adapters/qwen-cli.js';
+import { AGENT_CLI_ADAPTERS, type AgentRunProvider } from './adapters/registry.js';
 import type { AgentCliAdapter } from './adapters/types.js';
 import type { SpawnFn } from './composer.js';
 import { computeCostUsd } from './pricing.js';
 import { makeLineSplitter, type StreamEvent } from './stream-parser.js';
 
-export type AgentRunProvider =
-  | 'claude-code'
-  | 'codex-cli'
-  | 'gemini-cli'
-  | 'agy-cli'
-  | 'amp-cli'
-  | 'cursor-cli'
-  | 'copilot-cli'
-  | 'opencode-cli'
-  | 'droid-cli'
-  | 'ccr-cli'
-  | 'qwen-cli'
-  | 'acp';
+export type { AgentRunProvider } from './adapters/registry.js';
 
-const ADAPTERS: Partial<Record<AgentRunProvider, AgentCliAdapter>> = {
-  'claude-code': claudeCodeAdapter,
-  'codex-cli': codexCliAdapter,
-  'gemini-cli': geminiCliAdapter,
-  'agy-cli': agyCliAdapter,
-  'amp-cli': ampCliAdapter,
-  'cursor-cli': cursorCliAdapter,
-  'copilot-cli': copilotCliAdapter,
-  'opencode-cli': opencodeCliAdapter,
-  'droid-cli': droidCliAdapter,
-  'ccr-cli': ccrCliAdapter,
-  'qwen-cli': qwenCliAdapter,
-  acp: acpAdapter,
-};
+const ADAPTERS: Partial<Record<AgentRunProvider, AgentCliAdapter>> = AGENT_CLI_ADAPTERS;
 
 export interface StartAgentRunOptions {
   cwd: string;

@@ -10,12 +10,21 @@ import { collectSuggestionEntries } from '../suggestion-context.js';
 import { dispatchAutopilotChild } from './dispatch-helpers.js';
 import {
   type OrchestratorContext,
+  ConsecutiveIterationFailuresError,
   SessionBudgetExceededError,
   waitForChildSettled,
 } from './orchestrator.js';
 
 const MAX_PARALLELISM = 4;
 const SLOT_PAUSE_MS = 500;
+/**
+ * Stop the session after this many iterations that all failed to ideate or
+ * dispatch. Without this cap a broken environment (e.g. an unauthenticated
+ * planner CLI) spins the loop forever — one CLI spawn every few seconds,
+ * each appending a "(failed to ideate or dispatch)" child — burning CPU
+ * with no forward progress. A single successful iteration resets the count.
+ */
+const MAX_CONSECUTIVE_FAILURES = 5;
 
 interface PersonaClaim {
   index: number;
@@ -111,6 +120,7 @@ async function runSlot(
   signal: AbortSignal,
 ): Promise<void> {
   log(`session ${sessionId}: slot ${slotIndex} entered runSlot`);
+  let consecutiveFailures = 0;
   while (!signal.aborted) {
     // If a previous iteration tripped the global Claude API cooldown, wait it
     // out before spawning the next child — otherwise we burn budget retrying
@@ -161,6 +171,7 @@ async function runSlot(
     }
 
     if (stepError) {
+      consecutiveFailures += 1;
       // Record a "skipped" entry so the user sees the gap.
       const entry: AutopilotChildEntry = {
         issueNumber: -1,
@@ -175,6 +186,17 @@ async function runSlot(
       };
       const withChild = ctx.store.autopilotSessions.appendChild(sessionId, entry);
       ctx.notify(withChild);
+
+      // Circuit breaker: a persistent failure (bad credentials, missing CLI,
+      // broken git remote) will never self-heal by retrying every 500ms.
+      // Escalate so the orchestrator stops the session with the root cause
+      // instead of looping forever. Other slots wind down on their next
+      // persona claim (the session is no longer 'running' by then).
+      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        throw new ConsecutiveIterationFailuresError(consecutiveFailures, stepError.message);
+      }
+    } else {
+      consecutiveFailures = 0;
     }
 
     await sleepInterruptible(SLOT_PAUSE_MS, signal);
@@ -221,6 +243,11 @@ async function runOneIteration(
     drafted = await ctx.suggestIssue({
       backlog,
       personaPrompt: persona.prompt,
+      // Ideate with the session's own provider/agent CLI — the same login
+      // the child dispatches use — instead of hardcoding claude. The
+      // suggester falls back to claude-code when undefined.
+      ...(provider !== undefined ? { provider } : {}),
+      ...(model !== undefined ? { model } : {}),
       onEvent: (event) => {
         ctx.planning.append(sessionId, slotIndex, event);
         const current = ctx.store.autopilotSessions.findById(sessionId);

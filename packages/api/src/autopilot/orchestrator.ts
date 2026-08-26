@@ -162,6 +162,22 @@ export class SessionBudgetExceededError extends Error implements SessionBudgetEx
   }
 }
 
+/**
+ * Raised by a feature-dev slot after MAX_CONSECUTIVE_FAILURES iterations in
+ * a row failed to ideate or dispatch. Retrying a broken environment every
+ * 500ms only burns CPU, so the session is stopped with the last error as
+ * its stop reason.
+ */
+export class ConsecutiveIterationFailuresError extends Error {
+  constructor(
+    readonly failures: number,
+    readonly lastError: string,
+  ) {
+    super(`stopped after ${failures} consecutive failed iterations — last error: ${lastError}`);
+    this.name = 'ConsecutiveIterationFailuresError';
+  }
+}
+
 export function createAutopilotManager(opts: AutopilotManagerOpts): AutopilotManager {
   const { store, source, supervisor, suggestIssue, repoPath, repoConfig } = opts;
   const active = new Map<number, ActiveLoop>();
@@ -245,6 +261,16 @@ export function createAutopilotManager(opts: AutopilotManagerOpts): AutopilotMan
           currentChildRunId: null,
         });
         notify(stopped);
+        return;
+      }
+      if (err instanceof ConsecutiveIterationFailuresError) {
+        const failed = store.autopilotSessions.update(session.id, {
+          status: 'failed',
+          endedAt: new Date().toISOString(),
+          stopReason: err.message,
+          currentChildRunId: null,
+        });
+        notify(failed);
         return;
       }
       const message = err instanceof Error ? err.message : String(err);

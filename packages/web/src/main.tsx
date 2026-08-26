@@ -10,6 +10,7 @@ import type {
   RecentCloudWorkspace,
   RecentWorkspace,
 } from './desktop-bridge.js';
+import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/shell.css';
 import './styles/card.css';

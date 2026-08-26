@@ -248,6 +248,12 @@ export type ChatHandlers = Pick<
 export interface ChatHandlerDeps {
   store: HandlerDeps['store'];
   supervisor: HandlerDeps['supervisor'];
+  /**
+   * Credential probes for provider resolution. When omitted, provider
+   * resolution assumes no provider has credentials and applies the
+   * documented fallbacks of resolveProviderWithCreds.
+   */
+  providers?: ProvidersRuntime;
   chatTools?: ChatToolRuntime;
 }
 
@@ -258,9 +264,10 @@ export interface ChatHandlerDeps {
  * cloud-only modes and history is shared across workspaces on the device.
  */
 export function createChatHandlers(deps: ChatHandlerDeps): ChatHandlers {
-  // chat.* handlers only touch deps.store / deps.supervisor / deps.chatTools.
-  // Cast keeps the call sites identical to the full-Handlers path without
-  // forcing the caller to synthesize the unused source/autopilot/sentry deps.
+  // chat.* handlers only touch deps.store / deps.supervisor / deps.providers
+  // / deps.chatTools. Cast keeps the call sites identical to the full-Handlers
+  // path without forcing the caller to synthesize the unused
+  // source/autopilot/sentry deps.
   const fullDeps = deps as unknown as HandlerDeps;
   return {
     'chat:list': () => chat.list(fullDeps),

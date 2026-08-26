@@ -1088,7 +1088,16 @@ function registerDeviceChatIpc(): void {
   async function getHandlers(): Promise<ChatHandlers> {
     if (handlers !== null) return handlers;
     const { store, supervisor } = await ensureDeviceChat();
-    handlers = createChatHandlers({ store, supervisor });
+    // Credential probes are workspace-independent (they stat the Claude
+    // credentials file / safeStorage), so chat provider resolution works
+    // before any workspace is opened. Without this, chat:create crashed
+    // with "Cannot read properties of undefined (reading
+    // 'hasClaudeCodeCredentials')".
+    handlers = createChatHandlers({
+      store,
+      supervisor,
+      providers: { safeStorageAvailable, hasClaudeCodeCredentials },
+    });
     return handlers;
   }
   const channels: Array<keyof ChatHandlers> = [

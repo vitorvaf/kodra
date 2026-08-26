@@ -55,8 +55,12 @@ function resolveChatProvider(
   } catch {
     // settings row may be missing on first run — fall through
   }
+  // Optional-chained: the device-chat wiring passes a narrow deps object;
+  // a missing providers runtime means "assume no credentials", which lets
+  // resolveProviderWithCreds apply its fallback instead of crashing the
+  // IPC with a TypeError.
   const hasCreds = (id: AgentRunProvider) =>
-    hasProviderCredentials(id, () => deps.providers.hasClaudeCodeCredentials());
+    hasProviderCredentials(id, () => deps.providers?.hasClaudeCodeCredentials() ?? false);
   return resolveProviderWithCreds(explicit, defaultProvider, hasCreds);
 }
 

@@ -20,8 +20,12 @@ export const agyCliAdapter: AgentCliAdapter = {
   mcpSupport: 'config-dir',
 
   buildArgs(opts: BuildArgsInput): string[] {
+    // `-p` must be the LAST flag: the worker appends the prompt right after
+    // argv, and agy >= 1.1.x binds the token following `-p` as its prompt
+    // value. With `-p` first, `--output-format` was swallowed as the prompt
+    // and the CLI aborted with exit 2. Keeping `-p` adjacent to the appended
+    // prompt is the form the CLI's own error guidance recommends.
     const args: string[] = [
-      '-p',
       '--output-format',
       'stream-json',
       '--dangerously-skip-permissions',
@@ -37,6 +41,7 @@ export const agyCliAdapter: AgentCliAdapter = {
     if (opts.extraArgs && opts.extraArgs.length > 0) {
       args.push(...opts.extraArgs);
     }
+    args.push('-p');
     return args;
   },
 

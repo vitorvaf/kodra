@@ -21,17 +21,16 @@ function feed(lines: readonly string[], parse: (line: string) => StreamEvent[]):
 describe('agyCliAdapter', () => {
   it('builds headless stream-json args and maps model, conversation, and extras', () => {
     expect(agyCliAdapter.buildArgs({})).toEqual([
-      '-p',
       '--output-format',
       'stream-json',
       '--dangerously-skip-permissions',
+      '-p',
     ]);
     expect(agyCliAdapter.buildArgs({
       model: 'gemini-3.6-flash-low',
       resumeFromSessionId: 'conversation-1',
       extraArgs: ['--verbose'],
     })).toEqual([
-      '-p',
       '--output-format',
       'stream-json',
       '--dangerously-skip-permissions',
@@ -40,14 +39,15 @@ describe('agyCliAdapter', () => {
       '--conversation',
       'conversation-1',
       '--verbose',
+      '-p',
     ]);
     // `default` is the catalogue placeholder for "let agy pick" — it must
     // never reach argv (the CLI rejects unknown model slugs with exit 1).
     expect(agyCliAdapter.buildArgs({ model: 'default' })).toEqual([
-      '-p',
       '--output-format',
       'stream-json',
       '--dangerously-skip-permissions',
+      '-p',
     ]);
   });
 

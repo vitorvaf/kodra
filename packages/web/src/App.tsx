@@ -47,6 +47,13 @@ import type {
 export type { ActiveCloudWorkspaceInfo };
 import type { Config, Issue } from './types.js';
 
+// Offline-only mode: the first-run cloud sign-in prompt is temporarily
+// disabled — every launch goes straight to the local WorkspacePicker and
+// the app stays fully offline on this machine. Flip back to `true` to
+// restore the one-time prompt; the dismissal/auth plumbing below is kept
+// untouched so re-enabling is a one-line change.
+const CLOUD_FIRST_RUN_PROMPT_ENABLED = false;
+
 interface AppProps {
   workspace: ActiveWorkspaceInfo | null;
   cloudWorkspace: ActiveCloudWorkspaceInfo | null;
@@ -414,7 +421,9 @@ export function App({
   // the very first run (no dismissal recorded yet, no active session) and
   // sits as a one-time prompt. The user can sign in OR pick "Continue
   // locally" to dismiss; either way it never blocks the app again.
-  if (hasBridge && !cloudAuthed && !cloudPromptDismissed) {
+  // Currently disabled by CLOUD_FIRST_RUN_PROMPT_ENABLED (offline-only
+  // mode) — see the constant at the top of this file.
+  if (CLOUD_FIRST_RUN_PROMPT_ENABLED && hasBridge && !cloudAuthed && !cloudPromptDismissed) {
     return (
       <CloudFirstRunPrompt
         onSignedIn={() => {

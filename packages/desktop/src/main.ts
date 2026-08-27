@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { basename, join } from 'node:path';
@@ -240,6 +240,46 @@ if (app.isPackaged) {
   const devUserData = app.getPath('userData');
   app.setName('Kodra');
   app.setPath('userData', devUserData);
+}
+
+/**
+ * Detect WSL (Windows Subsystem for Linux). Microsoft's documented
+ * signal is a case-insensitive "microsoft"/"wsl" match on
+ * /proc/sys/kernel/osrelease, but custom WSL kernels can drop that
+ * marker — so fall back to the WSL_DISTRO_NAME/WSL_INTEROP env vars
+ * WSL's init always exports, the /run/WSL marker dir, and /proc/version.
+ * Never matches on non-Linux platforms.
+ */
+function isRunningUnderWsl(): boolean {
+  if (process.platform !== 'linux') return false;
+  if (process.env['WSL_DISTRO_NAME'] || process.env['WSL_INTEROP']) return true;
+  if (existsSync('/run/WSL')) return true;
+  const hasWslMarker = (path: string): boolean => {
+    try {
+      const content = readFileSync(path, 'utf-8').toLowerCase();
+      return content.includes('microsoft') || content.includes('wsl');
+    } catch {
+      return false;
+    }
+  };
+  return hasWslMarker('/proc/sys/kernel/osrelease') || hasWslMarker('/proc/version');
+}
+
+/**
+ * WSLg exposes a virtual GPU (d3d12 passthrough) under which Chromium's
+ * GPU compositing paints large "X" artifacts over cards, badges and
+ * other composited surfaces — confirmed experimentally: launching with
+ * `--disable-gpu` eliminates them. Disable hardware acceleration on WSL
+ * only. Must run before app.whenReady() and before any BrowserWindow is
+ * created — the one point Electron still honors the flag. Set
+ * KODRA_FORCE_GPU=1 to keep the GPU path enabled inside WSL for future
+ * testing.
+ */
+if (isRunningUnderWsl() && process.env['KODRA_FORCE_GPU'] !== '1') {
+  app.disableHardwareAcceleration();
+  console.log(
+    '[desktop] WSL detected; disabling hardware acceleration to avoid Chromium GPU rendering artifacts.',
+  );
 }
 
 let activeWorkspace: ActiveWorkspace | null = null;

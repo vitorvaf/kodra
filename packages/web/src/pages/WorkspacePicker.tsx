@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getBridge, type RecentWorkspace } from '../desktop-bridge.js';
 import { Logo } from '../components/Logo.js';
 import { CloudSettingsModal } from '../components/modals/CloudSettingsModal.js';
+import { CLOUD_FEATURES_ENABLED } from '../cloud-features.js';
 
 export function WorkspacePicker({
   initialRecents,
@@ -115,44 +116,50 @@ export function WorkspacePicker({
           <p className="muted picker-empty">No recent workspaces yet.</p>
         )}
 
-        <div className="picker-cloud-footer">
-          {cloudAuthed ? (
-            <>
-              <span className="muted">Signed in to Kodra Cloud.</span>{' '}
-              {onBrowseCloud !== undefined ? (
-                <>
-                  <button
-                    type="button"
-                    className="picker-cloud-link"
-                    onClick={onBrowseCloud}
-                  >
-                    Browse cloud projects
-                  </button>
-                  <span className="muted"> · </span>
-                </>
-              ) : null}
-              <button
-                type="button"
-                className="picker-cloud-link"
-                onClick={() => void signOut()}
-                disabled={signingOut}
-              >
-                {signingOut ? 'Signing out…' : 'Sign out'}
-              </button>
-            </>
-          ) : (
-            <>
-              <span className="muted">Want team sync?</span>{' '}
-              <button
-                type="button"
-                className="picker-cloud-link"
-                onClick={() => setShowCloudModal(true)}
-              >
-                Sign in to Kodra Cloud
-              </button>
-            </>
-          )}
-        </div>
+        {/* Offline-only mode: the "Want team sync?" sign-in footer is
+            hidden via CLOUD_FEATURES_ENABLED (see cloud-features.ts).
+            Already-authed users still get the footer so they can sign
+            out. */}
+        {cloudAuthed || CLOUD_FEATURES_ENABLED ? (
+          <div className="picker-cloud-footer">
+            {cloudAuthed ? (
+              <>
+                <span className="muted">Signed in to Kodra Cloud.</span>{' '}
+                {onBrowseCloud !== undefined ? (
+                  <>
+                    <button
+                      type="button"
+                      className="picker-cloud-link"
+                      onClick={onBrowseCloud}
+                    >
+                      Browse cloud projects
+                    </button>
+                    <span className="muted"> · </span>
+                  </>
+                ) : null}
+                <button
+                  type="button"
+                  className="picker-cloud-link"
+                  onClick={() => void signOut()}
+                  disabled={signingOut}
+                >
+                  {signingOut ? 'Signing out…' : 'Sign out'}
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="muted">Want team sync?</span>{' '}
+                <button
+                  type="button"
+                  className="picker-cloud-link"
+                  onClick={() => setShowCloudModal(true)}
+                >
+                  Sign in to Kodra Cloud
+                </button>
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {showCloudModal ? (

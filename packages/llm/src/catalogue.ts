@@ -6,14 +6,47 @@ import type { ModelEntry, ProviderId } from './types.js';
  * dropdowns; the model picker reads it to render grouped options.
  */
 export const MODELS: ModelEntry[] = [
-  // Claude Code subscription
+  // Claude Code subscription. Fable 5 is the current flagship (aliases:
+  // 'fable'/'opus'/'sonnet' in the claude CLI). claude-mythos-5 is
+  // restricted to approved orgs (Project Glasswing) and deliberately not
+  // catalogued. Plain claude-fable-5 runs the standard 200K window — the
+  // 1M window is a separate opt-in selector (claude-fable-5[1m]) the CLI
+  // resolves on its own.
+  {
+    provider: 'claude-code',
+    id: 'claude-fable-5',
+    label: 'Claude Fable 5',
+    contextWindow: 200_000,
+    toolUse: true,
+    recommended: true,
+  },
+  {
+    provider: 'claude-code',
+    id: 'claude-opus-5',
+    label: 'Claude Opus 5',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
+  {
+    provider: 'claude-code',
+    id: 'claude-sonnet-5',
+    label: 'Claude Sonnet 5',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
+  {
+    provider: 'claude-code',
+    id: 'claude-opus-4-8',
+    label: 'Claude Opus 4.8',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
   {
     provider: 'claude-code',
     id: 'claude-opus-4-7',
     label: 'Claude Opus 4.7',
     contextWindow: 1_000_000,
     toolUse: true,
-    recommended: true,
   },
   {
     provider: 'claude-code',

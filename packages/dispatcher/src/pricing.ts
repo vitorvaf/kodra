@@ -27,6 +27,30 @@ export const MODEL_PRICING: Readonly<Record<string, ModelPricing>> = Object.free
   // Anthropic Claude Code subscription. claude-code reports its own cost
   // directly so these are reference values; analytics that cross-check claude
   // self-reported cost can use them.
+  'claude-fable-5': {
+    inputUsdPerMtok: 10,
+    outputUsdPerMtok: 50,
+    asOf: '2026-08-27',
+    source: 'https://www.anthropic.com/pricing',
+  },
+  'claude-opus-5': {
+    inputUsdPerMtok: 5,
+    outputUsdPerMtok: 25,
+    asOf: '2026-08-27',
+    source: 'https://www.anthropic.com/pricing',
+  },
+  'claude-sonnet-5': {
+    inputUsdPerMtok: 2,
+    outputUsdPerMtok: 10,
+    asOf: '2026-08-27',
+    source: 'https://www.anthropic.com/pricing',
+  },
+  'claude-opus-4-8': {
+    inputUsdPerMtok: 5,
+    outputUsdPerMtok: 25,
+    asOf: '2026-08-27',
+    source: 'https://www.anthropic.com/pricing',
+  },
   'claude-opus-4-7': {
     inputUsdPerMtok: 15,
     outputUsdPerMtok: 75,

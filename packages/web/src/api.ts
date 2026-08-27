@@ -106,6 +106,37 @@ export interface DispatchIssueInput {
   repoId?: number;
 }
 
+/* ---- Multi-agent subscription usage (`cost:usage`) ----
+ * Mirrors the provider-keyed contract from @kanbots/api (bridge.ts).
+ * The result always carries every tracked agent in a fixed order, so the
+ * toolbar can lay out a stable cluster per agent. Keep in sync. */
+
+/** One rate-limit window (e.g. Claude's rolling 5h block). `pct` is the
+ *  fraction CONSUMED (0..1) — bars fill up as the window is spent. */
+export interface UsageWindowInfo {
+  id: string;
+  label: string;
+  pct: number;
+  resetsAt: string | null;
+  /** Extra context: either an absolute usage fraction ('1498 / 1500')
+   *  or, when an agent has several windows under one label, the group
+   *  name ('Gemini models'). */
+  detail?: string | null;
+}
+
+/** Per-agent usage snapshot. `windows` is empty when the agent reports no
+ *  rate-limit windows (e.g. an unlimited plan). */
+export interface AgentUsageResult {
+  provider: string;
+  source: 'live' | 'unauthorized' | 'unavailable';
+  plan?: string | null;
+  windows: UsageWindowInfo[];
+}
+
+export interface CostUsageResult {
+  providers: AgentUsageResult[];
+}
+
 interface BridgeError extends Error {
   details?: unknown;
 }
@@ -838,12 +869,16 @@ export const api = {
     }
     return invoke('cost:today', undefined);
   },
-  costUsage: async (): Promise<ChannelResult<'cost:usage'>> => {
+  costUsage: async (): Promise<CostUsageResult> => {
     if (cloudCtx !== null) {
-      // Phase 2: replace with cloud billing usage endpoint.
-      return { fiveHour: null, sevenDay: null, source: 'unavailable' };
+      // Phase 2: replace with cloud billing usage endpoint. An empty
+      // provider list renders the toolbar's quiet placeholder.
+      return { providers: [] };
     }
-    return invoke('cost:usage', undefined);
+    // The `cost:usage` channel result type in @kanbots/api is landing in
+    // parallel with this UI — normalize through unknown so this wrapper
+    // compiles against either shape while the backend catches up.
+    return invoke('cost:usage', undefined) as unknown as Promise<CostUsageResult>;
   },
   costBreakdown: (): Promise<ChannelResult<'cost:breakdown'>> =>
     invoke('cost:breakdown', undefined),

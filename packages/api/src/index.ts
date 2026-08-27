@@ -99,6 +99,7 @@ export type {
   CardStatus,
   CardTemplatePayload,
   CardType,
+  AgentUsageResult,
   ChannelArgs,
   ChannelName,
   ChannelResult,
@@ -112,6 +113,7 @@ export type {
   Config,
   CooldownStatePayload,
   CostBreakdownItem,
+  CostUsageResult,
   CostTimeSeriesPoint,
   FrontierPoint,
   PersonaModelRollupRow,
@@ -190,4 +192,5 @@ export type {
   WorkspaceRepoStatus,
   WorkspaceRunScriptResult,
   WorkspaceScriptsBridgePayload,
+  UsageWindowInfo,
 } from './bridge.js';

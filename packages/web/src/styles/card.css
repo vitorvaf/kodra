@@ -310,25 +310,58 @@
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
-/* Cost usage row — sits below the filter row, mirrors claude-code's
+/* Agent usage strip — sits below the filter row. One cluster per agent
+   (name + that agent's rate-limit windows) flowing horizontally; clusters
+   wrap as whole units on narrow widths. Mirrors claude-code's
    "Target: tokens / budget (pct%)" indicator with a progress bar. */
 .kb-usage-row {
-  height: 30px;
+  min-height: 30px;
   flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 18px;
-  padding: 0 18px;
+  gap: 4px 10px;
+  padding: 3px 18px;
   border-bottom: 1px solid var(--hairline-soft);
   background: var(--bg);
   font-family: var(--ff-mono);
   font-size: 11px;
 }
+.kb-usage-agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.kb-usage-agent + .kb-usage-agent {
+  margin-left: 4px;
+  padding-left: 14px;
+  border-left: 1px solid var(--hairline-soft);
+}
+.kb-usage-agent-name {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 10.5px;
+}
+.kb-usage-agent.is-degraded .kb-usage-agent-name {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.kb-usage-agent.is-degraded .kb-usage-label,
+.kb-usage-agent.is-degraded .kb-usage-pct {
+  color: var(--ink-3);
+}
+.kb-usage-unlimited {
+  color: var(--ink-3);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 .kb-usage-meter {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--ink-3);
 }
 .kb-usage-label {
@@ -340,7 +373,7 @@
 }
 .kb-usage-bar {
   position: relative;
-  width: 96px;
+  width: 72px;
   height: 6px;
   background: var(--bg-2);
   border: 1px solid var(--hairline-soft);
@@ -371,11 +404,31 @@
 .kb-usage-meter.tone-danger .kb-usage-pct {
   color: var(--failed);
 }
+.kb-usage-quota {
+  color: var(--ink-3);
+  font-size: 10px;
+  white-space: nowrap;
+}
 .kb-usage-reset {
   color: var(--ink-3);
   font-size: 10px;
   letter-spacing: 0.02em;
   white-space: nowrap;
+}
+/* Narrow widths: the reset countdowns stay available in every tooltip —
+   drop the inline copies before the strip starts wrapping hard. */
+@media (max-width: 1100px) {
+  .kb-usage-reset {
+    display: none;
+  }
+  .kb-usage-row {
+    gap: 4px 8px;
+  }
+}
+@media (max-width: 820px) {
+  .kb-usage-bar {
+    width: 48px;
+  }
 }
 
 /* ---------- Board grid ---------- */

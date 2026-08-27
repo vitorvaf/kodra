@@ -15,7 +15,7 @@ import { BoardViewsModal } from '../components/modals/BoardViewsModal.js';
 import { BoardErrorBanner } from '../components/board/BoardErrorBanner.js';
 import { BoardFilters } from '../components/board/BoardFilters.js';
 import { BoardToolbar } from '../components/board/BoardToolbar.js';
-import { BoardUsageRow } from '../components/board/BoardUsageRow.js';
+import { AgentUsageRow } from '../components/board/AgentUsageRow.js';
 import { BulkActionBar, type BulkStatusTarget } from '../components/board/BulkActionBar.js';
 import { CardPreview, type CardSelectModifiers } from '../components/Card.js';
 import { Column, type SuggestActivity } from '../components/Column.js';
@@ -128,12 +128,13 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
   const sortMode = usePrefsStore((s) => s.board.sortMode);
   const setSortMode = usePrefsStore((s) => s.setBoardSortMode);
 
-  // Poll the usage meters (claude.ai OAuth windows) once a minute — the
-  // backend caches /usage for 60s anyway, so polling faster just thrashes
-  // the renderer. The workspace cost rollup (`cost:today`) refreshes on a
-  // tighter 30s cadence so the toolbar meter feels responsive as agent
-  // runs accumulate spend. Both pause when the tab is hidden so a
-  // background window doesn't burn requests.
+  // Poll the agent usage meters (subscription rate-limit windows) once a
+  // minute — the backend caches upstream /usage responses for 60s anyway,
+  // so polling faster just thrashes the renderer. The workspace cost
+  // rollup (`cost:today`) refreshes on a tighter 30s cadence so the
+  // toolbar meter feels responsive as agent runs accumulate spend. Both
+  // pause when the tab is hidden so a background window doesn't burn
+  // requests.
   useEffect(() => {
     let cancelled = false;
     function tickUsage(): void {
@@ -644,10 +645,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
           },
         }}
       />
-      <BoardUsageRow
-        fiveHour={costUsage?.fiveHour ?? null}
-        sevenDay={costUsage?.sevenDay ?? null}
-      />
+      <AgentUsageRow providers={costUsage?.providers ?? []} />
       <BoardErrorBanner message={moveError} onDismiss={() => setMoveError(null)} />
       <div className="kb-board" onClick={handleBoardBackgroundClick}>
         {COLUMNS.filter((col) => filterApi.includeBacklog || col.key !== 'backlog').map((col) => (

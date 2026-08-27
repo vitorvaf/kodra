@@ -502,21 +502,28 @@ export interface CostBreakdownItem {
   totalUsd: number;
 }
 
-// Same shape Claude Code's `statusLine` JSON exposes under
-// `rate_limits.{five_hour,seven_day}.used_percentage`. Sourced from the
-// authenticated OAuth `/usage` endpoint so the values match claude.ai's
-// "Plan usage limits" panel exactly.
-export interface CostUsageWindow {
-  pct: number; // 0..1 utilization
-  resetsAt: string | null; // ISO date or null when unknown
+export interface UsageWindowInfo {
+  /** stable id, e.g. '5h' | '7d' | 'weekly' | 'monthly' | `${groupId}:${bucketType}` */
+  id: string;
+  /** short display label: '5h', '7d', 'weekly', 'monthly' */
+  label: string;
+  /** fraction CONSUMED, clamped 0..1 */
+  pct: number;
+  resetsAt: string | null;
+  /** optional extra line, e.g. '1499 / 1500' or group name */
+  detail?: string | null;
+}
+
+export interface AgentUsageResult {
+  provider: string;
+  source: 'live' | 'unauthorized' | 'unavailable';
+  plan?: string | null;
+  windows: UsageWindowInfo[];
 }
 
 export interface CostUsageResult {
-  fiveHour: CostUsageWindow | null;
-  sevenDay: CostUsageWindow | null;
-  // 'oauth' = live numbers, 'unauthorized' = token expired (relog required),
-  // 'unavailable' = creds missing or endpoint down.
-  source: 'oauth' | 'unauthorized' | 'unavailable';
+  /** Always all four providers, in the order used by the cost:usage channel. */
+  providers: AgentUsageResult[];
 }
 
 export interface CooldownStatePayload {

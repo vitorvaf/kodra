@@ -4,7 +4,7 @@ import { AGENT_CLI_ADAPTERS, type AgentRunProvider } from './adapters/registry.j
 import type { AgentCliAdapter } from './adapters/types.js';
 import type { SpawnFn } from './composer.js';
 import { computeCostUsd } from './pricing.js';
-import { makeLineSplitter, type StreamEvent } from './stream-parser.js';
+import { createDecisionStreamFilter, makeLineSplitter, type StreamEvent } from './stream-parser.js';
 
 export type { AgentRunProvider } from './adapters/registry.js';
 
@@ -161,8 +161,13 @@ export function startAgentRun(opts: StartAgentRunOptions): AgentRunHandle {
   let settled = false;
 
   const splitter = makeLineSplitter();
+  // Provider-agnostic decision extraction: adapters that stream text as
+  // deltas (agy, opencode, …) can split a kanbots-decision fence across
+  // events, so the worker re-scans buffered text for complete blocks.
+  const decisionFilter = createDecisionStreamFilter();
   child.stdout?.on('data', (chunk: Buffer) => {
     const lines = splitter(chunk.toString('utf8'));
+    const batch: StreamEvent[] = [];
     for (const line of lines) {
       const parsed = adapter.parseLine(line);
       for (let ev of parsed) {
@@ -190,8 +195,11 @@ export function startAgentRun(opts: StartAgentRunOptions): AgentRunHandle {
             totalCostUsd: ev.totalCostUsd,
           };
         }
-        emitter.emit('event', ev);
+        batch.push(ev);
       }
+    }
+    for (const ev of decisionFilter.push(batch)) {
+      emitter.emit('event', ev);
     }
   });
   let rateLimitEmitted = false;
@@ -272,6 +280,7 @@ export function startAgentRun(opts: StartAgentRunOptions): AgentRunHandle {
       if (settled) return;
       settled = true;
       clearEscalation();
+      for (const ev of decisionFilter.flush()) emitter.emit('event', ev);
       emitter.emit('error', err);
       const summary: RunSummary = {
         exitCode: null,
@@ -287,6 +296,9 @@ export function startAgentRun(opts: StartAgentRunOptions): AgentRunHandle {
       if (settled) return;
       settled = true;
       clearEscalation();
+      // The stream is over: any text still held back (an unterminated
+      // fence that never completed) is plain text after all.
+      for (const ev of decisionFilter.flush()) emitter.emit('event', ev);
       const summary: RunSummary = {
         exitCode: code ?? null,
         result,

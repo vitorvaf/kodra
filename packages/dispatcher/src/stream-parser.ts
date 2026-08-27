@@ -361,6 +361,109 @@ export function extractDiffHunkEvents(
 }
 
 const DECISION_BLOCK_RE = /```kanbots-decision\s*\n([\s\S]*?)\n```/g;
+const DECISION_FENCE_OPENER = '```kanbots-decision';
+
+/**
+ * Longest k such that s's suffix of length k is a proper prefix of the
+ * fence opener ('`', '``', '```', '```k', … '```kanbots-decisio'). While a
+ * partial opener sits at the end of the buffer we cannot yet know whether
+ * it will grow into a decision fence, so the caller holds it back. Text
+ * that provably cannot ('```j', '`` b', …) is safe to emit immediately.
+ */
+function partialOpenerSuffixLength(s: string): number {
+  const max = Math.min(s.length, DECISION_FENCE_OPENER.length - 1);
+  for (let k = max; k > 0; k--) {
+    if (s.endsWith(DECISION_FENCE_OPENER.slice(0, k))) return k;
+  }
+  return 0;
+}
+
+/**
+ * Stateful decision-block extractor for streaming adapters.
+ *
+ * Adapters that emit text as incremental deltas (agy, opencode, …) can split
+ * a ```kanbots-decision fence across many `text` events, so a per-event
+ * regex never sees the complete block and the decision renders as raw text.
+ * The worker routes every adapter's events through one of these filters:
+ * text is buffered, complete decision blocks are converted to `decision`
+ * events, and a trailing unterminated fence opener is held back until it
+ * either completes or the stream ends (flush).
+ *
+ * Non-text events pass through untouched. Held-back text may be emitted
+ * after a subsequent non-text event; the held window is bounded by the
+ * fence opener, so the reorder is cosmetic at worst.
+ */
+export interface DecisionStreamFilter {
+  push(events: StreamEvent[]): StreamEvent[];
+  flush(): StreamEvent[];
+}
+
+export function createDecisionStreamFilter(): DecisionStreamFilter {
+  let held = '';
+
+  function drain(): StreamEvent[] {
+    const out: StreamEvent[] = [];
+
+    // Complete blocks first, over the full buffer. matchAll consumes every
+    // non-overlapping match, so what remains can hold no complete block.
+    let cursor = 0;
+    DECISION_BLOCK_RE.lastIndex = 0;
+    for (const match of held.matchAll(DECISION_BLOCK_RE)) {
+      const before = held.slice(cursor, match.index ?? 0);
+      if (before.length > 0) out.push({ kind: 'text', text: before });
+      const decision = parseDecisionBody(match[1] ?? '');
+      if (decision) {
+        out.push(decision);
+      } else {
+        // Malformed block: keep it visible as text rather than dropping it.
+        out.push({ kind: 'text', text: match[0] });
+      }
+      cursor = (match.index ?? 0) + match[0].length;
+    }
+    const rest = held.slice(cursor);
+
+    // An opener without its closer: the body is still streaming — hold
+    // everything from that opener onward.
+    const openAt = rest.lastIndexOf(DECISION_FENCE_OPENER);
+    if (openAt >= 0) {
+      held = rest.slice(openAt);
+      const safe = rest.slice(0, openAt);
+      if (safe.length > 0) out.push({ kind: 'text', text: safe });
+      return out;
+    }
+
+    // Hold back only a trailing partial opener ('`', '```k', …); once the
+    // 4th char differs from 'k' the fence is provably not a decision block.
+    const keep = partialOpenerSuffixLength(rest);
+    held = keep > 0 ? rest.slice(rest.length - keep) : '';
+    const emit = keep > 0 ? rest.slice(0, rest.length - keep) : rest;
+    if (emit.length > 0) out.push({ kind: 'text', text: emit });
+    return out;
+  }
+
+  return {
+    push(events: StreamEvent[]): StreamEvent[] {
+      // Process one event at a time so drained text keeps its position
+      // relative to the non-text events around it.
+      const out: StreamEvent[] = [];
+      for (const ev of events) {
+        if (ev.kind === 'text') {
+          held += ev.text;
+          out.push(...drain());
+        } else {
+          out.push(ev);
+        }
+      }
+      return out;
+    },
+    flush(): StreamEvent[] {
+      if (held.length === 0) return [];
+      const tail = held;
+      held = '';
+      return tail.trim().length > 0 ? [{ kind: 'text', text: tail }] : [];
+    },
+  };
+}
 
 function extractTextEvents(text: string): StreamEvent[] {
   if (text.length === 0) return [];

@@ -304,6 +304,135 @@ function threadAlreadyActiveError(run: AgentRun): ThreadAlreadyActiveError {
   return err;
 }
 
+/**
+ * System prompt injected when a run starts with the kanbots `/spec`
+ * orchestration command. Semantically mirrors SPEC_SYSTEM_PROMPT in the web
+ * TaskCreateModal — the web copy cannot be imported across the IPC boundary,
+ * so keep the two aligned when editing either.
+ */
+const SPEC_MODE_SYSTEM_PROMPT = `You are running in /spec mode for a Kodra task.
+
+1. Read the user's request below (description / scope / acceptance criteria).
+2. Investigate the affected files via Read / Glob / Grep.
+3. Refine the acceptance criteria into a concrete, testable list.
+4. Emit a single decision card asking the user to approve the AC list before any code is written:
+
+\`\`\`kanbots-decision
+{
+  "question": "Approve this acceptance criteria list?",
+  "options": [
+    {"value": "approve", "label": "Approve and start implementation"},
+    {"value": "edit", "label": "Edit the criteria"},
+    {"value": "cancel", "label": "Cancel the task"}
+  ]
+}
+\`\`\`
+
+After emitting the decision, end your turn — do not write any code.`;
+
+const SPEC_FALLBACK_PROMPT =
+  'Refine the acceptance criteria for this task. Investigate the repo first, then propose a concrete, testable acceptance criteria list.';
+
+/**
+ * System prompt injected when a run starts with the kanbots `/review`
+ * orchestration command: a read-only review pass over the current changes.
+ */
+const REVIEW_MODE_SYSTEM_PROMPT = `You are running in /review mode for a Kodra task.
+
+1. Inspect the current changes: git status, git diff (staged and unstaged), and the commits unique to this branch versus its base.
+2. Review for correctness bugs, regressions, security issues, and missing test coverage.
+3. Emit findings as a concise, prioritized list (most severe first) with file:line references. Say "No findings" if the diff is clean.
+4. Do NOT modify any files — this is a read-only review pass.`;
+
+const REVIEW_FALLBACK_PROMPT = 'Review the current changes on this branch.';
+
+/**
+ * System prompt injected when a run starts with the kanbots `/split`
+ * orchestration command: propose a subtask fan-out for approval, mirroring
+ * the /spec decision-card flow.
+ */
+const SPLIT_MODE_SYSTEM_PROMPT = `You are running in /split mode for a Kodra task.
+
+1. Read the user's request below (description / scope / acceptance criteria).
+2. Investigate the affected areas via Read / Glob / Grep.
+3. Propose how to fan the work out into independent, well-bounded subtasks, each with its own acceptance criteria.
+4. Emit a single decision card asking the user to approve the split before any code is written:
+
+\`\`\`kanbots-decision
+{
+  "question": "Approve this subtask split?",
+  "options": [
+    {"value": "approve", "label": "Approve and create the subtasks"},
+    {"value": "edit", "label": "Edit the split"},
+    {"value": "cancel", "label": "Cancel the task"}
+  ]
+}
+\`\`\`
+
+After emitting the decision, end your turn — do not write any code.`;
+
+const SPLIT_FALLBACK_PROMPT =
+  'Propose how to split this task into independent subtasks. Investigate the repo first, then present the split for approval.';
+
+interface KanbotsCommandSpec {
+  /** Leading token (without the slash) that triggers the command. */
+  token: string;
+  systemPrompt: string;
+  fallbackPrompt: string;
+}
+
+/**
+ * Kanbots orchestration commands recognised ahead of the agent CLI. Mirrors
+ * KANBOTS_COMMANDS in @kanbots/llm slashCommands.ts — keep the token lists
+ * in sync.
+ */
+const KANBOTS_COMMAND_SPECS: readonly KanbotsCommandSpec[] = [
+  {
+    token: 'spec',
+    systemPrompt: SPEC_MODE_SYSTEM_PROMPT,
+    fallbackPrompt: SPEC_FALLBACK_PROMPT,
+  },
+  {
+    token: 'review',
+    systemPrompt: REVIEW_MODE_SYSTEM_PROMPT,
+    fallbackPrompt: REVIEW_FALLBACK_PROMPT,
+  },
+  {
+    token: 'split',
+    systemPrompt: SPLIT_MODE_SYSTEM_PROMPT,
+    fallbackPrompt: SPLIT_FALLBACK_PROMPT,
+  },
+];
+
+/**
+ * Translate a leading kanbots orchestration command (`/spec`, `/review`,
+ * `/split` — advertised to every agent by discoverSlashCommands) into a
+ * clean prompt plus the mode's system instructions: strip the command
+ * token and layer it on top of any caller-supplied appendSystemPrompt.
+ * Without this the literal `/spec …` prompt reaches the agent CLI, which
+ * rejects it as an unknown command (claude: "Unknown command: /spec").
+ *
+ * Only exact leading tokens match — `/specify` and prose mentions ("via
+ * /spec.") pass through untouched.
+ */
+function applyKanbotsCommand(
+  prompt: string,
+  appendSystemPrompt?: string,
+): { prompt: string; appendSystemPrompt?: string | undefined } {
+  const trimmed = prompt.trimStart();
+  for (const spec of KANBOTS_COMMAND_SPECS) {
+    if (!new RegExp(`^/${spec.token}(?:\\s|$)`).test(trimmed)) continue;
+    const rest = trimmed.replace(new RegExp(`^/${spec.token}\\s*`), '').trim();
+    return {
+      prompt: rest.length > 0 ? rest : spec.fallbackPrompt,
+      appendSystemPrompt: [appendSystemPrompt, spec.systemPrompt]
+        .filter(Boolean)
+        .join('\n\n'),
+    };
+  }
+  return { prompt, appendSystemPrompt };
+}
+
 export async function createSupervisor(
   opts: CreateSupervisorOptions,
 ): Promise<AgentSupervisor> {
@@ -972,12 +1101,13 @@ export async function createSupervisor(
       ...(budget !== null ? { costBudgetUsd: budget } : {}),
     });
     store.threads.setLastModel(input.threadId, provider, input.model ?? null);
-    const composed = composeSystemPrompt(run.id, input.appendSystemPrompt);
+    const translated = applyKanbotsCommand(input.prompt, input.appendSystemPrompt);
+    const composed = composeSystemPrompt(run.id, translated.appendSystemPrompt);
     persistBriefing(run.id, composed.briefing);
     applyAcpWorkspaceCommand();
     const handle = startAgent({
       cwd: resolveRepoPath(),
-      prompt: input.prompt,
+      prompt: translated.prompt,
       appendSystemPrompt: composed.prompt,
       ...(input.model !== undefined ? { model: input.model } : {}),
       provider,
@@ -1024,12 +1154,13 @@ export async function createSupervisor(
     if (!existing.sessionId) {
       throw new Error(`agent run ${input.runId} has no session_id to resume`);
     }
-    const composed = composeSystemPrompt(input.runId, input.appendSystemPrompt);
+    const translated = applyKanbotsCommand(input.prompt, input.appendSystemPrompt);
+    const composed = composeSystemPrompt(input.runId, translated.appendSystemPrompt);
     persistBriefing(input.runId, composed.briefing);
     applyAcpWorkspaceCommand();
     const handle = startAgent({
       cwd: resolveRepoPath(),
-      prompt: input.prompt,
+      prompt: translated.prompt,
       resumeFromSessionId: existing.sessionId,
       appendSystemPrompt: composed.prompt,
       // Resume always reuses the original provider; providers without
@@ -1149,14 +1280,15 @@ export async function createSupervisor(
     // Persist last-used model on the thread for the model picker default.
     store.threads.setLastModel(input.threadId, provider, input.model ?? null);
 
+    const translated = applyKanbotsCommand(input.prompt, input.appendSystemPrompt);
     const recall = await recallMemoryBlock({
-      query: input.prompt,
+      query: translated.prompt,
       repoPath,
       budgetUsd: budget,
     });
     const appendSystemPrompt = recall
-      ? [recall, input.appendSystemPrompt].filter(Boolean).join('\n\n')
-      : input.appendSystemPrompt;
+      ? [recall, translated.appendSystemPrompt].filter(Boolean).join('\n\n')
+      : translated.appendSystemPrompt;
     const composed = composeSystemPrompt(run.id, appendSystemPrompt);
     persistBriefing(run.id, composed.briefing);
     applyAcpWorkspaceCommand();
@@ -1164,7 +1296,7 @@ export async function createSupervisor(
     try {
       handle = startAgent({
         cwd: worktreePath,
-        prompt: input.prompt,
+        prompt: translated.prompt,
         appendSystemPrompt: composed.prompt,
         ...(input.model !== undefined ? { model: input.model } : {}),
         provider,
@@ -1208,12 +1340,13 @@ export async function createSupervisor(
       throw new Error(`agent run ${input.runId} has no worktree`);
     }
 
-    const composed = composeSystemPrompt(input.runId, input.appendSystemPrompt);
+    const translated = applyKanbotsCommand(input.prompt, input.appendSystemPrompt);
+    const composed = composeSystemPrompt(input.runId, translated.appendSystemPrompt);
     persistBriefing(input.runId, composed.briefing);
     applyAcpWorkspaceCommand();
     const handle = startAgent({
       cwd: existing.worktreePath,
-      prompt: input.prompt,
+      prompt: translated.prompt,
       resumeFromSessionId: existing.sessionId,
       appendSystemPrompt: composed.prompt,
       // Resume must reuse the original provider — otherwise an opencode

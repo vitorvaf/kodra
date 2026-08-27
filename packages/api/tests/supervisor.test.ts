@@ -302,4 +302,139 @@ describe('supervisor.start one-run-per-thread guard', () => {
     handle.emitClose({ exitCode: 0 });
     await handle.done;
   });
+
+  it('translates a leading /spec command into a clean prompt plus spec-mode system instructions', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+
+    await supervisor.start({ threadId, issueNumber: 7, prompt: '/spec add a login page' });
+
+    expect(startCalls).toHaveLength(1);
+    expect(startCalls[0]!.prompt).toBe('add a login page');
+    expect(startCalls[0]!.appendSystemPrompt).toContain('/spec mode for a Kodra task');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
+
+  it('joins the spec block under a caller-supplied appendSystemPrompt', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+
+    await supervisor.start({
+      threadId,
+      issueNumber: 7,
+      prompt: '/spec harden the auth flow',
+      appendSystemPrompt: 'base workspace rules',
+    });
+
+    expect(startCalls[0]!.prompt).toBe('harden the auth flow');
+    expect(startCalls[0]!.appendSystemPrompt).toContain('base workspace rules');
+    expect(startCalls[0]!.appendSystemPrompt).toContain('/spec mode for a Kodra task');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
+
+  it('falls back to a generic spec prompt when /spec carries no request', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+
+    await supervisor.start({ threadId, issueNumber: 7, prompt: '/spec' });
+
+    expect(startCalls[0]!.prompt).not.toMatch(/^\//);
+    expect(startCalls[0]!.prompt.length).toBeGreaterThan(0);
+    expect(startCalls[0]!.appendSystemPrompt).toContain('/spec mode for a Kodra task');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
+
+  it('leaves a prose /spec mention untouched', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+
+    await supervisor.start({ threadId, issueNumber: 7, prompt: 'Refine via /spec.' });
+
+    expect(startCalls).toHaveLength(1);
+    expect(startCalls[0]!.prompt).toBe('Refine via /spec.');
+    expect(startCalls[0]!.appendSystemPrompt).not.toContain('/spec mode for a Kodra task');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
+
+  it('leaves /specify untouched (prefix must be an exact token)', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+
+    await supervisor.start({ threadId, issueNumber: 7, prompt: '/specify the login flow' });
+
+    expect(startCalls).toHaveLength(1);
+    expect(startCalls[0]!.prompt).toBe('/specify the login flow');
+    expect(startCalls[0]!.appendSystemPrompt).not.toContain('/spec mode for a Kodra task');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
+
+  it('applies the same /spec translation on resume', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+    const prior = store.agentRuns.create({ threadId });
+    store.agentRuns.update(prior.id, {
+      status: 'failed',
+      sessionId: 'sess-spec',
+      worktreePath: '/tmp/wt',
+      endedAt: new Date().toISOString(),
+    });
+
+    await supervisor.resume({ runId: prior.id, prompt: '/spec continue refining the criteria' });
+
+    expect(startCalls).toHaveLength(1);
+    expect(startCalls[0]!.prompt).toBe('continue refining the criteria');
+    expect(startCalls[0]!.appendSystemPrompt).toContain('/spec mode for a Kodra task');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
+
+  it('translates a leading /review command into a read-only review prompt', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+
+    await supervisor.start({ threadId, issueNumber: 7, prompt: '/review the auth refactor' });
+
+    expect(startCalls).toHaveLength(1);
+    expect(startCalls[0]!.prompt).toBe('the auth refactor');
+    expect(startCalls[0]!.appendSystemPrompt).toContain('/review mode for a Kodra task');
+    expect(startCalls[0]!.appendSystemPrompt).toContain('read-only review pass');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
+
+  it('falls back to a generic review prompt when /review carries no target', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+
+    await supervisor.start({ threadId, issueNumber: 7, prompt: '/review' });
+
+    expect(startCalls[0]!.prompt).not.toMatch(/^\//);
+    expect(startCalls[0]!.prompt.length).toBeGreaterThan(0);
+    expect(startCalls[0]!.appendSystemPrompt).toContain('/review mode for a Kodra task');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
+
+  it('translates a leading /split command into a subtask fan-out proposal', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+
+    await supervisor.start({
+      threadId,
+      issueNumber: 7,
+      prompt: '/split into frontend and backend work',
+    });
+
+    expect(startCalls).toHaveLength(1);
+    expect(startCalls[0]!.prompt).toBe('into frontend and backend work');
+    expect(startCalls[0]!.appendSystemPrompt).toContain('/split mode for a Kodra task');
+    expect(startCalls[0]!.appendSystemPrompt).toContain('Approve this subtask split?');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
 });

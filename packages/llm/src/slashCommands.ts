@@ -64,8 +64,12 @@ const CLAUDE_BUILTINS: readonly SlashCommand[] = [
     source: 'builtin',
   },
   {
-    name: 'pr-comments',
-    description: 'Get comments from a GitHub pull request',
+    // /pr-comments was removed in newer claude releases — the 2.1.226
+    // changelog table maps it to "Ask Claude in plain English to view pull
+    // request comments". /pr is the current native pull-request workflow
+    // command. Verified against the installed CLI binary.
+    name: 'pr',
+    description: 'Create a pull request for the current branch',
     source: 'builtin',
   },
   {
@@ -282,10 +286,12 @@ const ACP_BUILTINS: readonly SlashCommand[] = [
 ];
 
 /**
- * Kanbots orchestration commands. These work the same regardless of which
- * agent CLI is selected — the composer/dispatcher recognises them ahead of
- * the agent. They take priority over any same-named builtin so users get
- * a consistent kanbots-aware behaviour for `/review`.
+ * Kanbots orchestration commands. These are advertised for every agent CLI
+ * and translated server-side: the api supervisor's applyKanbotsCommand
+ * (packages/api/src/agent-runs/supervisor.ts) strips the token and injects
+ * the mode's system prompt before spawning, so the literal command never
+ * reaches the CLI (claude would reject it with "Unknown command: …").
+ * Keep the token list here in sync with KANBOTS_COMMAND_SPECS there.
  */
 const KANBOTS_COMMANDS: readonly SlashCommand[] = [
   {
@@ -295,7 +301,7 @@ const KANBOTS_COMMANDS: readonly SlashCommand[] = [
   },
   {
     name: 'review',
-    description: 'Spawn a reviewer agent against the current changes',
+    description: 'Read-only review of the current branch changes',
     source: 'kanbots',
   },
   {

@@ -160,7 +160,7 @@ import {
   createSubscriptionRegistry,
   type OwnedSubscriptionRegistry,
 } from './ipc/subscriptions.js';
-import { registerHandlers } from './ipc/register.js';
+import { DEVICE_CHAT_CHANNELS, registerHandlers } from './ipc/register.js';
 import {
   closeProvidersStoreForShutdown,
   registerProvidersIpc,
@@ -1141,23 +1141,8 @@ function registerDeviceChatIpc(): void {
     return handlers;
   }
   const channels: Array<keyof ChatHandlers> = [
-    'chat:list',
-    'chat:create',
-    'chat:get',
-    'chat:rename',
-    'chat:delete',
-    'chat:post-message',
-    'chat:stop-run',
-    'chat:sessions:list',
-    'chat:sessions:create',
-    'chat:sessions:rename',
-    'chat:sessions:delete',
-    'chat:sessions:set-active',
-    'chat:thread-sessions:list',
-    'chat:thread-sessions:create',
-    'chat:thread-sessions:rename',
-    'chat:thread-sessions:delete',
-  ];
+    ...DEVICE_CHAT_CHANNELS,
+  ] as Array<keyof ChatHandlers>;
   for (const channel of channels) {
     ipcMain.handle(
       `kanbots:invoke:${channel}`,
@@ -1259,10 +1244,11 @@ function registerIpc(): void {
     },
   });
 
-  // Chat IPCs are per-device (live at userData/device-chats.db) so chat
-  // history persists across workspace switches and works in cloud-only
-  // mode. Registered at app scope; the workspace-scoped registerHandlers
-  // skips `chat:*` (see ipc/register.ts).
+  // Conversation-scoped chat IPCs are per-device (live at
+  // userData/device-chats.db) so chat history persists across workspace
+  // switches and works in cloud-only mode. Thread-sessions channels are
+  // workspace-scoped because they read issue threads from the workspace
+  // store, and are registered via registerHandlers.
   registerDeviceChatIpc();
 
   ipcMain.handle('kanbots:bootstrap', async (): Promise<BootstrapPayload> => {

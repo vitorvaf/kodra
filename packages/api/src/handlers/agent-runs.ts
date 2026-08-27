@@ -676,6 +676,39 @@ async function detectBase(cwd: string): Promise<string> {
   return 'HEAD';
 }
 
+function isStdoutMaxBufferError(err: unknown): boolean {
+  const e = err as { code?: unknown; name?: unknown };
+  return (
+    e?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' ||
+    e?.name === 'RangeError'
+  );
+}
+
+/**
+ * Run a git command and return its stdout, degrading gracefully when the
+ * output exceeds maxBuffer: execFile kills the child at the cap but still
+ * attaches the truncated stdout to the error, and a partial diff is far more
+ * useful to the renderer than a hard RangeError. Other errors (bad ref, git
+ * failure) still reject so callers can apply their own fallbacks.
+ */
+async function execGitText(
+  args: string[],
+  cwd: string,
+  maxBuffer: number,
+): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync('git', args, { cwd, maxBuffer });
+    return stdout;
+  } catch (err) {
+    if (isStdoutMaxBufferError(err)) {
+      const e = err as { stdout?: unknown };
+      if (typeof e.stdout === 'string') return e.stdout;
+      if (Buffer.isBuffer(e.stdout)) return e.stdout.toString('utf8');
+    }
+    throw err;
+  }
+}
+
 async function diffAgainstBase(cwd: string, base: string): Promise<DiffFile[]> {
   // Unborn HEAD (worktree on a fresh branch with no commits yet): nothing is
   // tracked, so there's no base to diff against. Untracked files are picked
@@ -701,28 +734,26 @@ async function diffAgainstBase(cwd: string, base: string): Promise<DiffFile[]> {
     // no shared ancestor — fall through and let the diff fail open
   }
 
-  const nameStatus = await execFileAsync(
-    'git',
+  // The HEAD fallbacks only fire on real git failures (e.g. bad ref);
+  // maxBuffer overflows are absorbed by execGitText as truncated output.
+  const nameStatusOut = await execGitText(
     ['diff', '--name-status', forkPoint],
-    { cwd, maxBuffer: 16 * 1024 * 1024 },
-  ).catch(async () =>
-    execFileAsync('git', ['diff', '--name-status', 'HEAD'], {
-      cwd,
-      maxBuffer: 16 * 1024 * 1024,
-    }),
+    cwd,
+    16 * 1024 * 1024,
+  ).catch(() =>
+    execGitText(['diff', '--name-status', 'HEAD'], cwd, 16 * 1024 * 1024),
   );
 
-  const statuses = parseNameStatus(nameStatus.stdout);
+  const statuses = parseNameStatus(nameStatusOut);
   if (statuses.length === 0) return [];
 
-  const patchOut = await execFileAsync('git', ['diff', forkPoint], {
+  const patchText = await execGitText(
+    ['diff', forkPoint],
     cwd,
-    maxBuffer: 32 * 1024 * 1024,
-  }).catch(async () =>
-    execFileAsync('git', ['diff', 'HEAD'], { cwd, maxBuffer: 32 * 1024 * 1024 }),
-  );
+    32 * 1024 * 1024,
+  ).catch(() => execGitText(['diff', 'HEAD'], cwd, 32 * 1024 * 1024));
 
-  const patches = splitUnifiedDiff(patchOut.stdout);
+  const patches = splitUnifiedDiff(patchText);
   return statuses.map((s) => ({
     path: s.path,
     status: s.status,

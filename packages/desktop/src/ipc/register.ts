@@ -7,6 +7,29 @@ export const CHANNEL_PREFIX = 'kanbots:invoke:';
 const SUBSCRIBE_CHANNEL = 'agent-runs:events:subscribe';
 const UNSUBSCRIBE_CHANNEL = 'agent-runs:events:unsubscribe';
 
+/**
+ * Chat channels owned by the per-device chat store (userData/
+ * device-chats.db), registered once at app startup by
+ * registerDeviceChatIpc in main.ts. Everything else under `chat:` —
+ * today the thread-session channels — is workspace-scoped because
+ * it reads issue threads from the workspace store, so it goes through
+ * the per-workspace registerHandlers instead.
+ */
+export const DEVICE_CHAT_CHANNELS: ReadonlySet<string> = new Set([
+  'chat:list',
+  'chat:create',
+  'chat:get',
+  'chat:rename',
+  'chat:delete',
+  'chat:post-message',
+  'chat:stop-run',
+  'chat:sessions:list',
+  'chat:sessions:create',
+  'chat:sessions:rename',
+  'chat:sessions:delete',
+  'chat:sessions:set-active',
+]);
+
 interface SubscribeArgs {
   runId: number;
   sinceSeq?: number;
@@ -52,10 +75,14 @@ export function registerHandlers(
       // the app-level store. See providers-ipc.ts.
       continue;
     }
-    if (channel.startsWith('chat:')) {
-      // Chat state is per-device (lives at userData/device-chats.db),
-      // registered once at app startup so the chat UI works in both
-      // workspace and cloud-only mode. See registerChatIpc in main.ts.
+    if (DEVICE_CHAT_CHANNELS.has(channel)) {
+      // Conversation-scoped chat state is per-device (lives at
+      // userData/device-chats.db), registered once at app startup so the
+      // chat UI works in both workspace and cloud-only mode. See
+      // registerDeviceChatIpc in main.ts. NOTE: thread-session channels are
+      // deliberately NOT in this set — they are keyed on issue threads,
+      // which live in the per-workspace store, so they register per
+      // workspace below.
       continue;
     }
     const handler = handlers[channel] as (args: unknown) => Promise<unknown>;

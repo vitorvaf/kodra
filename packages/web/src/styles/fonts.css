@@ -111,3 +111,41 @@
   src: url('../assets/fonts/instrument-serif-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+
+/* Symbol & emoji coverage — subset to the exact codepoints the UI
+ * uses. The --ff-* stacks in tokens.css list these families AFTER the
+ * primary text font so glyphs outside the latin subsets resolve
+ * deterministically on every OS. Regenerate: tools/fonts/subset-symbols.py
+ * (licenses: OFL 1.1, see OFL-noto*.txt alongside the woff2 files). */
+@font-face {
+  font-family: 'Noto Color Emoji';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/noto-emoji-subset.woff2') format('woff2');
+  unicode-range: U+2728,U+1F3A8,U+1F3AF,U+1F3D7,U+1F4AC,U+1F4C1-1F4C2,U+1F4C4,U+1F4C8,U+1F4CA-1F4CB,U+1F4DC,U+1F4E6,U+1F5D1,U+1F6E1;
+}
+@font-face {
+  font-family: 'Noto Sans Symbols 2';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/noto-sans-symbols-2-subset.woff2') format('woff2');
+  unicode-range: U+00A7,U+00B0,U+00B7,U+00D7,U+00E9,U+2013-2014,U+2019,U+201C-201D,U+2022,U+2026,U+203A,U+2122,U+21E7,U+2212,U+2318,U+23CE,U+23F8,U+25B6,U+25B8,U+25BE,U+25C7,U+25C9,U+25CB-25CC,U+25CF-25D0,U+25F3,U+25F7,U+25FC,U+2601,U+26A0-26A1,U+270E,U+2713,U+2717,U+2722,U+2733,U+2736,U+273B,U+273D;
+}
+@font-face {
+  font-family: 'Noto Sans Symbols';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/noto-sans-symbols-subset.woff2') format('woff2');
+  unicode-range: U+2190-2194,U+2197,U+2303,U+2398,U+2699;
+}
+@font-face {
+  font-family: 'Noto Sans Math';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/noto-sans-math-subset.woff2') format('woff2');
+  unicode-range: U+21B3,U+21B5,U+21BA-21BB,U+2248,U+22EE-22EF,U+2500,U+27F3,U+29C9;
+}

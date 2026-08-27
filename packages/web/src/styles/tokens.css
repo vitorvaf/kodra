@@ -56,9 +56,15 @@
   --shadow-pop: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--hairline);
 
   /* Font families */
-  --ff-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  --ff-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --ff-serif: 'Instrument Serif', 'Times New Roman', Georgia, serif;
+  /* Font families. The bundled Noto subsets (see styles/fonts.css) sit
+     right after the primary text font: glyphs outside the latin subsets
+     (status icons ✓ ✗ ● ◼, arrows, emoji) resolve to the bundled fonts
+     instead of whatever the OS happens to have, so the UI renders the
+     same on every machine. Their @font-face unicode-ranges keep them
+     from touching normal text. */
+  --ff-sans: 'Inter Tight', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --ff-mono: 'JetBrains Mono', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', ui-monospace, 'SF Mono', Menlo, monospace;
+  --ff-serif: 'Instrument Serif', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', 'Times New Roman', Georgia, serif;
 
   /* Tell the OS native form controls (select dropdowns, date pickers,
      scrollbars) to render in dark mode. Without this, expanded <select>
@@ -102,9 +108,15 @@
   --shadow-2: 0 0 0 1px var(--hairline), 0 8px 22px rgba(0, 0, 0, 0.05);
   --shadow-pop: 0 24px 60px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--hairline);
 
-  --ff-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  --ff-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --ff-serif: 'Instrument Serif', 'Times New Roman', Georgia, serif;
+  /* Font families. The bundled Noto subsets (see styles/fonts.css) sit
+     right after the primary text font: glyphs outside the latin subsets
+     (status icons ✓ ✗ ● ◼, arrows, emoji) resolve to the bundled fonts
+     instead of whatever the OS happens to have, so the UI renders the
+     same on every machine. Their @font-face unicode-ranges keep them
+     from touching normal text. */
+  --ff-sans: 'Inter Tight', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --ff-mono: 'JetBrains Mono', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', ui-monospace, 'SF Mono', Menlo, monospace;
+  --ff-serif: 'Instrument Serif', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', 'Times New Roman', Georgia, serif;
 }
 
 /* Typography utilities — opt-in. Don't restyle html/body globally so that

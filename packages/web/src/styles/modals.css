@@ -1493,7 +1493,7 @@
   border-radius: 6px;
 }
 .kb-sentry-warn code {
-   font-family: var(--mono, monospace);
+   font-family: var(--ff-mono);
    font-size: 11px;
    background: rgba(0, 0, 0, 0.06);
    padding: 1px 4px;
@@ -1623,7 +1623,7 @@
   color: var(--ink-2);
 }
 .kb-sentry-section-meta code {
-  font-family: var(--mono, monospace);
+  font-family: var(--ff-mono);
   font-size: 12px;
   background: rgba(0, 0, 0, 0.06);
   padding: 4px 6px;
@@ -1695,7 +1695,7 @@
 }
 .kb-sentry-body-preview {
   white-space: pre-wrap;
-  font-family: var(--mono, monospace);
+  font-family: var(--ff-mono);
   font-size: 11.5px;
   background: rgba(0, 0, 0, 0.04);
   padding: 8px;

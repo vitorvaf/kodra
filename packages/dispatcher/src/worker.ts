@@ -162,7 +162,7 @@ export function startAgentRun(opts: StartAgentRunOptions): AgentRunHandle {
 
   const splitter = makeLineSplitter();
   // Provider-agnostic decision extraction: adapters that stream text as
-  // deltas (agy, opencode, …) can split a kanbots-decision fence across
+  // deltas (agy, opencode, …) can split a kodra-decision fence across
   // events, so the worker re-scans buffered text for complete blocks.
   const decisionFilter = createDecisionStreamFilter();
   child.stdout?.on('data', (chunk: Buffer) => {

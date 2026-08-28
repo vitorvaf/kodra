@@ -17,10 +17,10 @@ export type AgentKey = ProviderId;
  *   - `builtin`  – ships with the agent CLI itself (e.g. Claude `/compact`).
  *   - `user`     – authored by the user under `~/.claude/commands/*.md`.
  *   - `skill`    – a Claude Code skill under `~/.claude/skills/<name>/SKILL.md`.
- *   - `kanbots`  – orchestration commands kanbots layers on top of every agent
+ *   - `kodra`   – orchestration commands kodra layers on top of every agent
  *                  (e.g. `/spec`, `/split`). These appear regardless of agent.
  */
-export type SlashCommandSource = 'builtin' | 'user' | 'skill' | 'kanbots';
+export type SlashCommandSource = 'builtin' | 'user' | 'skill' | 'kodra';
 
 export interface SlashCommand {
   /** Command name without the leading slash, e.g. `"compact"`. */
@@ -286,7 +286,7 @@ const ACP_BUILTINS: readonly SlashCommand[] = [
 ];
 
 /**
- * Kanbots orchestration commands. These are advertised for every agent CLI
+ * Kodra orchestration commands. These are advertised for every agent CLI
  * and translated server-side: the api supervisor's applyKanbotsCommand
  * (packages/api/src/agent-runs/supervisor.ts) strips the token and injects
  * the mode's system prompt before spawning, so the literal command never
@@ -297,17 +297,17 @@ const KANBOTS_COMMANDS: readonly SlashCommand[] = [
   {
     name: 'spec',
     description: 'Refine acceptance criteria before dispatching the work',
-    source: 'kanbots',
+    source: 'kodra',
   },
   {
     name: 'review',
     description: 'Read-only review of the current branch changes',
-    source: 'kanbots',
+    source: 'kodra',
   },
   {
     name: 'split',
     description: 'Fan the current task out into subtasks',
-    source: 'kanbots',
+    source: 'kodra',
   },
 ];
 
@@ -320,13 +320,13 @@ const KANBOTS_COMMANDS: readonly SlashCommand[] = [
  *     `${home}/.claude/skills/<name>/SKILL.md`.
  *   - Codex: built-ins only — Codex has no user-commands surface yet.
  *
- * Kanbots orchestration commands (`/spec`, `/review`, `/split`) are always
- * appended; when one shares a name with an agent builtin, the kanbots entry
- * wins so the user sees kanbots-aware behaviour everywhere.
+ * Kodra orchestration commands (`/spec`, `/review`, `/split`) are always
+ * appended; when one shares a name with an agent builtin, the kodra entry
+ * wins so the user sees kodra-aware behaviour everywhere.
  *
  * Filesystem reads are tolerant — a missing directory contributes an empty
  * slice rather than throwing. Result ordering:
- *   1. Kanbots commands (in their declared order — most relevant to the
+ *   1. Kodra commands (in their declared order — most relevant to the
  *      composer's flow).
  *   2. Agent builtins (in their declared order).
  *   3. User commands (alphabetical by name).
@@ -407,7 +407,7 @@ export async function discoverSlashCommands(args: {
 
 /**
  * Dedupe by `name`. Earlier entries win — call sites pass `KANBOTS_COMMANDS`
- * first so kanbots variants override agent builtins of the same name.
+ * first so kodra variants override agent builtins of the same name.
  */
 function mergeAndDedupe(items: readonly SlashCommand[]): SlashCommand[] {
   const seen = new Set<string>();

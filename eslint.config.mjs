@@ -8,6 +8,7 @@ export default [
       '**/dist/**',
       '**/node_modules/**',
       '**/.kanbots/**',
+      '**/.kodra/**',
       '**/.vite/**',
       '**/coverage/**',
       '**/release/**',

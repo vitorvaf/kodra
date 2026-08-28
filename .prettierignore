@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .kanbots/
+.kodra/
 .vite/
 coverage/
 pnpm-lock.yaml

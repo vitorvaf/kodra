@@ -42,7 +42,7 @@ export interface ProvidersRuntime {
 export interface ChatToolRuntime {
   /**
    * Returns the extra args + env vars to pass to the underlying agent CLI so
-   * the chat agent has the kanbots MCP server wired in. The shape of those
+   * the chat agent has the kodra MCP server wired in. The shape of those
    * args is provider-specific (claude takes `--mcp-config <file>`; codex
    * takes repeated `-c mcp_servers.<name>.* = ...` overrides), so callers
    * must pass the provider that will actually be spawned.

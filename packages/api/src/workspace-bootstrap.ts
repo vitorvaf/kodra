@@ -7,7 +7,7 @@ export interface WorkspaceBootstrapResult {
 }
 
 const DEFAULT_WORKSPACE_ID = 'default';
-const DEFAULT_WORKSPACE_NAME = 'kanbots workspace';
+const DEFAULT_WORKSPACE_NAME = 'kodra workspace';
 
 function folderIdFor(config: Config, repoPath: string): string {
   const slug =

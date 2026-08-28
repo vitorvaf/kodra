@@ -47,7 +47,7 @@ export interface AddFolderArgs {
 
 export async function getWorkspace(deps: HandlerDeps): Promise<Workspace> {
   if (!deps.config.repoPath) {
-    return { id: 'default', name: 'kanbots workspace', currentFolderId: 'unknown' };
+    return { id: 'default', name: 'kodra workspace', currentFolderId: 'unknown' };
   }
   const { workspace, currentFolder } = bootstrapWorkspace(
     deps.store,

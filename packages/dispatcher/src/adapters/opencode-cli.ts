@@ -119,7 +119,7 @@ function mapEvent(event: OpencodeEvent): StreamEvent[] {
     case 'text': {
       const text = typeof part?.text === 'string' ? part.text : '';
       if (text.length === 0) return [];
-      // Scan for kanbots-decision blocks so /spec approval loops pause
+      // Scan for kodra-decision blocks so /spec approval loops pause
       // with a decision card (supervisor reacts to 'decision' events).
       // Without this the block renders as raw text and the run completes.
       return extractTextWithDecisions(text);
@@ -204,7 +204,7 @@ function getSessionId(event: OpencodeEvent, part: OpencodePart | null): string |
   return null;
 }
 
-const DECISION_BLOCK_RE = /```kanbots-decision\s*\n([\s\S]*?)\n```/g;
+const DECISION_BLOCK_RE = /```kodra-decision\s*\n([\s\S]*?)\n```/g;
 
 // Mirror of stream-parser.ts:extractTextEvents. Kept inline so the
 // opencode adapter doesn't depend on an internal helper that may evolve

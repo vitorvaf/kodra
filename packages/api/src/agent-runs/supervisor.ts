@@ -40,7 +40,7 @@ import {
 
 const DEFAULT_DECISION_PROMPT = `When you need a decision from the user before continuing, end your turn with a fenced code block:
 
-\`\`\`kanbots-decision
+\`\`\`kodra-decision
 {
   "question": "the question you want answered",
   "options": [
@@ -305,7 +305,7 @@ function threadAlreadyActiveError(run: AgentRun): ThreadAlreadyActiveError {
 }
 
 /**
- * System prompt injected when a run starts with the kanbots `/spec`
+ * System prompt injected when a run starts with the kodra `/spec`
  * orchestration command. Semantically mirrors SPEC_SYSTEM_PROMPT in the web
  * TaskCreateModal — the web copy cannot be imported across the IPC boundary,
  * so keep the two aligned when editing either.
@@ -317,7 +317,7 @@ const SPEC_MODE_SYSTEM_PROMPT = `You are running in /spec mode for a Kodra task.
 3. Refine the acceptance criteria into a concrete, testable list.
 4. Emit a single decision card asking the user to approve the AC list before any code is written:
 
-\`\`\`kanbots-decision
+\`\`\`kodra-decision
 {
   "question": "Approve this acceptance criteria list?",
   "options": [
@@ -334,7 +334,7 @@ const SPEC_FALLBACK_PROMPT =
   'Refine the acceptance criteria for this task. Investigate the repo first, then propose a concrete, testable acceptance criteria list.';
 
 /**
- * System prompt injected when a run starts with the kanbots `/review`
+ * System prompt injected when a run starts with the kodra `/review`
  * orchestration command: a read-only review pass over the current changes.
  */
 const REVIEW_MODE_SYSTEM_PROMPT = `You are running in /review mode for a Kodra task.
@@ -347,7 +347,7 @@ const REVIEW_MODE_SYSTEM_PROMPT = `You are running in /review mode for a Kodra t
 const REVIEW_FALLBACK_PROMPT = 'Review the current changes on this branch.';
 
 /**
- * System prompt injected when a run starts with the kanbots `/split`
+ * System prompt injected when a run starts with the kodra `/split`
  * orchestration command: propose a subtask fan-out for approval, mirroring
  * the /spec decision-card flow.
  */
@@ -358,7 +358,7 @@ const SPLIT_MODE_SYSTEM_PROMPT = `You are running in /split mode for a Kodra tas
 3. Propose how to fan the work out into independent, well-bounded subtasks, each with its own acceptance criteria.
 4. Emit a single decision card asking the user to approve the split before any code is written:
 
-\`\`\`kanbots-decision
+\`\`\`kodra-decision
 {
   "question": "Approve this subtask split?",
   "options": [
@@ -382,7 +382,7 @@ interface KanbotsCommandSpec {
 }
 
 /**
- * Kanbots orchestration commands recognised ahead of the agent CLI. Mirrors
+ * Kodra orchestration commands recognised ahead of the agent CLI. Mirrors
  * KANBOTS_COMMANDS in @kanbots/llm slashCommands.ts — keep the token lists
  * in sync.
  */

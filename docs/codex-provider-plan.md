@@ -19,7 +19,7 @@ instead of (or alongside) `claude`.
 - Resume/session continuation parity. Codex's session model is different;
   resume is best-effort in v1 (see Open questions).
 - Full feature parity for decision cards on day one. Decision cards work
-  by detecting `kanbots-decision` fenced blocks in assistant text, which
+  by detecting `kodra-decision` fenced blocks in assistant text, which
   Codex *can* be steered into producing via system prompt — but we accept
   that some interactive prompts (e.g. Codex's own approval requests) may
   not surface as decision cards in v1.
@@ -151,7 +151,7 @@ Codex's stream into it:
 | `parse_error`        | Fallback for unrecognized JSON shapes                            |
 
 Decision cards keep working "for free" if and only if the system prompt
-instructs Codex to emit ```kanbots-decision``` fenced blocks in assistant
+instructs Codex to emit ```kodra-decision``` fenced blocks in assistant
 text. Verify that Codex's fenced-code passthrough preserves the block
 intact — the current regex (`stream-parser.ts:256`) is permissive but
 expects newline-terminated fences.
@@ -345,7 +345,7 @@ compound into rewrites later.
 
 ## Risks
 
-- **Decision cards may degrade silently.** The `kanbots-decision` block
+- **Decision cards may degrade silently.** The `kodra-decision` block
   detection runs on assistant text. If Codex reformats fenced code (e.g.
   unwraps it, prepends a language hint, splits across deltas), the regex
   will miss it. Mitigation: parse-test the fixture early; if it doesn't

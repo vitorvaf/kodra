@@ -151,7 +151,7 @@ describe('parseStreamLine', () => {
   });
 
   it('extracts a decision block from text content', () => {
-    const text = `Before the block\n\n\`\`\`kanbots-decision\n${JSON.stringify({
+    const text = `Before the block\n\n\`\`\`kodra-decision\n${JSON.stringify({
       question: 'Which?',
       options: [
         { value: 'a', label: 'Option A' },
@@ -179,7 +179,7 @@ describe('parseStreamLine', () => {
   });
 
   it('falls back to plain text when decision JSON is malformed', () => {
-    const text = `\`\`\`kanbots-decision\nnot-json\n\`\`\``;
+    const text = `\`\`\`kodra-decision\nnot-json\n\`\`\``;
     const events = parseStreamLine(
       JSON.stringify({
         type: 'assistant',
@@ -191,7 +191,7 @@ describe('parseStreamLine', () => {
   });
 
   it('skips a decision block with no valid options', () => {
-    const text = `\`\`\`kanbots-decision\n${JSON.stringify({
+    const text = `\`\`\`kodra-decision\n${JSON.stringify({
       question: 'Q',
       options: [{ value: 1 }],
     })}\n\`\`\``;

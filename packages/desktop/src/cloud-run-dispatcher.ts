@@ -115,7 +115,7 @@ function worktreePathFor(repoRoot: string, cardNumber: number, runId: string): s
 }
 
 function branchNameFor(cardNumber: number, runId: string): string {
-  return `kanbots/issue-${cardNumber}-${worktreeSuffixForRun(runId)}`;
+  return `kodra/issue-${cardNumber}-${worktreeSuffixForRun(runId)}`;
 }
 
 export interface DispatchCloudRunOptions {

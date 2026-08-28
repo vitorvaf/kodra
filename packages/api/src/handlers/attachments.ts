@@ -1,7 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { basename, join } from 'node:path';
 import { z } from 'zod';
+import { describeKanbotsDir } from '@kanbots/local-store';
 import type { UploadAttachmentResult } from '../bridge.js';
 import { badRequest, namedError, parseArgs } from './errors.js';
 import type { HandlerDeps } from './types.js';
@@ -31,7 +32,10 @@ export interface UploadArgs {
 }
 
 function attachmentsDir(repoPath: string): string {
-  return resolve(repoPath, '.kanbots', 'attachments');
+  // Legacy-first resolution: existing workspaces keep `.kanbots/`, fresh
+  // ones use `.kodra/`. Hardcoding either name would recreate the legacy
+  // dir in fresh workspaces and hijack the workspace root.
+  return join(describeKanbotsDir(repoPath).root, 'attachments');
 }
 
 export async function upload(
@@ -66,7 +70,7 @@ export async function upload(
   return {
     filename,
     absolutePath,
-    relativePath: `.kanbots/attachments/${filename}`,
+    relativePath: `${basename(dir)}/attachments/${filename}`,
     size: parsed.data.byteLength,
     contentType: parsed.contentType,
   };

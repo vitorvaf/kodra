@@ -710,7 +710,7 @@ export function buildTaskSystemPrompt(issue: {
   body?: string | null;
 }): string {
   const body = issue.body && issue.body.trim().length > 0 ? issue.body : '(no description)';
-  return `TASK_CONTEXT — this conversation is scoped to a single task in the kanbots project. Use it for every turn.
+  return `TASK_CONTEXT — this conversation is scoped to a single task in the kodra project. Use it for every turn.
 
 Task #${issue.number}: ${issue.title}
 
@@ -788,7 +788,7 @@ CONTEXT: ${context}
 
 YOUR FIRST ACTION (do this and only this — do not call tools, do not investigate yet):
 
-\`\`\`kanbots-decision
+\`\`\`kodra-decision
 ${decisionJson}
 \`\`\`
 

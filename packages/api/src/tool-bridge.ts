@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import type { Handlers } from './handlers/index.js';
 
 /**
- * Localhost HTTP bridge that the kanbots MCP server forwards tool calls
+ * Localhost HTTP bridge that the kodra MCP server forwards tool calls
  * through. The bridge is bound to 127.0.0.1 with a random ephemeral port
  * so it cannot be reached from the network. Each tool call must include
  * a valid bearer token; tokens are issued per chat run by `issueToken`

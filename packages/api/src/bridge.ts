@@ -629,12 +629,12 @@ export interface ReviewCommentPayload {
 /**
  * Discovered slash command surface for the chat composer typeahead. The
  * `source` tag lets the renderer style entries differently (built-in vs.
- * user-authored vs. kanbots orchestration).
+ * user-authored vs. kodra orchestration).
  */
 export interface SlashCommandPayload {
   name: string;
   description: string;
-  source: 'builtin' | 'user' | 'skill' | 'kanbots';
+  source: 'builtin' | 'user' | 'skill' | 'kodra';
 }
 
 export interface WorkspaceFolderPayload {

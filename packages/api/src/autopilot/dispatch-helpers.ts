@@ -75,7 +75,7 @@ const EFFORT_GUIDANCE: Record<AutopilotEffort, string> = {
   high: 'Effort: high. Be thorough — handle edge cases, validate carefully, run all available checks (typecheck, tests, lint), and add tests where they materially help.',
   xhigh:
     'Effort: very high. Take extensive care — investigate deeply, refactor when warranted by what you find, write thorough tests, and verify behavior end-to-end before finishing.',
-  max: 'Effort: maximum. Investigate exhaustively, run every check available, write robust tests, and refuse to call the task complete if anything is uncertain — ask for guidance via a kanbots-decision instead.',
+  max: 'Effort: maximum. Investigate exhaustively, run every check available, write robust tests, and refuse to call the task complete if anything is uncertain — ask for guidance via a kodra-decision instead.',
 };
 
 function buildAutopilotKickoff(
@@ -88,5 +88,5 @@ function buildAutopilotKickoff(
 
 ${body}
 
-This task was created by an autopilot loop and is delegated to you to ship end-to-end. Proceed directly — do not emit a kanbots-decision asking how to approach. Investigate the codebase, make the change, run any checks you have available, and finish when the task is complete.${effortLine}`;
+This task was created by an autopilot loop and is delegated to you to ship end-to-end. Proceed directly — do not emit a kodra-decision asking how to approach. Investigate the codebase, make the change, run any checks you have available, and finish when the task is complete.${effortLine}`;
 }

@@ -117,8 +117,8 @@ async function buildSupervisor(
       baseRef: null,
     }),
     stampWorktreeIdentity: async () => ({
-      userName: 'Kanbots Agent',
-      userEmail: 'agent@kanbots.local',
+      userName: 'Kodra Agent',
+      userEmail: 'agent@kodra.local',
       hookInstalled: false,
       hookSkippedReason: null,
     }),

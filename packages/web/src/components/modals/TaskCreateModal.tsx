@@ -98,7 +98,7 @@ const SPEC_SYSTEM_PROMPT = `You are running in /spec mode for a Kodra task.
 3. Refine the acceptance criteria into a concrete, testable list.
 4. Emit a single decision card asking the user to approve the AC list before any code is written:
 
-\`\`\`kanbots-decision
+\`\`\`kodra-decision
 {
   "question": "Approve this acceptance criteria list?",
   "options": [

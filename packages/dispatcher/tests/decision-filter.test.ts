@@ -15,7 +15,7 @@ const DECISION_JSON = JSON.stringify(
   2,
 );
 
-const DECISION_BLOCK = `\`\`\`kanbots-decision\n${DECISION_JSON}\n\`\`\``;
+const DECISION_BLOCK = `\`\`\`kodra-decision\n${DECISION_JSON}\n\`\`\``;
 
 function text(t: string): StreamEvent {
   return { kind: 'text', text: t };
@@ -75,11 +75,11 @@ describe('createDecisionStreamFilter', () => {
   it('keeps a malformed decision block as visible text', () => {
     const filter = createDecisionStreamFilter();
     const out = [
-      ...filter.push([text('```kanbots-decision\nnot-json\n```')]),
+      ...filter.push([text('```kodra-decision\nnot-json\n```')]),
       ...filter.flush(),
     ];
     expect(out.some((e) => e.kind === 'decision')).toBe(false);
-    expect(joinedText(out)).toBe('```kanbots-decision\nnot-json\n```');
+    expect(joinedText(out)).toBe('```kodra-decision\nnot-json\n```');
   });
 
   it('flushes an unterminated fence as text at end of stream', () => {

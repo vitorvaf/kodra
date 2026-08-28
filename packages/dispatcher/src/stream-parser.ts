@@ -16,7 +16,7 @@ export type StreamEvent =
       options: Array<{ value: string; label: string }>;
       /**
        * Per-decision TTL override (seconds). When set on the
-       * `kanbots-decision` JSON block, the cloud caps `decisions.time_out_at`
+       * `kodra-decision` JSON block, the cloud caps `decisions.time_out_at`
        * at `opened_at + timeoutSeconds` instead of the default 24h.
        * See bug `sync-10` and `brain/06-agent-bridge/decisions-protocol.md`.
        */
@@ -360,8 +360,8 @@ export function extractDiffHunkEvents(
   }
 }
 
-const DECISION_BLOCK_RE = /```kanbots-decision\s*\n([\s\S]*?)\n```/g;
-const DECISION_FENCE_OPENER = '```kanbots-decision';
+const DECISION_BLOCK_RE = /```kodra-decision\s*\n([\s\S]*?)\n```/g;
+const DECISION_FENCE_OPENER = '```kodra-decision';
 
 /**
  * Longest k such that s's suffix of length k is a proper prefix of the
@@ -382,7 +382,7 @@ function partialOpenerSuffixLength(s: string): number {
  * Stateful decision-block extractor for streaming adapters.
  *
  * Adapters that emit text as incremental deltas (agy, opencode, …) can split
- * a ```kanbots-decision fence across many `text` events, so a per-event
+ * a ```kodra-decision fence across many `text` events, so a per-event
  * regex never sees the complete block and the decision renders as raw text.
  * The worker routes every adapter's events through one of these filters:
  * text is buffered, complete decision blocks are converted to `decision`

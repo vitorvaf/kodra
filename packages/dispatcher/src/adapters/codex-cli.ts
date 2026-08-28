@@ -378,7 +378,7 @@ function mapItemCompleted(item: ThreadItem): StreamEvent[] {
   }
 }
 
-const DECISION_BLOCK_RE = /```kanbots-decision\s*\n([\s\S]*?)\n```/g;
+const DECISION_BLOCK_RE = /```kodra-decision\s*\n([\s\S]*?)\n```/g;
 
 // Mirror of stream-parser.ts:extractTextEvents. Kept inline so the codex
 // adapter doesn't depend on an internal helper that may evolve separately

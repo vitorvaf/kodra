@@ -281,7 +281,7 @@ describe('opencodeCliAdapter', () => {
     expect(events).toEqual([{ kind: 'text', text: 'PING' }]);
   });
 
-  it('extracts a kanbots-decision block from a text envelope as a decision event', () => {
+  it('extracts a kodra-decision block from a text envelope as a decision event', () => {
     const decision = JSON.stringify({
       question: 'Approve this acceptance criteria list?',
       options: [
@@ -299,7 +299,7 @@ describe('opencodeCliAdapter', () => {
           id: 'prt_text',
           messageID: 'msg_start',
           type: 'text',
-          text: `Here is the spec.\n\n\`\`\`kanbots-decision\n${decision}\n\`\`\`\n`,
+          text: `Here is the spec.\n\n\`\`\`kodra-decision\n${decision}\n\`\`\`\n`,
         },
       }),
     );

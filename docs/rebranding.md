@@ -43,6 +43,27 @@ workspaces, integrations, or package consumers.
   configuration; new workspaces use `.kodra/`.
 - `.kodra/` is added to the repository's `.gitignore` automatically (alongside
   the legacy `.kanbots/` entry).
+- Agent commits are authored as `kodra agent (run #<N>)` with email
+  `agent+<N>@kodra.local`; the commit-msg hook stamps `Kodra-Run-Id` /
+  `Kodra-Issue` trailers (fresh worktrees only — existing worktrees keep
+  their installed `Kanbots-*` hooks, which remain valid metadata).
+- The agent decision-fence protocol is `kodra-decision` (emitted in system
+  prompts, parsed by the dispatcher stream filter). Renamed everywhere from
+  `kanbots-decision` during the pilot; no legacy acceptance is kept.
+- New agent branches are named `kodra/issue-<n>-<runId>` (dispatcher
+  `defaultBranchName` and the desktop cloud-run dispatcher). The pre-push
+  guard still blocks pushes of legacy `kanbots/issue-*` branches, which are
+  not renamed in place.
+- Slash-command typeahead entries orchestrated by the app carry
+  `source: 'kodra'` (was `'kanbots'`); no persisted data migration (pilot).
+- The general-purpose chat system prompt identifies itself as the
+  `kodra agent` (`KODRA_CHAT_CONTEXT` header).
+- Repo ignore lists (`.gitignore`, `.prettierignore`, `eslint.config.mjs`)
+  cover `.kodra/` alongside the legacy `.kanbots/` entry.
+- Attachment storage (`attachments:upload`) and the promote temp-worktree
+  path resolve through `describeKanbotsDir` (legacy-first) instead of
+  hardcoding `.kanbots/` — previously a single attachment upload in a fresh
+  `.kodra/` workspace recreated `.kanbots/` and hijacked the workspace root.
 
 ## Migration debt
 

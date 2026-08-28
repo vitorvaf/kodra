@@ -32,7 +32,7 @@ const execFileAsync = promisify(execFile);
 export interface ShipStatus {
   /** Internal agent_runs id. Null if no run on this issue's thread. */
   runId: number | null;
-  /** Branch name the agent committed to (e.g., `kanbots/issue-12-xyz`). */
+  /** Branch name the agent committed to (e.g., `kodra/issue-12-xyz`). */
   branchName: string | null;
   /** Absolute path to the agent's worktree, if it still exists on disk. */
   worktreePath: string | null;

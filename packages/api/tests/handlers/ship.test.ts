@@ -59,7 +59,7 @@ describe('ship:create-pr', () => {
     store.agentRuns.create({
       threadId: thread.id,
       worktreePath: '/tmp/wt',
-      branchName: 'kanbots/issue-7',
+      branchName: 'kodra/issue-7',
     });
     // FakeIssueSource has no openDraftPR — exactly the local-only case.
     await expect(
@@ -81,7 +81,7 @@ describe('ship:create-pr', () => {
       state: 'open',
       draft: true,
       htmlUrl: 'https://github.com/octo/hello/pull/42',
-      head: 'kanbots/issue-7',
+      head: 'kodra/issue-7',
       base: 'main',
     });
     // Inject the PR creator onto the fake source. The IssueSource
@@ -99,7 +99,7 @@ describe('ship:create-pr', () => {
     store.agentRuns.create({
       threadId: thread.id,
       worktreePath: '/tmp/wt',
-      branchName: 'kanbots/issue-7',
+      branchName: 'kodra/issue-7',
     });
 
     const result = await handlers['ship:create-pr']({
@@ -108,7 +108,7 @@ describe('ship:create-pr', () => {
     });
     expect(openDraftPR).toHaveBeenCalledWith(
       expect.objectContaining({
-        head: 'kanbots/issue-7',
+        head: 'kodra/issue-7',
         base: 'develop',
         issueNumber: 7,
         draft: true,

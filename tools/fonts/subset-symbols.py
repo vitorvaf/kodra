@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Subset symbol/emoji fonts to the exact non-ASCII codepoints the kanbots
+"""Subset symbol/emoji fonts to the exact non-ASCII codepoints the kodra
 web renderer uses, and emit the @font-face CSS fragment.
 
 Requires: fonttools, brotli, lxml  (pip install fonttools brotli lxml)

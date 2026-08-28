@@ -6,20 +6,24 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-const AGENT_BRANCH_PREFIX = 'refs/heads/kanbots/issue-';
+const AGENT_BRANCH_PREFIX = 'refs/heads/kodra/issue-';
+// Branches created before the Kodra rebrand keep this prefix; the pre-push
+// guard below still blocks them.
+const LEGACY_AGENT_BRANCH_PREFIX = 'refs/heads/kanbots/issue-';
 const LEGACY_DIR = '.kanbots';
 const CURRENT_DIR = '.kodra';
 
 const PRE_PUSH_HOOK = `#!/bin/sh
-# Installed by kanbots to block pushes of agent worktree branches.
+# Installed by kodra to block pushes of agent worktree branches.
 # Git treats hooks/ as shared across worktrees, so this file may end up
 # in the main repo's .git/hooks/. The branch-name guard below keeps it
 # harmless for normal work — only refs matching '${AGENT_BRANCH_PREFIX}*'
-# are rejected. Humans can still bypass with \`git push --no-verify\`.
+# (or the legacy '${LEGACY_AGENT_BRANCH_PREFIX}*') are rejected. Humans
+# can still bypass with \`git push --no-verify\`.
 while read -r local_ref local_sha remote_ref remote_sha; do
   case "$local_ref" in
-    ${AGENT_BRANCH_PREFIX}*)
-      echo "kanbots: agent worktree branch '$local_ref' cannot be pushed; commit locally and let the human review." 1>&2
+    ${AGENT_BRANCH_PREFIX}*|${LEGACY_AGENT_BRANCH_PREFIX}*)
+      echo "kodra: agent worktree branch '$local_ref' cannot be pushed; commit locally and let the human review." 1>&2
       exit 1
       ;;
   esac
@@ -111,5 +115,5 @@ export function defaultWorktreePath(opts: {
 }
 
 export function defaultBranchName(opts: { issueNumber: number; runId: number }): string {
-  return `kanbots/issue-${opts.issueNumber}-${opts.runId}`;
+  return `kodra/issue-${opts.issueNumber}-${opts.runId}`;
 }

@@ -224,9 +224,9 @@ function deriveChatTitle(body: string): string {
   return `${cleaned.slice(0, 57)}…`;
 }
 
-const SYSTEM_PROMPT_DEFAULT = `KANBOTS_CHAT_CONTEXT — this conversation is a general-purpose chat with the kanbots agent. It is NOT scoped to any single issue.
+const SYSTEM_PROMPT_DEFAULT = `KODRA_CHAT_CONTEXT — this conversation is a general-purpose chat with the kodra agent. It is NOT scoped to any single issue.
 
-You can use the kanban tools provided by the kanbots MCP server (createIssue, updateIssue, moveIssueStatus, archiveIssue, splitIssue, dispatchAgent, stopAgentRun, listIssues, getIssue, listAgentRuns, resolvePendingDecision) to act on the user's board, and the standard workspace tools (Bash, Read, Edit, Glob, Grep, Write) to inspect and edit code.
+You can use the kanban tools provided by the kodra MCP server (createIssue, updateIssue, moveIssueStatus, archiveIssue, splitIssue, dispatchAgent, stopAgentRun, listIssues, getIssue, listAgentRuns, resolvePendingDecision) to act on the user's board, and the standard workspace tools (Bash, Read, Edit, Glob, Grep, Write) to inspect and edit code.
 
 When the user asks about "the board", "open issues", "recent runs", or similar, prefer the kanban tools over reading the database directly.`;
 

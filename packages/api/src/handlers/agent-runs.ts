@@ -1,8 +1,8 @@
 import { execFile } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
-import type { AgentRun, DiffHunk } from '@kanbots/local-store';
+import { describeKanbotsDir, type AgentRun, type DiffHunk } from '@kanbots/local-store';
 import { z } from 'zod';
 import type {
   DiffFile,
@@ -234,7 +234,11 @@ export async function promoteCommit(
     // base isn't checked out anywhere — use a detached worktree and move the
     // ref ourselves so we don't compete with another checkout.
     const stamp = Date.now().toString(36);
-    const tmpPath = `${repoPath}/.kanbots/promote/${parsed.runId}-${stamp}`;
+    const tmpPath = join(
+      describeKanbotsDir(repoPath).root,
+      'promote',
+      `${parsed.runId}-${stamp}`,
+    );
     await mkdir(dirname(tmpPath), { recursive: true });
     await runGit(['worktree', 'add', '--detach', tmpPath, base], repoPath);
     try {

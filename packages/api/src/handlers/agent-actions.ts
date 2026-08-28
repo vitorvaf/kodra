@@ -8,7 +8,7 @@ import { badRequest, parseArgs } from './errors.js';
 import { hasProviderCredentials, resolveProviderWithCreds } from './provider-credentials.js';
 import type { HandlerDeps } from './types.js';
 
-const REVIEWER_SYSTEM_PROMPT = `You are a code reviewer for a kanbots task.
+const REVIEWER_SYSTEM_PROMPT = `You are a code reviewer for a kodra task.
 
 Your job is to read the diff already in this worktree and produce a focused review.
 

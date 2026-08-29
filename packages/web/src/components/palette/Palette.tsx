@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useIssues } from '../../hooks/useIssues.js';
+import { useFocusTrap } from '../../hooks/useFocusTrap.js';
 
 export interface PaletteAction {
   id: string;
@@ -67,6 +68,7 @@ export function Palette({
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const paletteRef = useFocusTrap<HTMLDivElement>(open);
   const { issues } = useIssues();
 
   useEffect(() => {
@@ -303,7 +305,7 @@ export function Palette({
 
   return (
     <div className="kb-palette-overlay kb-app" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="kb-palette" onClick={(e) => e.stopPropagation()}>
+      <div ref={paletteRef} className="kb-palette" onClick={(e) => e.stopPropagation()} tabIndex={-1}>
         <div className="kb-palette-input">
           <span aria-hidden>{searchIcon}</span>
           <input
@@ -361,4 +363,3 @@ export function Palette({
     </div>
   );
 }
-

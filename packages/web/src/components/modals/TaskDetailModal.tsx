@@ -17,6 +17,7 @@ import {
 } from '../chat/SessionDropdown.js';
 import { PROVIDER_LABELS } from '../forms/ModelPicker.js';
 import { useFetch } from '../../hooks/useFetch.js';
+import { useFocusTrap } from '../../hooks/useFocusTrap.js';
 import { useFocusedRepo } from '../../hooks/useFocusedRepo.js';
 import {
   useIssues,
@@ -38,6 +39,7 @@ import { PreviewPanel, type PreviewInspectSelection } from '../run/PreviewPanel.
 import { RunSummary } from '../run/RunSummary.js';
 import { ToolUseCard } from '../run/ToolUseCard.js';
 import { CreatePrModal } from './CreatePrModal.js';
+import { renderMarkdown } from '../../lib/markdown.js';
 import type {
   AgentEvent,
   AgentRun,
@@ -115,6 +117,10 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
   const isAutopilot = (data?.issue?.labels ?? []).includes('type:autopilot');
   const isArchived = (data?.issue?.labels ?? []).includes('archived');
   const [tab, setTab] = useState<DetailTab>(isAutopilot ? 'autopilot' : 'overview');
+  const [forking, setForking] = useState(false);
+  const [forkError, setForkError] = useState<string | null>(null);
+  const [runsRefreshKey, setRunsRefreshKey] = useState(0);
+  const modalRef = useFocusTrap<HTMLDivElement>(true);
   useEffect(() => {
     if (isAutopilot && tab !== 'autopilot' && tab !== 'thread') {
       // Default an autopilot card to its dedicated tab on load.
@@ -174,7 +180,7 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
 
   return (
     <div className="kb-modal-scrim kb-app" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="kb-modal" onClick={stopInner}>
+      <div ref={modalRef} className="kb-modal" onClick={stopInner} tabIndex={-1}>
         <div className="kb-modal-head">
           <Logo size={11} withWordmark />
           <span style={{ color: 'var(--ink-4)' }}>·</span>
@@ -194,9 +200,35 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
             </button>
           ) : null}
           {!isAutopilot ? (
-            <button type="button" className="kb-btn ghost" disabled title="Phase 11">
-              Fork run
-            </button>
+            <>
+              <button
+                type="button"
+                className="kb-btn ghost"
+                disabled={forking || displayRun === null}
+                onClick={() => {
+                  if (displayRun === null || forking) return;
+                  setForking(true);
+                  setForkError(null);
+                  void api.forkAgentRun(displayRun.id)
+                    .then(() => {
+                      setRunsRefreshKey((key) => key + 1);
+                      return refetch();
+                    })
+                    .catch((err: unknown) => {
+                      setForkError(err instanceof Error ? err.message : String(err));
+                    })
+                    .finally(() => setForking(false));
+                }}
+                title={displayRun === null ? 'No run to fork' : undefined}
+              >
+                {forking ? 'Forking…' : 'Fork run'}
+              </button>
+              {forkError ? (
+                <span role="alert" style={{ color: 'var(--failed)', fontSize: 11 }}>
+                  {forkError}
+                </span>
+              ) : null}
+            </>
           ) : null}
           {!isAutopilot && displayRun ? (
             <button type="button" className="kb-btn primary" onClick={() => setTab('preview')}>
@@ -357,7 +389,9 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
                   ) : null}
                   {tab === 'diff' && !isAutopilot ? <DiffTabModal activeRun={displayRun} /> : null}
                   {tab === 'preview' && !isAutopilot ? <PreviewTabModal activeRun={displayRun} /> : null}
-                  {tab === 'runs' && !isAutopilot ? <RunsTab issueNumber={issue.number} /> : null}
+                  {tab === 'runs' && !isAutopilot ? (
+                    <RunsTab issueNumber={issue.number} refreshKey={runsRefreshKey} />
+                  ) : null}
                 </div>
               </>
             ) : error ? (
@@ -1207,6 +1241,7 @@ function OverviewTab({
   onOpenDetail?: (issueNumber: number) => void;
 }) {
   const stream = useIssueRunStream(displayRun, cloudRunId);
+  const { data: savedSpec } = useFetch(`spec:${issue.number}`, () => api.getSpec(issue.number));
   const recentToolCalls = stream.events.filter((e) => e.type === 'tool_use').slice(-4).reverse();
   const resultByToolUseId = buildResultIndex(stream.events);
   const acMatches = (issue.body ?? '').match(/(?:^|\n)\s*AC:\s*\n((?:[-*]\s.+\n?)+)/);
@@ -1225,6 +1260,16 @@ function OverviewTab({
         parentNumber={issue.number}
         {...(onOpenDetail ? { onOpenDetail } : {})}
       />
+
+      {savedSpec?.content !== null && savedSpec?.content !== undefined ? (
+        <div className="kb-tdm-section">
+          <h3>Spec</h3>
+          <div
+            className="kb-desc-md"
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(savedSpec.content) }}
+          />
+        </div>
+      ) : null}
 
       {acItems.length > 0 ? (
         <div className="kb-tdm-section">
@@ -2335,8 +2380,8 @@ function formatInspectHeader(sel: PreviewInspectSelection): string {
   return `Inspecting <${sel.tagName}>:`;
 }
 
-function RunsTab({ issueNumber }: { issueNumber: number }) {
-  const { data, loading, error } = useFetch<AgentRun[]>(`runs:${issueNumber}`, () =>
+function RunsTab({ issueNumber, refreshKey }: { issueNumber: number; refreshKey: number }) {
+  const { data, loading, error } = useFetch<AgentRun[]>(`runs:${issueNumber}:${refreshKey}`, () =>
     api.listIssueRuns(issueNumber),
   );
 

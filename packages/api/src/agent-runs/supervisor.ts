@@ -1,5 +1,5 @@
-import { mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { EventEmitter } from 'node:events';
 import {
   createWorktree as defaultCreateWorktree,
@@ -21,6 +21,7 @@ import {
   type Worktree,
 } from '@kanbots/dispatcher';
 import { resolveProviderWithCreds } from '../handlers/provider-credentials.js';
+import { describeKanbotsDir } from '@kanbots/local-store';
 import type {
   AgentEvent,
   AgentRun,
@@ -29,6 +30,8 @@ import type {
   MemoryConfig,
   Store,
 } from '@kanbots/local-store';
+import { DECISIONS_CHANGED_CHANNEL } from '../bridge.js';
+import type { DecisionChangePayload } from '../bridge.js';
 import { memoryNamespace, type AgentMemoryClient } from '../memory/client.js';
 import { BRIEFING_MARKER, renderSiblingBriefing } from './sibling-briefing.js';
 import {
@@ -116,6 +119,7 @@ export interface CreateSupervisorOptions {
    *  worktree. Default: 'warn'. */
   containmentMode?: ContainmentMode;
   onRunStatusChange?: (run: AgentRun) => Promise<void> | void;
+  onDecisionChange?: (payload: DecisionChangePayload) => void;
   memory?: {
     client: AgentMemoryClient;
     getConfig: () => MemoryConfig | undefined;
@@ -225,6 +229,7 @@ export interface CooldownState {
 }
 
 export type CooldownListener = (state: CooldownState) => void;
+export type DecisionChangeListener = (payload: DecisionChangePayload) => void;
 
 export class RateLimitedError extends Error {
   readonly code = 'RATE_LIMITED' as const;
@@ -261,6 +266,7 @@ export interface AgentSupervisor {
   ): () => void;
   getCooldown(): CooldownState;
   subscribeCooldown(listener: CooldownListener): () => void;
+  subscribeDecisionsChanged(listener: DecisionChangeListener): () => void;
   waitForCooldown(signal?: AbortSignal): Promise<void>;
 }
 
@@ -282,6 +288,9 @@ interface ActiveRun {
   cleanup: (() => void) | undefined;
   memoryProject: string | undefined;
   issueNumber: number | undefined;
+  /** Text accumulated before a decision fence; used for spec persistence. */
+  specText: string;
+  latestResultText: string | null;
 }
 
 const ACTIVE_STATUSES: ReadonlyArray<AgentRunStatus> = ['starting', 'running', 'awaiting_input'];
@@ -518,6 +527,13 @@ export async function createSupervisor(
   // A paused run has no live handle, but its tool bridge must remain valid
   // until the resumed run reaches a terminal status.
   const runCleanups = new Map<number, () => void>();
+  const pendingSpecDrafts = new Map<number, string>();
+
+  function notifyDecisionChange(kind: DecisionChangePayload['kind']): void {
+    const payload: DecisionChangePayload = { kind };
+    emitter.emit(DECISIONS_CHANGED_CHANNEL, payload);
+    opts.onDecisionChange?.(payload);
+  }
   const runMemoryProjects = new Map<number, string>();
   const runIssueNumbers = new Map<number, number>();
   const emitter = new EventEmitter();
@@ -541,7 +557,6 @@ export async function createSupervisor(
   const statusChannel = (runId: number): string => `status:${runId}`;
   const cardChannel = (runId: number): string => `card:${runId}`;
   const COOLDOWN_CHANNEL = 'cooldown:changed';
-
   let cooldownUntilMs: number | null = null;
   let cooldownReason: CooldownState['reason'] = null;
   let cooldownMessage: string | null = null;
@@ -609,6 +624,14 @@ export async function createSupervisor(
     emitter.on(COOLDOWN_CHANNEL, wrap);
     return () => {
       emitter.off(COOLDOWN_CHANNEL, wrap);
+    };
+  }
+
+  function subscribeDecisionsChanged(listener: DecisionChangeListener): () => void {
+    const wrap = (payload: DecisionChangePayload): void => listener(payload);
+    emitter.on(DECISIONS_CHANGED_CHANNEL, wrap);
+    return () => {
+      emitter.off(DECISIONS_CHANGED_CHANNEL, wrap);
     };
   }
 
@@ -774,6 +797,8 @@ export async function createSupervisor(
       cleanup: runCleanups.get(run.id),
       memoryProject: runMemoryProjects.get(run.id),
       issueNumber: runIssueNumbers.get(run.id),
+      specText: '',
+      latestResultText: null,
     };
     active.set(run.id, entry);
 
@@ -800,7 +825,11 @@ export async function createSupervisor(
         });
         return;
       }
+      if (streamEvent.kind === 'text') {
+        entry.specText += streamEvent.text;
+      }
       if (streamEvent.kind === 'result') {
+        if (streamEvent.text.trim().length > 0) entry.latestResultText = streamEvent.text;
         // Best-effort cost cap: total_cost_usd only arrives at turn boundaries,
         // so a runaway tool call within a turn can overshoot before we get a
         // chance to stop. Acceptable tradeoff for between-turn enforcement.
@@ -840,6 +869,7 @@ export async function createSupervisor(
           },
         });
         entry.hasDecision = true;
+        notifyDecisionChange('created');
         emitter.emit(cardChannel(run.id), card);
         return;
       }
@@ -890,6 +920,10 @@ export async function createSupervisor(
         : entry.hasDecision && naturalStatus === 'complete'
           ? 'awaiting_input'
           : naturalStatus;
+      if (status === 'awaiting_input' && entry.hasDecision) {
+        const draft = (summary.result?.text || entry.latestResultText || entry.specText).trim();
+        if (draft.length > 0) pendingSpecDrafts.set(run.id, draft);
+      }
       const exitReason = budgetReason
         ? `interrupted: ${budgetReason}`
         : summary.killedByStop
@@ -942,7 +976,8 @@ export async function createSupervisor(
         ...(successSignal !== null ? { successSignal } : {}),
       });
       if (status !== 'awaiting_input') {
-        store.cards.dismissPendingDecisionsForRun(run.id);
+        const dismissed = store.cards.dismissPendingDecisionsForRun(run.id);
+        if (dismissed > 0) notifyDecisionChange('resolved');
       }
       if (status !== 'awaiting_input') {
         invokeRunCleanup(run.id, entry);
@@ -1057,6 +1092,7 @@ export async function createSupervisor(
       },
     });
     entry.hasDecision = true;
+    notifyDecisionChange('created');
     emitter.emit(cardChannel(run.id), card);
     try {
       entry.handle.stop();
@@ -1340,6 +1376,9 @@ export async function createSupervisor(
       throw new Error(`agent run ${input.runId} has no worktree`);
     }
 
+    await persistApprovedSpec(existing);
+    if (input.prompt.startsWith('User chose:')) notifyDecisionChange('resolved');
+
     const translated = applyKanbotsCommand(input.prompt, input.appendSystemPrompt);
     const composed = composeSystemPrompt(input.runId, translated.appendSystemPrompt);
     persistBriefing(input.runId, composed.briefing);
@@ -1367,6 +1406,46 @@ export async function createSupervisor(
     wireHandle(run, handle);
     emitter.emit(statusChannel(run.id), run.status);
     return run;
+  }
+
+  /**
+   * The card handler marks the decision resolved immediately before calling
+   * resume(). At that point the persisted text events are the durable copy of
+   * the agent's proposal; the in-memory result draft is preferred when the
+   * current supervisor saw the close event because it contains the provider's
+   * complete turn result.
+   */
+  async function persistApprovedSpec(run: AgentRun): Promise<void> {
+    const card = store.cards.listByRun(run.id).find((candidate) => {
+      if (candidate.type !== 'decision' || candidate.status !== 'resolved') return false;
+      const payload = candidate.payload as { question?: unknown };
+      const value = candidate.resolvedValue as { value?: unknown } | null;
+      return (
+        payload.question === 'Approve this acceptance criteria list?' &&
+        value?.value === 'approve'
+      );
+    });
+    if (!card) return;
+
+    const eventText = store.events
+      .list(run.id)
+      .filter((event) => event.type === 'text')
+      .map((event) => {
+        const payload = event.payload as { text?: unknown };
+        return typeof payload.text === 'string' ? payload.text : '';
+      })
+      .join('')
+      .trim();
+    const content = (pendingSpecDrafts.get(run.id) ?? eventText).trim();
+    if (content.length === 0) return;
+
+    const thread = store.threads.findById(run.threadId);
+    if (!thread) return;
+    const repoRoot = resolveRepoPath();
+    const specsDir = join(describeKanbotsDir(repoRoot).root, 'specs');
+    await mkdir(specsDir, { recursive: true });
+    await writeFile(join(specsDir, `${thread.issueNumber}.md`), `${content}\n`, 'utf8');
+    pendingSpecDrafts.delete(run.id);
   }
 
   async function stop(runId: number): Promise<AgentRun> {
@@ -1399,7 +1478,8 @@ export async function createSupervisor(
           pid: null,
           exitReason: `stopped by user (forced after ${forceResolveAt}ms; child unresponsive)`,
         });
-        store.cards.dismissPendingDecisionsForRun(runId);
+        const dismissed = store.cards.dismissPendingDecisionsForRun(runId);
+        if (dismissed > 0) notifyDecisionChange('resolved');
         emitter.emit(statusChannel(runId), 'stopped' as AgentRunStatus);
       }
       const run = store.agentRuns.findById(runId);
@@ -1415,7 +1495,8 @@ export async function createSupervisor(
       endedAt: new Date().toISOString(),
       pid: null,
     });
-    store.cards.dismissPendingDecisionsForRun(runId);
+    const dismissed = store.cards.dismissPendingDecisionsForRun(runId);
+    if (dismissed > 0) notifyDecisionChange('resolved');
     invokeRunCleanup(runId);
     runMemoryProjects.delete(runId);
     runIssueNumbers.delete(runId);
@@ -1473,6 +1554,7 @@ export async function createSupervisor(
     subscribe,
     getCooldown,
     subscribeCooldown,
+    subscribeDecisionsChanged,
     waitForCooldown,
   };
 }

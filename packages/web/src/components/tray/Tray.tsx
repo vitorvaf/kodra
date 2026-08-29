@@ -4,8 +4,13 @@ import { useIssues } from '../../hooks/useIssues.js';
 import { ageString } from '../../labels.js';
 import type { PendingDecisionPayload } from '../../types.js';
 
-const POLL_MS = 5_000;
+const POLL_MS = 30_000;
 const RESOLVED_EVENT = 'kanbots:decision-resolved';
+// Mirror of DECISIONS_CHANGED_CHANNEL (packages/api/src/bridge.ts).
+// Do NOT value-import from '@kanbots/api' in web code — it drags
+// server-only runtime deps (better-sqlite3, child_process, @octokit)
+// into the browser bundle and crashes the renderer.
+const DECISIONS_CHANGED_CHANNEL = 'decisions:changed';
 
 export interface TrayProps {
   onJump: (issueNumber: number) => void;
@@ -32,12 +37,17 @@ export function Tray({ onJump }: TrayProps) {
     const handle = window.setInterval(() => {
       void refresh();
     }, POLL_MS);
+    const bridge = typeof window !== 'undefined' ? window.kanbots : undefined;
+    const unsubscribe = bridge?.subscribe(DECISIONS_CHANGED_CHANNEL, () => {
+      void refresh();
+    });
     function onResolved(): void {
       void refresh();
     }
     window.addEventListener(RESOLVED_EVENT, onResolved);
     return () => {
       window.clearInterval(handle);
+      unsubscribe?.();
       window.removeEventListener(RESOLVED_EVENT, onResolved);
     };
   }, [refresh]);

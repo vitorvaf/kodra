@@ -634,7 +634,7 @@ export interface ReviewCommentPayload {
 export interface SlashCommandPayload {
   name: string;
   description: string;
-  source: 'builtin' | 'user' | 'skill' | 'kodra';
+  source: 'builtin' | 'user' | 'skill' | 'kodra' | 'kanbots';
 }
 
 export interface WorkspaceFolderPayload {
@@ -707,6 +707,17 @@ export interface PendingDecisionPayload {
   createdAt: string;
 }
 
+export interface DecisionChangePayload {
+  kind: 'created' | 'resolved';
+}
+
+/** Workspace-level event forwarded by the desktop IPC host. */
+export const DECISIONS_CHANGED_CHANNEL = 'decisions:changed' as const;
+
+export interface SpecPayload {
+  content: string | null;
+}
+
 export interface PreviewStatePayload {
   url: string | null;
   /**
@@ -769,7 +780,7 @@ export interface BridgeChannels {
   'config:get': { args: void; result: Config };
   'memory:status': { args: void; result: MemoryStatus };
   'issues:list': {
-    args: { state?: 'open' | 'closed' | 'all' };
+    args: { state?: 'open' | 'closed' | 'all'; folderId?: string };
     result: DecoratedIssue[];
   };
   'issues:list-archived': { args: void; result: DecoratedIssue[] };
@@ -983,6 +994,7 @@ export interface BridgeChannels {
     result: DecoratedIssue;
   };
   'decisions:pending': { args: void; result: PendingDecisionPayload[] };
+  'specs:get': { args: { issueNumber: number }; result: SpecPayload };
   'cost:today': { args: void; result: CostTodayResult };
   'cost:usage': { args: void; result: CostUsageResult };
   'cost:breakdown': { args: void; result: CostBreakdownItem[] };
@@ -1078,6 +1090,7 @@ export interface BridgeChannels {
     args: { name: string; path: string; defaultBranch?: string };
     result: WorkspaceFolderPayload;
   };
+  'folders:remove': { args: { id: string }; result: { ok: boolean } };
   'composer:draft': { args: { description: string }; result: DraftedIssue };
   'composer:suggest': {
     args: { personaPrompt: string; provider?: ProviderId; userNotes?: string };

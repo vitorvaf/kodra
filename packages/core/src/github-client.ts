@@ -126,7 +126,9 @@ export class GitHubClient implements IssueSource {
     };
   }
 
-  async listIssues(opts: { state?: 'open' | 'closed' | 'all' } = {}): Promise<Issue[]> {
+  async listIssues(
+    opts: { state?: 'open' | 'closed' | 'all'; folderId?: string } = {},
+  ): Promise<Issue[]> {
     const state = opts.state ?? 'open';
     const data = (await this.octokit.paginate('GET /repos/{owner}/{repo}/issues', {
       owner: this.owner,

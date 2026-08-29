@@ -11,6 +11,7 @@ import {
 import { api } from '../api.js';
 import { useFetch, type Mutator } from './useFetch.js';
 import type { Issue } from '../types.js';
+import { useCurrentFolderId } from '../stores/usePrefsStore.js';
 
 export interface IssuesContextValue {
   issues: Issue[];
@@ -27,8 +28,10 @@ export const ISSUES_CHANGED_CHANNEL = 'issues:changed';
 
 export function IssuesProvider({ children }: { children: ReactNode }) {
   const [refetchTick, setRefetchTick] = useState(0);
-  const { data, loading, error, mutate } = useFetch(`issues:open:${refetchTick}`, () =>
-    api.issues('open'),
+  const folderId = useCurrentFolderId();
+  const { data, loading, error, mutate } = useFetch(
+    `issues:open:${folderId ?? 'all'}:${refetchTick}`,
+    () => api.issues('open', folderId ?? undefined),
   );
 
   const refetch = useCallback(async () => {

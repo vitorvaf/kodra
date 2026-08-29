@@ -43,6 +43,21 @@ export function bootstrapWorkspace(
     path: repoPath,
     defaultBranch: 'main',
   });
+  // Migration 0032 can only backfill folders that already existed when the
+  // database was opened. Older stores may create their first folder here,
+  // after migrations have run, so attach otherwise-unscoped legacy issues at
+  // the same point while the folder is still unambiguous.
+  store.db
+    .prepare(
+      `UPDATE local_issues
+          SET folder_id = ?
+        WHERE folder_id IS NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM folders other
+             WHERE other.workspace_id = ? AND other.id <> ?
+          )`,
+    )
+    .run(currentFolder.id, workspace.id, currentFolder.id);
   return { workspace, currentFolder };
 }
 

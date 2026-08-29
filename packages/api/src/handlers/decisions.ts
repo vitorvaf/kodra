@@ -1,4 +1,9 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { describeKanbotsDir } from '@kanbots/local-store';
+import { z } from 'zod';
 import type { PendingDecisionPayload } from '../bridge.js';
+import { parseArgs } from './errors.js';
 import type { HandlerDeps } from './types.js';
 
 export async function pending(
@@ -37,4 +42,27 @@ export async function pending(
     });
   }
   return out;
+}
+
+const specsGetSchema = z
+  .object({ issueNumber: z.number().int().positive() })
+  .strict();
+
+export async function getSpec(
+  deps: HandlerDeps,
+  args: { issueNumber: number },
+): Promise<{ content: string | null }> {
+  const parsed = parseArgs(specsGetSchema, args);
+  if (!deps.config.repoPath) return { content: null };
+  const path = join(
+    describeKanbotsDir(deps.config.repoPath).root,
+    'specs',
+    `${parsed.issueNumber}.md`,
+  );
+  try {
+    return { content: await readFile(path, 'utf8') };
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return { content: null };
+    throw err;
+  }
 }

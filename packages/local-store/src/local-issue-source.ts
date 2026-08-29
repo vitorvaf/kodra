@@ -10,18 +10,23 @@ import { LocalIssueNotFoundError, type LocalIssuesRepo } from './repos/local-iss
 export interface LocalIssueSourceOptions {
   repo: LocalIssuesRepo;
   authorLogin: string;
+  folderId?: string;
 }
 
 export class LocalIssueSource implements IssueSource {
   private readonly repo: LocalIssuesRepo;
   readonly authorLogin: string;
+  private readonly folderId: string | undefined;
 
   constructor(opts: LocalIssueSourceOptions) {
     this.repo = opts.repo;
     this.authorLogin = opts.authorLogin;
+    this.folderId = opts.folderId;
   }
 
-  async listIssues(opts: { state?: 'open' | 'closed' | 'all' } = {}): Promise<Issue[]> {
+  async listIssues(
+    opts: { state?: 'open' | 'closed' | 'all'; folderId?: string } = {},
+  ): Promise<Issue[]> {
     return this.repo.list(opts);
   }
 
@@ -38,6 +43,7 @@ export class LocalIssueSource implements IssueSource {
       ...(input.labels !== undefined ? { labels: input.labels } : {}),
       ...(input.assignees !== undefined ? { assignees: input.assignees } : {}),
       authorLogin: this.authorLogin,
+      ...(this.folderId !== undefined ? { folderId: this.folderId } : {}),
     });
   }
 

@@ -11,12 +11,15 @@ import {
   createCurator,
   createHandlers,
   createSupervisor,
+  DECISIONS_CHANGED_CHANNEL,
+  bootstrapWorkspace,
   dispatchChatTool,
   hasProviderCredentials,
   reconcileIssueLabels,
   startToolBridge,
   type AgentSupervisor,
   type AutopilotManager,
+  type ChannelArgs,
   type ChatHandlers,
   type ChatToolRuntime,
   type DraftIssueFn,
@@ -206,9 +209,11 @@ interface ActiveWorkspace {
   ownerId: number;
   detachOwnerCleanup: () => void;
   cooldownUnsub: () => void;
+  decisionsChangedUnsub: () => void;
   dbWatcher: DbWatcher;
   toolBridge: ToolBridge | null;
   toolBridgeRuntimeDir: string | null;
+  handlers: Handlers;
 }
 
 process.on('uncaughtException', (err) => {
@@ -489,7 +494,11 @@ function wrapNotifyingSupervisor(supervisor: AgentSupervisor): AgentSupervisor {
   };
 }
 
-async function buildSource(config: WorkspaceConfig, store: Store): Promise<IssueSource> {
+async function buildSource(
+  config: WorkspaceConfig,
+  store: Store,
+  repoPath: string,
+): Promise<IssueSource> {
   if (config.mode === 'github') {
     const token = await resolveGitHubToken();
     return new GitHubClient({
@@ -499,9 +508,15 @@ async function buildSource(config: WorkspaceConfig, store: Store): Promise<Issue
       cache: store.httpCache,
     });
   }
+  const { currentFolder } = bootstrapWorkspace(
+    store,
+    { owner: 'local', repo: config.name, mode: 'local' },
+    repoPath,
+  );
   return new LocalIssueSource({
     repo: store.localIssues,
     authorLogin: config.authorLogin,
+    folderId: currentFolder.id,
   });
 }
 
@@ -519,6 +534,11 @@ async function closeActiveWorkspace(): Promise<void> {
   if (!activeWorkspace) return;
   try {
     activeWorkspace.cooldownUnsub();
+  } catch {
+    // ignore
+  }
+  try {
+    activeWorkspace.decisionsChangedUnsub();
   } catch {
     // ignore
   }
@@ -612,7 +632,7 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
 
   let source: IssueSource;
   try {
-    source = wrapNotifyingSource(await buildSource(config, store));
+    source = wrapNotifyingSource(await buildSource(config, store, gitRoot));
   } catch (err) {
     dbWatcher.stop();
     store.close();
@@ -749,6 +769,11 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
     const sender = mainWindow?.webContents;
     if (!sender || sender.isDestroyed()) return;
     sender.send('cooldown:changed', state);
+  });
+  const decisionsChangedUnsub = supervisor.subscribeDecisionsChanged((payload) => {
+    const sender = mainWindow?.webContents;
+    if (!sender || sender.isDestroyed()) return;
+    sender.send(DECISIONS_CHANGED_CHANNEL, payload);
   });
 
   const subscriptions = createSubscriptionRegistry({
@@ -929,9 +954,11 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
     ownerId,
     detachOwnerCleanup,
     cooldownUnsub,
+    decisionsChangedUnsub,
     dbWatcher,
     toolBridge,
     toolBridgeRuntimeDir,
+    handlers,
   };
 
   sentryPoller.start();
@@ -1980,6 +2007,24 @@ function registerIpc(): void {
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
       }
+    },
+  );
+
+  // These lifecycle-style methods are retained for desktop callers that do
+  // not use the generic invoke surface. Delegate to the already-registered
+  // workspace handlers so validation and workspace ownership stay identical.
+  ipcMain.handle(
+    'kanbots:add-folder',
+    async (_event, args: ChannelArgs<'folders:add'>) => {
+      if (!activeWorkspace) throw new Error('no active workspace');
+      return activeWorkspace.handlers['folders:add'](args);
+    },
+  );
+  ipcMain.handle(
+    'kanbots:remove-folder',
+    async (_event, id: string) => {
+      if (!activeWorkspace) throw new Error('no active workspace');
+      return activeWorkspace.handlers['folders:remove']({ id });
     },
   );
 

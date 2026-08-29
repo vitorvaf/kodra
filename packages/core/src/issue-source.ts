@@ -16,7 +16,7 @@ import type {
  *   - LocalIssueSource — issues live in the workspace's SQLite, no remote
  */
 export interface IssueSource {
-  listIssues(opts?: { state?: 'open' | 'closed' | 'all' }): Promise<Issue[]>;
+  listIssues(opts?: { state?: 'open' | 'closed' | 'all'; folderId?: string }): Promise<Issue[]>;
   getIssue(number: number): Promise<Issue>;
   createIssue(input: CreateIssueInput): Promise<Issue>;
   updateIssue(number: number, patch: UpdateIssuePatch): Promise<Issue>;

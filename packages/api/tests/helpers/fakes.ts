@@ -254,6 +254,9 @@ export function makeStubSupervisor(store: Store): StubSupervisor {
     subscribeCooldown() {
       return () => {};
     },
+    subscribeDecisionsChanged() {
+      return () => {};
+    },
     async waitForCooldown() {
       // no-op in tests
     },

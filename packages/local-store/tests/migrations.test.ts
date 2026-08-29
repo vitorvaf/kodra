@@ -39,6 +39,7 @@ describe('migrations', () => {
     expect(idxNames).toContain('idx_card_templates_workspace');
     expect(idxNames).toContain('idx_issue_relations_parent');
     expect(idxNames).toContain('idx_issue_relations_child');
+    expect(idxNames).toContain('idx_local_issues_folder');
 
     store.close();
   });
@@ -80,6 +81,7 @@ describe('migrations', () => {
       '0029_card_templates',
       '0030_issue_relations',
       '0031_agy_cli_provider',
+      '0032_issue_folders',
     ]);
     store.close();
   });

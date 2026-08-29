@@ -53,6 +53,25 @@ describe('LocalIssuesRepo', () => {
       expect(list[1]!.title).toBe('a');
     });
 
+    it('stores an optional folder association on create', () => {
+      const workspace = store.workspaces.ensure({ id: 'default', name: 'Workspace' });
+      const folder = store.folders.ensure({
+        id: 'folder-a',
+        workspaceId: workspace.id,
+        name: 'A',
+        path: '/tmp/a',
+      });
+      const issue = store.localIssues.create({
+        title: 'a',
+        authorLogin: 'x',
+        folderId: folder.id,
+      });
+
+      expect(store.db.prepare('SELECT folder_id FROM local_issues WHERE number = ?').get(issue.number)).toEqual({
+        folder_id: folder.id,
+      });
+    });
+
     it('filters by state', () => {
       const a = store.localIssues.create({ title: 'a', authorLogin: 'x' });
       const b = store.localIssues.create({ title: 'b', authorLogin: 'x' });
@@ -62,6 +81,30 @@ describe('LocalIssuesRepo', () => {
       expect(store.localIssues.list({ state: 'open' })[0]!.number).toBe(b.number);
       expect(store.localIssues.list({ state: 'closed' })).toHaveLength(1);
       expect(store.localIssues.list({ state: 'all' })).toHaveLength(2);
+    });
+
+    it('filters by folderId while leaving unscoped lists unchanged', () => {
+      const workspace = store.workspaces.ensure({ id: 'default', name: 'Workspace' });
+      const first = store.folders.ensure({
+        id: 'folder-a',
+        workspaceId: workspace.id,
+        name: 'A',
+        path: '/tmp/a',
+      });
+      const second = store.folders.ensure({
+        id: 'folder-b',
+        workspaceId: workspace.id,
+        name: 'B',
+        path: '/tmp/b',
+      });
+      const a = store.localIssues.create({ title: 'a', authorLogin: 'x' });
+      const b = store.localIssues.create({ title: 'b', authorLogin: 'x' });
+      store.db.prepare('UPDATE local_issues SET folder_id = ? WHERE number = ?').run(first.id, a.number);
+      store.db.prepare('UPDATE local_issues SET folder_id = ? WHERE number = ?').run(second.id, b.number);
+
+      expect(store.localIssues.list({ folderId: first.id }).map((i) => i.title)).toEqual(['a']);
+      expect(store.localIssues.list({ folderId: second.id }).map((i) => i.title)).toEqual(['b']);
+      expect(store.localIssues.list().map((i) => i.title)).toEqual(['b', 'a']);
     });
   });
 

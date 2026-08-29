@@ -266,6 +266,9 @@ export function LeftRail({
       >
         <WorkspaceTree
           header={{ name: headerName, ...(headerSubtitle ? { subtitle: headerSubtitle } : {}) }}
+          folders={ws.folders}
+          folderPath={currentFolder?.path ?? null}
+          onSelectFolder={ws.setCurrentFolder}
           onSelectIssue={onSelectIssue}
           {...(onOpenCloud ? { onOpenCloudSettings: onOpenCloud } : {})}
         />

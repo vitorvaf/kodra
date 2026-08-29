@@ -76,6 +76,7 @@ export type {
   SentrySuggestionVerdict,
   SentrySyncResult,
   SentryTestConnectionResult,
+  SpecPayload,
   ShipCommitResult,
   ShipMergeResult,
   ShipPRResult,

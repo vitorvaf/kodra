@@ -79,6 +79,7 @@ export interface BoardPrefs {
 interface PrefsState {
   diff: DiffPrefs;
   focusedRepoId: number | null;
+  currentFolderId: string | null;
   boardViews: Record<string /* workspaceId */, WorkspaceBoardViews>;
   tweaks: Tweaks;
   board: BoardPrefs;
@@ -90,6 +91,7 @@ interface PrefsActions {
   setDiffPref: <K extends keyof DiffPrefs>(key: K, value: DiffPrefs[K]) => void;
 
   setFocusedRepoId: (id: number | null) => void;
+  setCurrentFolderId: (id: string | null) => void;
 
   setTweak: <K extends keyof Tweaks>(key: K, value: Tweaks[K]) => void;
   resetTweaks: () => void;
@@ -141,6 +143,7 @@ export const BOARD_PREFS_DEFAULTS: BoardPrefs = {
 const DEFAULT_STATE: PrefsState = {
   diff: DIFF_PREFS_DEFAULTS,
   focusedRepoId: null,
+  currentFolderId: null,
   boardViews: {},
   tweaks: TWEAK_DEFAULTS,
   board: BOARD_PREFS_DEFAULTS,
@@ -306,6 +309,7 @@ function readLegacyState(): PrefsState {
   return {
     diff: readLegacyDiffPrefs(),
     focusedRepoId: readLegacyFocusedRepo(),
+    currentFolderId: null,
     boardViews: readLegacyBoardViews(),
     tweaks: readLegacyTweaks(),
     board: readLegacyBoardPrefs(),
@@ -355,6 +359,7 @@ export const usePrefsStore = create<PrefsState & PrefsActions>()(
         set((s) => ({ diff: { ...s.diff, [key]: value } })),
 
       setFocusedRepoId: (id) => set({ focusedRepoId: id }),
+      setCurrentFolderId: (id) => set({ currentFolderId: id }),
 
       setTweak: (key, value) =>
         set((s) => ({ tweaks: { ...s.tweaks, [key]: value } })),
@@ -502,6 +507,8 @@ export const usePrefsStore = create<PrefsState & PrefsActions>()(
                 : current.tweaks.accentHue,
           },
           board: { ...current.board, ...(p.board ?? {}) },
+          currentFolderId:
+            typeof p.currentFolderId === 'string' ? p.currentFolderId : current.currentFolderId,
           boardViews: { ...current.boardViews, ...(p.boardViews ?? {}) },
         };
       },
@@ -572,6 +579,8 @@ export const useDiffIgnoreWhitespace = () =>
   usePrefsStore((s) => s.diff.ignoreWhitespace);
 
 export const useFocusedRepoId = () => usePrefsStore((s) => s.focusedRepoId);
+
+export const useCurrentFolderId = () => usePrefsStore((s) => s.currentFolderId);
 
 export const useTweaksState = () => usePrefsStore((s) => s.tweaks);
 

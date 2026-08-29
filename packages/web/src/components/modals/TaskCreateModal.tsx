@@ -23,6 +23,7 @@ import {
   type ModelPickerValue,
 } from '../forms/ModelPicker.js';
 import { useFetch } from '../../hooks/useFetch.js';
+import { useFocusTrap } from '../../hooks/useFocusTrap.js';
 import { useFocusedRepo } from '../../hooks/useFocusedRepo.js';
 import { dispatchIssuesRefetch } from '../../hooks/useIssues.js';
 import { priorityFromLabels, tagFromLabels } from '../../labels.js';
@@ -149,6 +150,7 @@ export function TaskCreateModal({
   const showRepoCaption = repos.length > 1 && focused !== null;
   const [templates, setTemplates] = useState<CardTemplatePayload[]>([]);
   const [templateId, setTemplateId] = useState<number | ''>('');
+  const modalRef = useFocusTrap<HTMLDivElement>(true);
   const { data: providersData } = useFetch('providers', () => api.getProviders());
 
   // Filtered agent providers — same rules as <ModelPicker agentRunsOnly>:
@@ -489,7 +491,7 @@ export function TaskCreateModal({
 
   return (
     <div className="kb-modal-scrim kb-app" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="kb-modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className="kb-modal" onClick={(e) => e.stopPropagation()} tabIndex={-1}>
         <div className="kb-modal-head">
           <Logo size={11} withWordmark />
           <span style={{ color: 'var(--ink-4)' }}>·</span>

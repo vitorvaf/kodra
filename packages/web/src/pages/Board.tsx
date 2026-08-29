@@ -317,7 +317,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
     );
   }
   const activeIssue =
-    activeNumber !== null ? (issues.find((i) => i.number === activeNumber) ?? null) : null;
+    activeNumber !== null ? (list.find((i) => i.number === activeNumber) ?? null) : null;
 
   const stats = {
     issues: list.length,
@@ -627,7 +627,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
           availablePriorities: filterApi.availablePriorities,
           availableAreas: filterApi.availableAreas,
           includeBacklog: filterApi.includeBacklog,
-          backlogCount: issues.filter((i) => i.status === 'backlog').length,
+          backlogCount: list.filter((i) => i.status === 'backlog').length,
           sortMode,
           onToggleHasAgent: filterApi.toggleHasAgent,
           onTogglePriority: (p) => filterApi.togglePriority(p as (typeof filterApi.availablePriorities)[number]),

@@ -12,6 +12,7 @@ import type {
   ChannelResult,
   PostMessageResult,
   UploadAttachmentResult,
+  WorkspaceFolderPayload,
 } from '@kanbots/api';
 import type {
   AgentRunListResponse,
@@ -58,6 +59,12 @@ export interface KanbotsBridge {
   bootstrap(): Promise<BootstrapPayload>;
   pickFolder(): Promise<string | null>;
   openWorkspace(repoPath: string): Promise<{ ok: true } | { ok: false; error: string }>;
+  addFolder?(input: {
+    name: string;
+    path: string;
+    defaultBranch?: string;
+  }): Promise<WorkspaceFolderPayload>;
+  removeFolder?(id: string): Promise<{ ok: boolean }>;
   closeWorkspace(): Promise<void>;
   recentWorkspaces(): Promise<RecentWorkspace[]>;
   minimizeWindow(): Promise<void>;

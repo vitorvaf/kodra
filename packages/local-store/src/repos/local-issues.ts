@@ -66,6 +66,7 @@ export interface CreateLocalIssueInput {
   labels?: string[];
   assignees?: string[];
   authorLogin: string;
+  folderId?: string;
 }
 
 export interface UpdateLocalIssuePatch {
@@ -93,14 +94,22 @@ export class LocalIssueNotFoundError extends Error {
 export class LocalIssuesRepo {
   constructor(private readonly db: Db) {}
 
-  list(opts: { state?: 'open' | 'closed' | 'all' } = {}): Issue[] {
+  list(opts: { state?: 'open' | 'closed' | 'all'; folderId?: string } = {}): Issue[] {
     const state = opts.state ?? 'open';
-    const rows =
-      state === 'all'
-        ? (this.db.prepare('SELECT * FROM local_issues ORDER BY number DESC').all() as IssueRow[])
-        : (this.db
-            .prepare('SELECT * FROM local_issues WHERE state = ? ORDER BY number DESC')
-            .all(state) as IssueRow[]);
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    if (state !== 'all') {
+      conditions.push('state = ?');
+      params.push(state);
+    }
+    if (opts.folderId !== undefined) {
+      conditions.push('folder_id = ?');
+      params.push(opts.folderId);
+    }
+    const where = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
+    const rows = this.db
+      .prepare(`SELECT * FROM local_issues${where} ORDER BY number DESC`)
+      .all(...params) as IssueRow[];
     return rows.map(rowToIssue);
   }
 
@@ -118,22 +127,42 @@ export class LocalIssuesRepo {
         .prepare('SELECT COALESCE(MAX(number), 0) AS max FROM local_issues')
         .get() as { max: number };
       const nextNumber = maxRow.max + 1;
-      this.db
-        .prepare(
-          `INSERT INTO local_issues
-            (number, title, body, state, labels, assignees, author_login, created_at, updated_at)
-           VALUES (?, ?, ?, 'open', ?, ?, ?, ?, ?)`,
-        )
-        .run(
-          nextNumber,
-          args.title,
-          args.body ?? '',
-          JSON.stringify(args.labels ?? []),
-          JSON.stringify(args.assignees ?? []),
-          args.authorLogin,
-          now,
-          now,
-        );
+      if (args.folderId === undefined) {
+        this.db
+          .prepare(
+            `INSERT INTO local_issues
+              (number, title, body, state, labels, assignees, author_login, created_at, updated_at)
+             VALUES (?, ?, ?, 'open', ?, ?, ?, ?, ?)`,
+          )
+          .run(
+            nextNumber,
+            args.title,
+            args.body ?? '',
+            JSON.stringify(args.labels ?? []),
+            JSON.stringify(args.assignees ?? []),
+            args.authorLogin,
+            now,
+            now,
+          );
+      } else {
+        this.db
+          .prepare(
+            `INSERT INTO local_issues
+              (number, title, body, state, labels, assignees, author_login, created_at, updated_at, folder_id)
+             VALUES (?, ?, ?, 'open', ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(
+            nextNumber,
+            args.title,
+            args.body ?? '',
+            JSON.stringify(args.labels ?? []),
+            JSON.stringify(args.assignees ?? []),
+            args.authorLogin,
+            now,
+            now,
+            args.folderId,
+          );
+      }
       const issue = this.findByNumber(nextNumber);
       if (!issue) throw new Error(`Failed to insert local issue ${nextNumber}`);
       return issue;

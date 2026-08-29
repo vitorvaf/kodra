@@ -6,6 +6,7 @@ import type { AgentSupervisor } from '../agent-runs/supervisor.js';
 import type { AutopilotManager } from '../autopilot/orchestrator.js';
 import type {
   Config,
+  DecisionChangePayload,
   DraftIssueFn,
   DraftPrDescriptionFn,
   EventSubscribeResult,
@@ -117,6 +118,8 @@ export interface HandlerDeps {
    * and don't break the local promotion.
    */
   cloudPromote?: (input: CloudPromoteInput) => Promise<void> | void;
+  /** Optional workspace event sink used by the desktop IPC host. */
+  onDecisionChange?: (payload: DecisionChangePayload) => void;
 }
 
 /**

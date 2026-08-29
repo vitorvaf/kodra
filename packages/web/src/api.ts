@@ -47,6 +47,7 @@ import type {
   ShipMergeResult,
   ShipPRResult,
   ShipStatus,
+  SpecPayload,
   SlashCommandPayload,
   StatusKey,
   UpdateIssuePatch,
@@ -264,7 +265,10 @@ export const api = {
     }
     return invoke('config:get', undefined);
   },
-  issues: async (state: 'open' | 'closed' | 'all' = 'open'): Promise<Issue[]> => {
+  issues: async (
+    state: 'open' | 'closed' | 'all' = 'open',
+    folderId?: string,
+  ): Promise<Issue[]> => {
     if (cloudCtx !== null) {
       const bridge = getCloudBridge();
       const list = await bridge.cloudCardsList({
@@ -279,7 +283,10 @@ export const api = {
       if (state === 'open') return issues.filter((i) => i.state === 'open');
       return issues;
     }
-    return invoke('issues:list', { state });
+    return invoke('issues:list', {
+      state,
+      ...(folderId !== undefined ? { folderId } : {}),
+    });
   },
   issue: async (n: number): Promise<IssueDetail> => {
     if (cloudCtx !== null) {
@@ -570,6 +577,8 @@ export const api = {
     if (cloudCtx !== null) return Promise.resolve([]);
     return invoke('decisions:pending', undefined);
   },
+  getSpec: (issueNumber: number): Promise<SpecPayload> =>
+    invoke('specs:get', { issueNumber }),
   workspace: async (): Promise<Workspace> => {
     if (cloudCtx !== null) {
       // Synthetic — phase 3 ships a real project-config endpoint that will

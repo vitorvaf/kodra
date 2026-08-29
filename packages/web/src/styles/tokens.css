@@ -13,7 +13,8 @@
    blue2 = review, red = failed/del.
    ========================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
+/* Fonts are embedded locally via styles/fonts.css (@font-face + woff2 in
+   assets/fonts/) — no remote Google Fonts import (offline-capable desktop). */
 
 :root[data-theme='dark'] {
   /* Surfaces — deep cool near-black */

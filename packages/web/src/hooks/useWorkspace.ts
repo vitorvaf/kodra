@@ -1,7 +1,9 @@
+import { useCallback, useEffect } from 'react';
 import { useFetch } from './useFetch.js';
 import { api } from '../api.js';
 import { useIssues } from './useIssues.js';
 import type { Workspace, WorkspaceFolderPayload } from '../types.js';
+import { useCurrentFolderId, usePrefsStore } from '../stores/usePrefsStore.js';
 
 export interface WorkspaceFolder {
   id: string;
@@ -41,9 +43,21 @@ export function useWorkspace(): WorkspaceState {
 
   const workspace = ws.data ?? FALLBACK_WORKSPACE;
   const list = folders.data ?? [];
+  const persistedFolderId = useCurrentFolderId();
+  const setPersistedFolderId = usePrefsStore((s) => s.setCurrentFolderId);
+  const selectedFolderId =
+    (persistedFolderId !== null && list.some((f) => f.id === persistedFolderId)
+      ? persistedFolderId
+      : list.find((f) => f.current)?.id) ?? list[0]?.id ?? workspace.currentFolderId;
 
-  // Issues are scoped to the active folder for now (single-folder runtime).
-  // Phase 11 may extend the API to scope by folderId.
+  useEffect(() => {
+    if (selectedFolderId !== 'unknown' && selectedFolderId !== persistedFolderId) {
+      setPersistedFolderId(selectedFolderId);
+    }
+  }, [selectedFolderId, persistedFolderId, setPersistedFolderId]);
+
+  // `useIssues` follows the persisted current-folder selection, so these
+  // counts describe the folder shown by the board rather than the whole DB.
   const activeAgents = issues.filter(
     (i) => i.agent === 'running' || i.agent === 'blocked',
   ).length;
@@ -55,8 +69,15 @@ export function useWorkspace(): WorkspaceState {
     branch: f.defaultBranch,
     activeAgents: f.current ? activeAgents : 0,
     issues: f.current ? issues.length : 0,
-    current: f.current,
+    current: f.id === selectedFolderId,
   }));
+
+  const setCurrentFolder = useCallback(
+    (id: string): void => {
+      if (list.some((f) => f.id === id)) setPersistedFolderId(id);
+    },
+    [list, setPersistedFolderId],
+  );
 
   return {
     workspace: {
@@ -65,8 +86,8 @@ export function useWorkspace(): WorkspaceState {
       activeAgents,
     },
     folders: decorated,
-    currentFolderId: workspace.currentFolderId,
-    setCurrentFolder: () => undefined, // Phase 11 wires real folder switching
+    currentFolderId: selectedFolderId,
+    setCurrentFolder,
     loading: ws.loading || folders.loading,
     error: ws.error ?? folders.error,
   };

@@ -36,6 +36,13 @@ interface WorktreeStatus {
   worktrees: string[];
 }
 
+interface WorkspaceTreeFolder {
+  id: string;
+  name: string;
+  path: string;
+  current: boolean;
+}
+
 interface TouchedMeta {
   status: StatusCode;
   /** Distinct worktrees the renderer knows about. */
@@ -615,15 +622,24 @@ export interface WorkspaceTreeProps {
    * don't break.
    */
   onOpenCloudSettings?: () => void;
+  /** Workspace folders shown as the selectable roots above the file tree. */
+  folders?: WorkspaceTreeFolder[];
+  onSelectFolder?: (id: string) => void;
+  /** Selected folder root. Falls back to the focused repo for older callers. */
+  folderPath?: string | null;
 }
 
 export function WorkspaceTree({
   header,
   onSelectIssue,
   onOpenCloudSettings,
+  folders,
+  onSelectFolder,
+  folderPath,
 }: WorkspaceTreeProps) {
   const { repos, focused, setFocusedRepoId } = useFocusedRepo();
   const focusedRepoPath = focused?.repoPath ?? null;
+  const selectedFolderPath = folderPath ?? focusedRepoPath;
   const [rootPath, setRootPath] = useState<string | null>(null);
   const [worktreeStatus, setWorktreeStatus] = useState<WorktreeStatus>({
     files: {},
@@ -646,18 +662,18 @@ export function WorkspaceTree({
 
   // 1. Resolve the active repo root once, plus a periodic re-check so
   //    closing a workspace clears the tree without a renderer reload.
-  //    When the user has a focused workspace repo, that repo's path wins
+  //    When a workspace folder or focused repo is selected, its path wins
   //    over the host-level `workspaceCurrentRoot()` (which still always
   //    reflects the workspace's primary repo). Falls back to the bridge
-  //    call when no repos are registered (pre-multi-repo workspaces).
+  //    call when no folder/repo is registered.
   useEffect(() => {
     const bridge = getBridge();
     if (!bridge) return;
-    if (focusedRepoPath !== null) {
+    if (selectedFolderPath !== null) {
       setRootPath((prev) => {
-        if (prev === focusedRepoPath) return prev;
+        if (prev === selectedFolderPath) return prev;
         dispatch({ kind: 'reset' });
-        return focusedRepoPath;
+        return selectedFolderPath;
       });
       return;
     }
@@ -681,7 +697,7 @@ export function WorkspaceTree({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [focusedRepoPath]);
+  }, [selectedFolderPath]);
 
   // 2. Load the root listing.
   useEffect(() => {
@@ -830,6 +846,27 @@ export function WorkspaceTree({
         focused={focused}
         onPick={(id) => setFocusedRepoId(id)}
       />
+      {folders && folders.length > 0 ? (
+        <div role="list" aria-label="Workspace folders">
+          {folders.map((folder) => (
+            <button
+              key={folder.id}
+              type="button"
+              role="listitem"
+              className={`kb-tree-row is-dir${folder.current ? ' is-current' : ''}`}
+              onClick={() => onSelectFolder?.(folder.id)}
+              title={folder.path}
+              aria-current={folder.current ? 'true' : undefined}
+            >
+              <span className="kb-tree-caret" aria-hidden>
+                {folder.current ? '●' : '○'}
+              </span>
+              <span className="kb-tree-icon" aria-hidden>📁</span>
+              <span className="kb-tree-name">{folder.name}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="kb-tree-toolbar">
         <input
           type="search"

@@ -39,6 +39,12 @@ const api: KanbotsBridge = {
     ipcRenderer.invoke('kanbots:open-workspace', repoPath) as Promise<
       { ok: true } | { ok: false; error: string }
     >,
+  addFolder: (input: { name: string; path: string; defaultBranch?: string }) =>
+    ipcRenderer.invoke('kanbots:add-folder', input) as Promise<
+      import('@kanbots/api').WorkspaceFolderPayload
+    >,
+  removeFolder: (id: string) =>
+    ipcRenderer.invoke('kanbots:remove-folder', id) as Promise<{ ok: boolean }>,
   closeWorkspace: () => ipcRenderer.invoke('kanbots:close-workspace') as Promise<void>,
   recentWorkspaces: () =>
     ipcRenderer.invoke('kanbots:recent-workspaces') as Promise<RecentWorkspace[]>,

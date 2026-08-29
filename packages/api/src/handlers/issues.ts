@@ -42,6 +42,7 @@ function buildSubIssueCountMap(deps: HandlerDeps): Map<number, number> {
 const issueListSchema = z
   .object({
     state: z.enum(['open', 'closed', 'all']).optional(),
+    folderId: z.string().min(1).optional(),
   })
   .strict();
 
@@ -131,6 +132,7 @@ const dispatchSchema = z
 
 export interface ListIssuesArgs {
   state?: 'open' | 'closed' | 'all';
+  folderId?: string;
 }
 
 export interface GetIssueArgs {
@@ -206,9 +208,10 @@ export async function list(
   args: ListIssuesArgs,
 ): Promise<DecoratedIssue[]> {
   const parsed = parseArgs(issueListSchema, args ?? {});
-  const issues = await deps.source.listIssues(
-    parsed.state ? { state: parsed.state } : {},
-  );
+  const listArgs: { state?: 'open' | 'closed' | 'all'; folderId?: string } = {};
+  if (parsed.state !== undefined) listArgs.state = parsed.state;
+  if (parsed.folderId !== undefined) listArgs.folderId = parsed.folderId;
+  const issues = await deps.source.listIssues(listArgs);
   const activeRunMap = buildActiveRunMap(deps);
   const sentryMap = buildSentryMetaMap(deps);
   const subIssueCountMap = buildSubIssueCountMap(deps);

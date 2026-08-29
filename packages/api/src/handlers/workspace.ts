@@ -387,6 +387,29 @@ export async function addFolder(
   };
 }
 
+const folderIdSchema = z.object({ id: z.string().min(1) }).strict();
+
+export async function removeFolder(
+  deps: HandlerDeps,
+  args: { id: string },
+): Promise<{ ok: boolean }> {
+  const parsed = parseArgs(folderIdSchema, args);
+  if (!deps.config.repoPath) {
+    throw badRequest('host has no active workspace');
+  }
+  const { workspace } = bootstrapWorkspace(
+    deps.store,
+    deps.config,
+    deps.config.repoPath,
+  );
+  const folder = deps.store.folders.findById(parsed.id);
+  if (!folder || folder.workspaceId !== workspace.id) {
+    throw notFound(`folder ${parsed.id} not found`);
+  }
+  deps.store.folders.remove(parsed.id);
+  return { ok: true };
+}
+
 // --- Multi-repo workspace handlers ----------------------------------------
 
 const addRepoSchema = z

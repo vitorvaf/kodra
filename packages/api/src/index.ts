@@ -6,6 +6,7 @@ export {
   type AgentSupervisor,
   type CooldownListener,
   type CooldownState,
+  type DecisionChangeListener,
   type CreateSupervisorOptions,
   type ResumeRunInput,
   type StartRunInput,
@@ -74,6 +75,7 @@ export {
   type SubscriptionRegistry,
 } from './handlers/index.js';
 export { hasProviderCredentials, resolveProviderWithCreds } from './handlers/provider-credentials.js';
+export { DECISIONS_CHANGED_CHANNEL } from './bridge.js';
 export type {
   AgentCheck,
   AgentEvent,
@@ -111,6 +113,7 @@ export type {
   CheckKind,
   Comment,
   Config,
+  DecisionChangePayload,
   CooldownStatePayload,
   CostBreakdownItem,
   CostUsageResult,
@@ -172,6 +175,7 @@ export type {
   SentrySuggestionVerdict,
   SentrySyncResult,
   SentryTestConnectionResult,
+  SpecPayload,
   ShipCommitResult,
   ShipMergeResult,
   ShipPRResult,

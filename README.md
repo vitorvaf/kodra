@@ -230,7 +230,7 @@ Details: [docs/agents.md#autopilot](docs/agents.md#autopilot).
 | [`@kanbots/dispatcher`](packages/dispatcher) | Agent runtime — spawns the configured agent CLI, parses its stream output, manages worktrees |
 | [`@kanbots/llm`](packages/llm) | CLI adapters and provider catalogue |
 | [`@kanbots/api`](packages/api) | Pure handler library + agent supervisor (no HTTP server) |
-| [`@kanbots/mcp`](packages/mcp) | MCP server (`kanbots-mcp-server` bin) |
+| [`@kanbots/mcp`](packages/mcp) | MCP server (`kodra-mcp-server` recommended; `kanbots-mcp-server` legacy alias) |
 | [`@kanbots/web`](packages/web) | React + Vite UI |
 | [`@kanbots/desktop`](packages/desktop) | Electron shell, IPC bridge, workspace picker |
 

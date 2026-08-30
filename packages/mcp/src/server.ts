@@ -16,12 +16,12 @@ import { CLOUD_SIGNIN_HINT, readCloudSession } from './auth.js';
 // real auth boundary; this layer only proxies).
 const cloudSession = await readCloudSession();
 
-const BRIDGE_URL = process.env.KANBOTS_TOOL_BRIDGE_URL;
-const BRIDGE_TOKEN = process.env.KANBOTS_TOOL_BRIDGE_TOKEN;
+const BRIDGE_URL = process.env.KODRA_TOOL_BRIDGE_URL ?? process.env.KANBOTS_TOOL_BRIDGE_URL;
+const BRIDGE_TOKEN = process.env.KODRA_TOOL_BRIDGE_TOKEN ?? process.env.KANBOTS_TOOL_BRIDGE_TOKEN;
 
 if (!BRIDGE_URL || !BRIDGE_TOKEN) {
   process.stderr.write(
-    '[kanbots-mcp] KANBOTS_TOOL_BRIDGE_URL and KANBOTS_TOOL_BRIDGE_TOKEN env vars are required\n',
+    '[kodra-mcp] KODRA_TOOL_BRIDGE_URL and KODRA_TOOL_BRIDGE_TOKEN env vars are required; legacy KANBOTS_TOOL_BRIDGE_URL and KANBOTS_TOOL_BRIDGE_TOKEN names are also accepted\n',
   );
   process.exit(1);
 }
@@ -99,7 +99,7 @@ server
   .connect(transport)
   .catch((err: unknown) => {
     process.stderr.write(
-      `[kanbots-mcp] failed to start: ${err instanceof Error ? err.message : String(err)}\n`,
+      `[kodra-mcp] failed to start: ${err instanceof Error ? err.message : String(err)}\n`,
     );
     process.exit(1);
   });

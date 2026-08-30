@@ -14,8 +14,11 @@ on-disk data, or runtime integration points:
 - package scope: `@kanbots/*`
 - legacy workspace data: `.kanbots/`, including `db.sqlite`, `config.json`,
   and `mcp-runtime/`
-- environment variables beginning with `KANBOTS_`
-- executable: `kanbots-mcp-server`
+- environment variables beginning with `KANBOTS_`; the MCP server also accepts
+  preferred `KODRA_TOOL_BRIDGE_URL` and `KODRA_TOOL_BRIDGE_TOKEN` names, with
+  the `KANBOTS_TOOL_BRIDGE_*` names retained as fallbacks
+- executable: `kanbots-mcp-server` (retained); `kodra-mcp-server` is an added
+  alias pointing to the same server
 - Electron IPC channels using `kanbots:*`
 - the upstream cloud URL: `app.kanbots.dev`
 - Electron `userData` directory: packaged builds pin the app name via

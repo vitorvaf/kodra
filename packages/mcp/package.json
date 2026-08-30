@@ -19,7 +19,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "kanbots-mcp-server": "./dist/server.js"
+    "kanbots-mcp-server": "./dist/server.js",
+    "kodra-mcp-server": "./dist/server.js"
   },
   "exports": {
     ".": {

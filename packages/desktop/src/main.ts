@@ -2251,6 +2251,8 @@ function buildChatToolRuntime(args: {
     prepareForRun: async ({ provider }) => {
       const token = toolBridge.issueToken();
       const bridgeEnv = {
+        KODRA_TOOL_BRIDGE_URL: toolBridge.baseUrl(),
+        KODRA_TOOL_BRIDGE_TOKEN: token,
         KANBOTS_TOOL_BRIDGE_URL: toolBridge.baseUrl(),
         KANBOTS_TOOL_BRIDGE_TOKEN: token,
       };

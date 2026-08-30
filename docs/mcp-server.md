@@ -1,7 +1,8 @@
 # MCP server
 
-`@kanbots/mcp` ships a standalone executable, `kanbots-mcp-server`, that
-exposes a workspace's board as Model Context Protocol tools. Other MCP
+`@kanbots/mcp` ships a standalone executable, `kodra-mcp-server`, that
+exposes a workspace's board as Model Context Protocol tools. The legacy
+`kanbots-mcp-server` name remains as an alias to the same server. Other MCP
 clients — Cursor, Claude Desktop, the Claude Code CLI itself — can use
 it to read issues, dispatch runs, or resolve decisions on your behalf.
 
@@ -22,12 +23,15 @@ bridge over HTTP with a token, and streams back the response.
 └────────────┘          └─────────────────┘         └──────────────────┘
 ```
 
-Two environment variables wire it up:
+Two environment variables wire it up. The preferred names are:
 
 | Var | Value |
 | --- | --- |
-| `KANBOTS_TOOL_BRIDGE_URL` | `http://127.0.0.1:<port>` — the bridge URL printed by the desktop app |
-| `KANBOTS_TOOL_BRIDGE_TOKEN` | A bearer token — rotated per Electron session |
+| `KODRA_TOOL_BRIDGE_URL` | `http://127.0.0.1:<port>` — the bridge URL printed by the desktop app |
+| `KODRA_TOOL_BRIDGE_TOKEN` | A bearer token — rotated per Electron session |
+
+The legacy `KANBOTS_TOOL_BRIDGE_URL` and `KANBOTS_TOOL_BRIDGE_TOKEN` names are
+also accepted as fallbacks, with the same values.
 
 You'll find the current values under **Settings → MCP server** in the
 desktop UI; click **Copy config snippet** to get a ready-made client
@@ -65,19 +69,21 @@ Cursor reads MCP server configs from
 {
   "mcpServers": {
     "kodra": {
-      "command": "kanbots-mcp-server",
+      "command": "kodra-mcp-server",
       "env": {
-        "KANBOTS_TOOL_BRIDGE_URL": "http://127.0.0.1:34567",
-        "KANBOTS_TOOL_BRIDGE_TOKEN": "<paste from Settings → MCP server>"
+        "KODRA_TOOL_BRIDGE_URL": "http://127.0.0.1:34567",
+        "KODRA_TOOL_BRIDGE_TOKEN": "<paste from Settings → MCP server>"
       }
     }
   }
 }
 ```
 
-If `kanbots-mcp-server` isn't on your `PATH`, replace `command` with
-the absolute path printed by `pnpm -F @kanbots/mcp exec which
-kanbots-mcp-server` (or run it via `node /path/to/dist/server.js`).
+If neither `kodra-mcp-server` nor `kanbots-mcp-server` is on your `PATH`,
+replace `command` with the absolute path printed by
+`pnpm -F @kanbots/mcp exec which kodra-mcp-server` or
+`pnpm -F @kanbots/mcp exec which kanbots-mcp-server` (or run it via
+`node /path/to/dist/server.js`).
 
 ## Wiring it into Claude Desktop
 
@@ -93,10 +99,10 @@ Same shape as Cursor:
 {
   "mcpServers": {
     "kodra": {
-      "command": "kanbots-mcp-server",
+      "command": "kodra-mcp-server",
       "env": {
-        "KANBOTS_TOOL_BRIDGE_URL": "http://127.0.0.1:34567",
-        "KANBOTS_TOOL_BRIDGE_TOKEN": "..."
+        "KODRA_TOOL_BRIDGE_URL": "http://127.0.0.1:34567",
+        "KODRA_TOOL_BRIDGE_TOKEN": "..."
       }
     }
   }
@@ -119,10 +125,10 @@ claude --mcp-config ~/kodra-mcp.json -p "list open issues"
 {
   "mcpServers": {
     "kodra": {
-      "command": "kanbots-mcp-server",
+      "command": "kodra-mcp-server",
       "env": {
-        "KANBOTS_TOOL_BRIDGE_URL": "http://127.0.0.1:34567",
-        "KANBOTS_TOOL_BRIDGE_TOKEN": "..."
+        "KODRA_TOOL_BRIDGE_URL": "http://127.0.0.1:34567",
+        "KODRA_TOOL_BRIDGE_TOKEN": "..."
       }
     }
   }

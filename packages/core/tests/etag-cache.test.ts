@@ -1,28 +1,59 @@
-import { openStoreInMemory, type Store } from '@kanbots/local-store';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { CacheEntry, ETagCache, SetCacheInput } from '../src/etag-cache.js';
 import { GitHubClient } from '../src/github-client.js';
 import { FakeFetch } from './helpers/fake-fetch.js';
 import { issueFixture } from './helpers/fixtures.js';
 
+/**
+ * In-memory ETagCache. The production cache lives in @kanbots/local-store
+ * (http_cache table); keeping this test on a local fake avoids a workspace
+ * dev-dependency core → local-store, which created a build-graph cycle and
+ * broke `pnpm -r build` ordering (local-store's dts build could resolve core
+ * types from a stale core/dist mid-rebuild).
+ */
+class MemoryCache implements ETagCache {
+  private readonly map = new Map<string, CacheEntry>();
+
+  get(key: string): CacheEntry | null {
+    return this.map.get(key) ?? null;
+  }
+
+  set(input: SetCacheInput): void {
+    this.map.set(input.key, {
+      etag: input.etag ?? null,
+      lastModified: input.lastModified ?? null,
+      body: input.body,
+    });
+  }
+
+  delete(key: string): void {
+    this.map.delete(key);
+  }
+
+  entries(): Array<[string, CacheEntry]> {
+    return [...this.map.entries()];
+  }
+
+  keys(): string[] {
+    return [...this.map.keys()].sort();
+  }
+}
+
 describe('ETag cache', () => {
   let fetcher: FakeFetch;
-  let store: Store;
+  let cache: MemoryCache;
   let client: GitHubClient;
 
   beforeEach(() => {
     fetcher = new FakeFetch();
-    store = openStoreInMemory();
+    cache = new MemoryCache();
     client = new GitHubClient({
       owner: 'octo',
       repo: 'hello',
       token: 'tok',
       fetch: fetcher.fetch,
-      cache: store.httpCache,
+      cache,
     });
-  });
-
-  afterEach(() => {
-    store.close();
   });
 
   it('stores ETag from first 200 response', async () => {
@@ -33,12 +64,7 @@ describe('ETag cache', () => {
     });
     await client.listIssues();
 
-    const all = store.db.prepare('SELECT * FROM http_cache').all() as Array<{
-      key: string;
-      etag: string | null;
-      body: string;
-    }>;
-    const issuesEntry = all.find((e) => e.key.includes('/issues'));
+    const issuesEntry = cache.entries().find(([key]) => key.includes('/issues'))?.[1];
     expect(issuesEntry).toBeDefined();
     expect(issuesEntry?.etag).toBe('W/"abc"');
   });
@@ -79,11 +105,7 @@ describe('ETag cache', () => {
     const second = await client.listIssues();
     expect(second[0]?.title).toBe('new');
 
-    const all = store.db.prepare('SELECT * FROM http_cache').all() as Array<{
-      key: string;
-      etag: string | null;
-    }>;
-    const issuesEntry = all.find((e) => e.key.includes('/issues'));
+    const issuesEntry = cache.entries().find(([key]) => key.includes('/issues'))?.[1];
     expect(issuesEntry?.etag).toBe('W/"v2"');
   });
 
@@ -95,8 +117,7 @@ describe('ETag cache', () => {
     });
     await client.createIssue({ title: 'created' });
 
-    const all = store.db.prepare('SELECT * FROM http_cache').all() as Array<{ key: string }>;
-    expect(all).toHaveLength(0);
+    expect(cache.entries()).toHaveLength(0);
   });
 
   it('separately caches getIssue and listIssues by URL', async () => {
@@ -114,9 +135,6 @@ describe('ETag cache', () => {
     });
     await client.getIssue(1);
 
-    const all = store.db.prepare('SELECT key FROM http_cache ORDER BY key').all() as {
-      key: string;
-    }[];
-    expect(all).toHaveLength(2);
+    expect(cache.keys()).toHaveLength(2);
   });
 });

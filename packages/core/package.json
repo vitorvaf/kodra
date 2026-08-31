@@ -39,7 +39,6 @@
     "@octokit/request-error": "^6.1.8"
   },
   "devDependencies": {
-    "@kanbots/local-store": "workspace:*",
     "@types/node": "^22.10.5",
     "tsup": "^8.3.5",
     "typescript": "^5.7.3",

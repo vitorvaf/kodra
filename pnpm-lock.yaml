@@ -122,9 +122,6 @@ importers:
         specifier: ^6.1.8
         version: 6.1.8
     devDependencies:
-      '@kanbots/local-store':
-        specifier: workspace:*
-        version: link:../local-store
       '@types/node':
         specifier: ^22.10.5
         version: 22.19.17

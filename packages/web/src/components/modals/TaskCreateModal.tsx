@@ -1,4 +1,5 @@
 import { Logo } from '../Logo.js';
+import { isValidCustomIssueId } from '@kanbots/core';
 import {
   useCallback,
   useEffect,
@@ -10,7 +11,7 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from 'react';
-import { api } from '../../api.js';
+import { api, isCloudMode } from '../../api.js';
 import { CardPreview } from '../Card.js';
 import {
   MarkdownEditor,
@@ -82,16 +83,6 @@ const TEMPLATES: Array<{ id: Template; icon: string; name: string }> = [
   { id: 'spike', icon: '*', name: 'Spike' },
 ];
 
-function slugify(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-      .slice(0, 24) || 'task'
-  );
-}
-
 const SPEC_SYSTEM_PROMPT = `You are running in /spec mode for a Kodra task.
 
 1. Read the user's request below (description / scope / acceptance criteria).
@@ -126,6 +117,7 @@ export function TaskCreateModal({
   initialDescription = '',
 }: TaskCreateModalProps) {
   const [title, setTitle] = useState('');
+  const [customNumber, setCustomNumber] = useState('');
   const [body, setBody] = useState(initialDescription);
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [tpl, setTpl] = useState<Template>('feature');
@@ -343,7 +335,13 @@ export function TaskCreateModal({
     }
   }
 
-  const branchName = useMemo(() => `claude/${slugify(title || 'untitled')}`, [title]);
+  // Mirrors the dispatcher naming: kodra/issue-<id>-<runId> (see
+  // defaultBranchName in @kanbots/dispatcher). Preview placeholders: N =
+  // next auto number, R = run id assigned at dispatch time.
+  const branchName = useMemo(
+    () => `kodra/issue-${customNumber.trim() || 'N'}-R`,
+    [customNumber],
+  );
   const previewIssue: Issue = useMemo(
     () => ({
       number: 0,
@@ -407,6 +405,13 @@ export function TaskCreateModal({
       setError('Title is required');
       return;
     }
+    const trimmedCustomNumber = customNumber.trim();
+    if (trimmedCustomNumber && !isValidCustomIssueId(trimmedCustomNumber)) {
+      setError(
+        'ID inválido: use letras, números, ponto, hífen ou underline; sem espaços, "..", "--", ou terminando em "-" ou "."',
+      );
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -424,6 +429,7 @@ export function TaskCreateModal({
         title: title.trim(),
         body: body.trim(),
         labels,
+        ...(trimmedCustomNumber ? { number: trimmedCustomNumber } : {}),
         ...(assignee === 'me' ? { assignees: ['you'] } : {}),
       });
       onCreated?.(created);
@@ -464,6 +470,13 @@ export function TaskCreateModal({
 
   async function submitAsDraft(): Promise<void> {
     if (submitting || !title.trim()) return;
+    const trimmedCustomNumber = customNumber.trim();
+    if (trimmedCustomNumber && !isValidCustomIssueId(trimmedCustomNumber)) {
+      setError(
+        'ID inválido: use letras, números, ponto, hífen ou underline; sem espaços, "..", "--", ou terminando em "-" ou "."',
+      );
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -472,6 +485,7 @@ export function TaskCreateModal({
         title: title.trim(),
         body: body.trim(),
         labels,
+        ...(trimmedCustomNumber ? { number: trimmedCustomNumber } : {}),
         ...(assignee === 'me' ? { assignees: ['you'] } : {}),
       });
       onCreated?.(created);
@@ -579,6 +593,22 @@ export function TaskCreateModal({
                   </div>
                 ) : null}
               </div>
+
+              {!isCloudMode() ? (
+                <div className="kb-field">
+                  <label className="kb-field-label">
+                    Issue ID (opcional)
+                    <span className="kb-field-hint">Vazio = número automático</span>
+                  </label>
+                  <input
+                    className="kb-input"
+                    type="text"
+                    placeholder="ex.: FEAT-42"
+                    value={customNumber}
+                    onChange={(e) => setCustomNumber(e.target.value)}
+                  />
+                </div>
+              ) : null}
 
               {/* TEMPLATE */}
               <div className="kb-field">
@@ -838,7 +868,7 @@ export function TaskCreateModal({
                 off <span style={{ fontFamily: 'var(--ff-mono)', color: 'var(--ink-1)' }}>main</span>{' '}
                 in{' '}
                 <span style={{ fontFamily: 'var(--ff-mono)', color: 'var(--ink-2)' }}>
-                  .kanbots/worktrees/issue-N
+                  .kodra/worktrees/issue-{customNumber.trim() || 'N'}-R
                 </span>
               </div>
             </div>

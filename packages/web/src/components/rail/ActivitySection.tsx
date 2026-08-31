@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { IssueRef } from '@kanbots/core';
 import type { RecentActivityKind, RecentActivityPayload } from '@kanbots/api';
 import { api } from '../../api.js';
 import { getBridge } from '../../desktop-bridge.js';
@@ -56,7 +57,7 @@ function toneForKind(kind: RecentActivityKind): string {
 
 export interface ActivitySectionProps {
   /** Click handler for an activity row — opens the underlying issue. */
-  onSelectIssue: (issueNumber: number) => void;
+  onSelectIssue: (issueNumber: IssueRef) => void;
 }
 
 export function ActivitySection({ onSelectIssue }: ActivitySectionProps) {

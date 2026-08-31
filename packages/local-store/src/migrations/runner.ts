@@ -19,9 +19,14 @@ export function runMigrations(db: Db, migrations: readonly Migration[]): void {
   for (const m of migrations) {
     if (applied.has(m.id)) continue;
 
-    db.transaction(() => {
-      db.exec(m.up);
-      insertApplied.run(m.id, new Date().toISOString());
-    })();
+    if (m.disableForeignKeys) db.pragma('foreign_keys = OFF');
+    try {
+      db.transaction(() => {
+        db.exec(m.up);
+        insertApplied.run(m.id, new Date().toISOString());
+      })();
+    } finally {
+      if (m.disableForeignKeys) db.pragma('foreign_keys = ON');
+    }
   }
 }

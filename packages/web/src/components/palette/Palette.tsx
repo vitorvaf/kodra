@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { isValidCustomIssueId, parseIssueRef, type IssueRef } from '@kanbots/core';
 import { useIssues } from '../../hooks/useIssues.js';
 import { useFocusTrap } from '../../hooks/useFocusTrap.js';
 
@@ -13,12 +14,12 @@ export interface PaletteAction {
 
 export interface PaletteProps {
   open: boolean;
-  selectedNumber: number | null;
+  selectedNumber: IssueRef | null;
   onClose: () => void;
-  onJump: (n: number) => void;
+  onJump: (n: IssueRef) => void;
   onOpenCreate: (initialDescription?: string) => void;
-  onOpenDetail: (n: number) => void;
-  onOpenSplit?: (n: number) => void;
+  onOpenDetail: (n: IssueRef) => void;
+  onOpenSplit?: (n: IssueRef) => void;
   onSpawnAgentSelected?: () => void;
   onResolveTopDecision?: () => void;
 }
@@ -205,10 +206,10 @@ export function Palette({
 
   const jumpActions: PaletteAction[] = useMemo(() => {
     const trimmed = query.trim();
-    const issueMatch = /^#?(\d+)$/.exec(trimmed);
-    if (issueMatch?.[1]) {
-      const n = Number.parseInt(issueMatch[1], 10);
-      const exact = issues.find((i) => i.number === n);
+    const issueMatch = /^#?([A-Za-z0-9._-]+)$/.exec(trimmed);
+    if (issueMatch?.[1] && isValidCustomIssueId(issueMatch[1])) {
+      const n = parseIssueRef(issueMatch[1]);
+      const exact = issues.find((i) => String(i.number) === String(n));
       if (exact) {
         return [
           {

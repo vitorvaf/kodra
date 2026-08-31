@@ -1,3 +1,5 @@
+import type { IssueRef } from '@kanbots/core';
+
 export type ThreadId = number;
 export type ChatConversationId = number;
 export type ChatSessionId = number;
@@ -77,7 +79,7 @@ export interface Thread {
   id: ThreadId;
   repoOwner: string;
   repoName: string;
-  issueNumber: number;
+  issueNumber: IssueRef;
   createdAt: string;
   lastProvider: string | null;
   lastModel: string | null;
@@ -340,7 +342,7 @@ export type AutopilotConfig =
     };
 
 export interface AutopilotChildEntry {
-  issueNumber: number;
+  issueNumber: IssueRef;
   runId: number | null;
   kind: AutopilotChildKind;
   status: AutopilotChildStatus;
@@ -366,7 +368,7 @@ export interface AutopilotPlanningSlot {
 
 export interface AutopilotSession {
   id: number;
-  issueNumber: number;
+  issueNumber: IssueRef;
   kind: AutopilotKind;
   config: AutopilotConfig;
   status: AutopilotStatus;
@@ -446,7 +448,7 @@ export interface SentrySuggestion {
 
 export interface SentryImport {
   sentryIssueId: string;
-  localIssueNumber: number;
+  localIssueNumber: IssueRef;
   status: SentryImportStatus;
   count: number;
   firstSeenAt: string;

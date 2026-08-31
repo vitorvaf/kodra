@@ -31,6 +31,7 @@ import type {
   Store,
 } from '@kanbots/local-store';
 import { DECISIONS_CHANGED_CHANNEL } from '../bridge.js';
+import type { IssueRef } from '@kanbots/core';
 import type { DecisionChangePayload } from '../bridge.js';
 import { memoryNamespace, type AgentMemoryClient } from '../memory/client.js';
 import { BRIEFING_MARKER, renderSiblingBriefing } from './sibling-briefing.js';
@@ -130,7 +131,7 @@ const STOP_FORCE_RESOLVE_SLACK_MS = 2_000;
 
 export interface StartRunInput {
   threadId: number;
-  issueNumber: number;
+  issueNumber: IssueRef;
   prompt: string;
   appendSystemPrompt?: string;
   model?: string;
@@ -287,7 +288,7 @@ interface ActiveRun {
   budgetExceeded: boolean;
   cleanup: (() => void) | undefined;
   memoryProject: string | undefined;
-  issueNumber: number | undefined;
+  issueNumber: IssueRef | undefined;
   /** Text accumulated before a decision fence; used for spec persistence. */
   specText: string;
   latestResultText: string | null;
@@ -535,7 +536,7 @@ export async function createSupervisor(
     opts.onDecisionChange?.(payload);
   }
   const runMemoryProjects = new Map<number, string>();
-  const runIssueNumbers = new Map<number, number>();
+  const runIssueNumbers = new Map<number, IssueRef>();
   const emitter = new EventEmitter();
   emitter.setMaxListeners(0);
 

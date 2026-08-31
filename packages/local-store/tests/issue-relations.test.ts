@@ -64,6 +64,29 @@ describe('IssueRelationsRepo', () => {
         store.issueRelations.add({ workspaceId: wsId, parentNumber: 1, childNumber: 2 }),
       ).toThrow();
     });
+
+    it('round-trips alphanumeric issue references', () => {
+      const rel = store.issueRelations.add({
+        workspaceId: wsId,
+        parentNumber: 'FEAT-1',
+        childNumber: 'BUG-2',
+      });
+      expect(rel.parentNumber).toBe('FEAT-1');
+      expect(rel.childNumber).toBe('BUG-2');
+      expect(store.issueRelations.listChildren(wsId, 'FEAT-1')[0]?.childNumber).toBe('BUG-2');
+      expect(store.issueRelations.countChildrenByParent(wsId).get('FEAT-1')).toBe(1);
+    });
+
+    it('keys child counts by canonical issue references', () => {
+      store.issueRelations.add({ workspaceId: wsId, parentNumber: 42, childNumber: 100 });
+      store.issueRelations.add({ workspaceId: wsId, parentNumber: 42, childNumber: 101 });
+      store.issueRelations.add({ workspaceId: wsId, parentNumber: 'FEAT-42', childNumber: 'BUG-1' });
+
+      const counts = store.issueRelations.countChildrenByParent(wsId);
+      expect(counts.get(42)).toBe(2);
+      expect(counts.get('42')).toBeUndefined();
+      expect(counts.get('FEAT-42')).toBe(1);
+    });
   });
 
   describe('remove', () => {

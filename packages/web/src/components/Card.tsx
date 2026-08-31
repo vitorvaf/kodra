@@ -1,4 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
+import type { IssueRef } from '@kanbots/core';
 import { memo, useEffect, useState, type ChangeEvent, type MouseEvent } from 'react';
 import { api } from '../api.js';
 import { useFocusedRepo } from '../hooks/useFocusedRepo.js';
@@ -13,7 +14,7 @@ import {
 } from '../labels.js';
 import type { Issue, IssueActiveRun, ShipStatus } from '../types.js';
 
-export function cardDragId(issueNumber: number): string {
+export function cardDragId(issueNumber: IssueRef): string {
   return `card:${issueNumber}`;
 }
 
@@ -35,8 +36,8 @@ export interface CardProps {
   multiSelected?: boolean;
   draggable?: boolean;
   liveTool?: { name: string; arg: string | null } | null;
-  onSelect?: (issueNumber: number, modifiers: CardSelectModifiers) => void;
-  onOpen?: (issueNumber: number) => void;
+  onSelect?: (issueNumber: IssueRef, modifiers: CardSelectModifiers) => void;
+  onOpen?: (issueNumber: IssueRef) => void;
 }
 
 const branchIcon = (
@@ -165,6 +166,7 @@ function CardBody({
       {isReview ? (
         <ReviewActions
           issueNumber={issue.number}
+          isPullRequest={issue.isPullRequest}
           {...(onReviewAction ? { onAction: onReviewAction } : {})}
         />
       ) : null}
@@ -223,9 +225,11 @@ function CardBody({
 
 function ReviewActions({
   issueNumber,
+  isPullRequest,
   onAction,
 }: {
-  issueNumber: number;
+  issueNumber: IssueRef;
+  isPullRequest: boolean;
   onAction?: () => void;
 }) {
   const [shipOpen, setShipOpen] = useState(false);
@@ -239,8 +243,10 @@ function ReviewActions({
   }
   function requestChanges(e: MouseEvent<HTMLButtonElement>): void {
     e.stopPropagation();
-    void api
-      .requestChangesIssue(issueNumber)
+    const request = isPullRequest
+      ? api.requestChangesPullRequest(issueNumber)
+      : api.requestChangesIssue(issueNumber);
+    void request
       .then(() => {
         dispatchIssuesRefetch();
         onAction?.();
@@ -260,7 +266,10 @@ function ReviewActions({
   }
   function handleShipped(): void {
     setShipOpen(false);
-    void api.approveIssue(issueNumber).then(() => {
+    const request = isPullRequest
+      ? api.approvePullRequest(issueNumber)
+      : api.approveIssue(issueNumber);
+    void request.then(() => {
       dispatchIssuesRefetch();
       onAction?.();
     });
@@ -294,7 +303,7 @@ function ShipPanel({
   onShipped,
   onCancel,
 }: {
-  issueNumber: number;
+  issueNumber: IssueRef;
   onShipped: () => void;
   onCancel: () => void;
 }) {
@@ -604,8 +613,9 @@ export const Card = memo(CardImpl, (prev, next) => {
   // Issue identity comparison: primitive fields that drive the visible card
   const a = prev.issue;
   const b = next.issue;
-  if (a.number !== b.number) return false;
+  if (String(a.number) !== String(b.number)) return false;
   if (a.title !== b.title) return false;
+  if (a.isPullRequest !== b.isPullRequest) return false;
   if (a.updatedAt !== b.updatedAt) return false;
   if (a.agent !== b.agent) return false;
   if (a.status !== b.status) return false;

@@ -1,3 +1,4 @@
+import { isValidCustomIssueId, parseIssueRef, type IssueRef } from '@kanbots/core';
 import type { StatusKey } from './types.js';
 
 export interface ColumnDef {
@@ -36,7 +37,7 @@ export const STATUS_LABEL_NAMES: Record<StatusKey, string> = {
 export function withStatus(labels: readonly string[], next: StatusKey | null): string[] {
   const stripped = labels.filter((l) => !l.startsWith(STATUS_PREFIX));
   if (next === null) return stripped;
-  return [...stripped, STATUS_LABEL_NAMES[next]];
+  return [...stripped, STATUS_LABEL_NAMES[next]!];
 }
 
 export type Priority = 'p0' | 'p1' | 'p2' | 'p3';
@@ -103,19 +104,23 @@ export function nonStatusLabels(labels: readonly string[]): string[] {
 
 const LINK_PREFIXES = ['parent:', 'link:', 'links:', 'related:'];
 
-export function linkedIssueNumbers(labels: readonly string[]): number[] {
-  const out = new Set<number>();
+export function linkedIssueNumbers(labels: readonly string[]): IssueRef[] {
+  const out = new Map<string, IssueRef>();
   for (const raw of labels) {
     const l = raw.toLowerCase();
     for (const prefix of LINK_PREFIXES) {
       if (l.startsWith(prefix)) {
-        const v = l.slice(prefix.length).replace(/^#/, '');
-        const n = Number.parseInt(v, 10);
-        if (Number.isFinite(n) && n > 0) out.add(n);
+        const v = raw.slice(prefix.length).replace(/^#/, '');
+        if (isValidCustomIssueId(v)) {
+          const ref = parseIssueRef(v);
+          out.set(String(ref), ref);
+        }
       }
     }
   }
-  return [...out].sort((a, b) => a - b);
+  return [...out.values()].sort((a, b) =>
+    String(a).localeCompare(String(b), undefined, { numeric: true }),
+  );
 }
 
 export function ageString(iso: string): string {

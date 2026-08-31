@@ -22,6 +22,17 @@ describe('AgentRunsRepo', () => {
     expect(r.pid).toBeNull();
   });
 
+  it('returns the alphanumeric issue number through active run listings', () => {
+    const customThread = store.threads.create({
+      repoOwner: 'custom',
+      repoName: 'repo',
+      issueNumber: 'FEAT-42',
+    });
+    store.agentRuns.create({ threadId: customThread.id });
+    expect(store.agentRuns.listActive()[0]?.issueNumber).toBe('FEAT-42');
+    expect(store.agentRuns.listActiveForRepo('custom', 'repo')[0]?.issueNumber).toBe('FEAT-42');
+  });
+
   it('creates with worktree path and branch name', () => {
     const r = store.agentRuns.create({
       threadId,

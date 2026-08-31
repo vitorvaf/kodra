@@ -116,4 +116,39 @@ describe('ship:create-pr', () => {
     );
     expect(result.pr.htmlUrl).toBe('https://github.com/octo/hello/pull/42');
   });
+
+  it('omits issueNumber when opening a PR for a custom-id issue', async () => {
+    const { handlers, store, source } = makeHandlerTestKit({
+      mode: 'github',
+      repoPath: '/tmp/no-repo',
+    });
+    source.setIssue(issueFixture('FEAT-42', 'feature'));
+    const openDraftPR = vi.fn().mockResolvedValue({
+      number: 43,
+      title: 'feature',
+      body: '',
+      state: 'open',
+      draft: true,
+      htmlUrl: 'https://github.com/octo/hello/pull/43',
+      head: 'kodra/issue-FEAT-42',
+      base: 'main',
+    });
+    (source as unknown as { openDraftPR: typeof openDraftPR }).openDraftPR = openDraftPR;
+    const thread = store.threads.create({
+      repoOwner: 'octo',
+      repoName: 'hello',
+      issueNumber: 'FEAT-42',
+    });
+    store.agentRuns.create({
+      threadId: thread.id,
+      worktreePath: '/tmp/wt',
+      branchName: 'kodra/issue-FEAT-42',
+    });
+
+    await handlers['ship:create-pr']({ issueNumber: 'FEAT-42' });
+
+    expect(openDraftPR).toHaveBeenCalledWith(
+      expect.not.objectContaining({ issueNumber: expect.anything() }),
+    );
+  });
 });

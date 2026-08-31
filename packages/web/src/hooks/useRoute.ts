@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
+import { isValidCustomIssueId, parseIssueRef, type IssueRef } from '@kanbots/core';
 
-export type Route = { name: 'board' } | { name: 'issue'; number: number };
+export type Route = { name: 'board' } | { name: 'issue'; number: IssueRef };
 
 function parseHash(): Route {
   const hash = window.location.hash.slice(1);
-  const match = /^\/issue\/(\d+)$/.exec(hash);
-  if (match?.[1]) {
-    return { name: 'issue', number: parseInt(match[1], 10) };
+  const match = /^\/issue\/([A-Za-z0-9][A-Za-z0-9._-]{0,31})$/.exec(hash);
+  if (match?.[1] && isValidCustomIssueId(match[1])) {
+    return { name: 'issue', number: parseIssueRef(match[1]) };
   }
   return { name: 'board' };
 }

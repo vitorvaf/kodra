@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { isValidCustomIssueId, parseIssueRef, type IssueRef } from '@kanbots/core';
 import { useFetch } from './hooks/useFetch.js';
 import { useRoute, navigate } from './hooks/useRoute.js';
 import { getBridge } from './desktop-bridge.js';
@@ -105,12 +106,12 @@ function ShellHost({
   const route = useRoute();
   const [selectedNumber, setSelectedNumber] = useSelection();
   const { tweaks, set: setTweak, reset: resetTweaks } = useTweaks();
-  const [detailIssueNumber, setDetailIssueNumber] = useState<number | null>(null);
+  const [detailIssueNumber, setDetailIssueNumber] = useState<IssueRef | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createInitialDescription, setCreateInitialDescription] = useState<string>('');
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [tweaksOpen, setTweaksOpen] = useState(false);
-  const [splitTargetNumber, setSplitTargetNumber] = useState<number | null>(null);
+  const [splitTargetNumber, setSplitTargetNumber] = useState<IssueRef | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [providersSettingsOpen, setProvidersSettingsOpen] = useState(false);
@@ -165,7 +166,10 @@ function ShellHost({
   }, [tweaks.showRail]);
 
   useEffect(() => {
-    if (route.name === 'issue' && selectedNumber !== route.number) {
+    if (
+      route.name === 'issue' &&
+      (selectedNumber === null || String(selectedNumber) !== String(route.number))
+    ) {
       setSelectedNumber(route.number);
     }
   }, [route, selectedNumber, setSelectedNumber]);
@@ -178,10 +182,13 @@ function ShellHost({
         typeof payload === 'object' && payload !== null && 'issueNumber' in payload
           ? (payload as { issueNumber: unknown }).issueNumber
           : null;
-      if (typeof issueNumber !== 'number') return;
-      navigate({ name: 'issue', number: issueNumber });
-      setSelectedNumber(issueNumber);
-      setDetailIssueNumber(issueNumber);
+      if (typeof issueNumber !== 'number' && typeof issueNumber !== 'string') return;
+      const raw = String(issueNumber);
+      if (!isValidCustomIssueId(raw)) return;
+      const ref = parseIssueRef(raw);
+      navigate({ name: 'issue', number: ref });
+      setSelectedNumber(ref);
+      setDetailIssueNumber(ref);
     });
   }, [setSelectedNumber]);
 
@@ -211,7 +218,7 @@ function ShellHost({
   );
   useGlobalShortcuts(shortcutHandlers);
 
-  function openDetail(n: number): void {
+  function openDetail(n: IssueRef): void {
     setDetailIssueNumber(n);
   }
   function closeDetail(): void {
@@ -299,7 +306,8 @@ function ShellHost({
         <SplitModal
           parentNumber={splitTargetNumber}
           parentTitle={
-            issues.find((i) => i.number === splitTargetNumber)?.title ?? `#${splitTargetNumber}`
+            issues.find((i) => String(i.number) === String(splitTargetNumber))?.title ??
+            `#${splitTargetNumber}`
           }
           onClose={() => setSplitTargetNumber(null)}
         />

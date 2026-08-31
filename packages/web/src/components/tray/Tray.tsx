@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { IssueRef } from '@kanbots/core';
 import { api } from '../../api.js';
 import { useIssues } from '../../hooks/useIssues.js';
 import { ageString } from '../../labels.js';
@@ -13,7 +14,7 @@ const RESOLVED_EVENT = 'kanbots:decision-resolved';
 const DECISIONS_CHANGED_CHANNEL = 'decisions:changed';
 
 export interface TrayProps {
-  onJump: (issueNumber: number) => void;
+  onJump: (issueNumber: IssueRef) => void;
 }
 
 export function Tray({ onJump }: TrayProps) {
@@ -68,8 +69,9 @@ export function Tray({ onJump }: TrayProps) {
   // chrome. Filter the items to just the ones whose issue isn't currently
   // rendering the inline decision affordance, so the tray only appears for
   // edge cases (archived issues, cards filtered out of the active view).
-  const blockedSet = new Set(blockedIssueNumbers);
-  const visibleItems = items.filter((item) => !blockedSet.has(item.issueNumber));
+  const visibleItems = items.filter(
+    (item) => !blockedIssueNumbers.some((n) => String(n) === String(item.issueNumber)),
+  );
   if (visibleItems.length === 0 || collapsed) return null;
 
   async function pick(card: PendingDecisionPayload, value: string): Promise<void> {
@@ -121,7 +123,7 @@ export function Tray({ onJump }: TrayProps) {
       </div>
       <div className="kb-tray-body" role="log" aria-live="polite" aria-relevant="additions">
         {visibleItems.map((item) => {
-          const issue = issues.find((i) => i.number === item.issueNumber);
+          const issue = issues.find((i) => String(i.number) === String(item.issueNumber));
           const title = issue?.title ?? `issue #${item.issueNumber}`;
           return (
             <div key={item.cardId} className="kb-tray-item">

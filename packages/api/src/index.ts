@@ -34,6 +34,7 @@ export {
   type ToolDispatcher,
 } from './tool-bridge.js';
 export { dispatchChatTool } from './chat-tools-dispatch.js';
+export { issueRefSchema } from './issue-ref.js';
 
 export {
   createAgentMemoryClient,
@@ -75,7 +76,6 @@ export {
   type SubscriptionRegistry,
 } from './handlers/index.js';
 export { hasProviderCredentials, resolveProviderWithCreds } from './handlers/provider-credentials.js';
-export { DECISIONS_CHANGED_CHANNEL } from './bridge.js';
 export type {
   AgentCheck,
   AgentEvent,
@@ -139,6 +139,7 @@ export type {
   EventSubscribeResult,
   ForkRunResult,
   Issue,
+  IssueRef,
   IssueActiveRunPayload,
   IssueDetail,
   IssueRelationPayload,

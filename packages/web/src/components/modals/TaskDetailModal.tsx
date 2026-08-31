@@ -1,5 +1,6 @@
 import { KodraPulse } from '../KodraPulse.js';
 import { Logo } from '../Logo.js';
+import type { IssueRef } from '@kanbots/core';
 import {
   useCallback,
   useEffect,
@@ -100,13 +101,13 @@ function fmtTokens(n: number | null | undefined): string {
 }
 
 export interface TaskDetailModalProps {
-  issueNumber: number;
+  issueNumber: IssueRef;
   onClose: () => void;
   /** Optional. When supplied, the modal calls this to navigate to a
    *  related issue (parent or sub-issue) instead of opening a second
    *  modal layer. The host (App.tsx) sets the open-detail state with
    *  the target number — the same handler the board uses. */
-  onOpenDetail?: (issueNumber: number) => void;
+  onOpenDetail?: (issueNumber: IssueRef) => void;
 }
 
 export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDetailModalProps) {
@@ -120,6 +121,10 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
   const [forking, setForking] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
   const [runsRefreshKey, setRunsRefreshKey] = useState(0);
+  const [viewedRunId, setViewedRunId] = useState<number | null>(null);
+  const [viewedRunDetails, setViewedRunDetails] = useState<AgentRun | null>(null);
+  const [stoppingRunId, setStoppingRunId] = useState<number | null>(null);
+  const [stopError, setStopError] = useState<string | null>(null);
   const modalRef = useFocusTrap<HTMLDivElement>(true);
   useEffect(() => {
     if (isAutopilot && tab !== 'autopilot' && tab !== 'thread') {
@@ -129,6 +134,12 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
     // Only run on mount and when isAutopilot flips true; honour user's later picks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAutopilot]);
+
+  useEffect(() => {
+    setViewedRunId(null);
+    setViewedRunDetails(null);
+    setStopError(null);
+  }, [issueNumber]);
 
   useEffect(() => {
     function onKey(e: globalThis.KeyboardEvent): void {
@@ -167,12 +178,35 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
   const issue = data?.issue ?? null;
   const activeRun = data?.thread?.activeRun ?? null;
   const latestRun = data?.thread?.latestRun ?? null;
-  const displayRun = activeRun ?? latestRun;
+  const viewedRunSummary =
+    viewedRunId === null
+      ? null
+      : (data?.thread?.runs?.find((run) => run.id === viewedRunId) ?? null);
+  const viewedRun =
+    viewedRunSummary !== null && viewedRunDetails?.id === viewedRunSummary.id
+      ? viewedRunDetails
+      : null;
+  const displayRun = viewedRun ?? activeRun ?? latestRun;
   const messages = data?.thread?.messages ?? [];
   const isRunning =
     activeRun?.status === 'running' ||
     activeRun?.status === 'awaiting_input' ||
     activeRun?.status === 'starting';
+
+  async function stopRun(runId: number): Promise<void> {
+    if (stoppingRunId !== null) return;
+    setStoppingRunId(runId);
+    setStopError(null);
+    try {
+      await api.stopAgent(runId);
+      await refetch();
+      dispatchIssuesRefetch();
+    } catch (err) {
+      setStopError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setStoppingRunId(null);
+    }
+  }
 
   const visibleTabs: DetailTab[] = isAutopilot
     ? ['autopilot', 'overview']
@@ -191,13 +225,21 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
             <AutopilotStopButton issueNumber={issueNumber} onAfter={() => void refetch()} />
           ) : null}
           {!isAutopilot && activeRun && isRunning ? (
-            <button
-              type="button"
-              className="kb-btn ghost"
-              onClick={() => void api.stopAgent(activeRun.id).then(() => refetch())}
-            >
-              Stop
-            </button>
+            <>
+              <button
+                type="button"
+                className="kb-btn ghost"
+                disabled={stoppingRunId !== null}
+                onClick={() => void stopRun(activeRun.id)}
+              >
+                {stoppingRunId === activeRun.id ? 'Stopping…' : 'Stop'}
+              </button>
+              {stopError ? (
+                <span role="alert" style={{ color: 'var(--failed)', fontSize: 11 }}>
+                  {stopError}
+                </span>
+              ) : null}
+            </>
           ) : null}
           {!isAutopilot ? (
             <>
@@ -390,7 +432,15 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
                   {tab === 'diff' && !isAutopilot ? <DiffTabModal activeRun={displayRun} /> : null}
                   {tab === 'preview' && !isAutopilot ? <PreviewTabModal activeRun={displayRun} /> : null}
                   {tab === 'runs' && !isAutopilot ? (
-                    <RunsTab issueNumber={issue.number} refreshKey={runsRefreshKey} />
+                    <RunsTab
+                      issueNumber={issue.number}
+                      refreshKey={runsRefreshKey}
+                      onViewRun={(run) => {
+                        setViewedRunId(run.id);
+                        setViewedRunDetails(run);
+                        setTab('thread');
+                      }}
+                    />
                   ) : null}
                 </div>
               </>
@@ -434,7 +484,7 @@ function ReplyFooter({
   activeRun,
   onSent,
 }: {
-  issueNumber: number;
+  issueNumber: IssueRef;
   /** Issue's persisted thread id. NULL before the first reply is sent
    *  (no thread row exists yet) — in that case we hide the session
    *  dropdown and the first send lands without a chat-session tag,
@@ -882,19 +932,19 @@ function LinkedIssues({
   numbers,
   currentNumber,
 }: {
-  numbers: number[];
-  currentNumber: number;
+  numbers: IssueRef[];
+  currentNumber: IssueRef;
 }) {
   const { issues } = useIssues();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       {numbers
-        .filter((n) => n !== currentNumber)
+        .filter((n) => String(n) !== String(currentNumber))
         .map((n) => {
-          const linked = issues.find((i) => i.number === n);
+          const linked = issues.find((i) => String(i.number) === String(n));
           return (
             <a
-              key={n}
+              key={String(n)}
               href={`#/issue/${n}`}
               style={{
                 display: 'flex',
@@ -949,8 +999,8 @@ function ParentBreadcrumb({
   childNumber,
   onOpenDetail,
 }: {
-  childNumber: number;
-  onOpenDetail?: (issueNumber: number) => void;
+  childNumber: IssueRef;
+  onOpenDetail?: (issueNumber: IssueRef) => void;
 }) {
   const [parents, setParents] = useState<IssueRelationPayload[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1027,8 +1077,8 @@ function SubIssuesSection({
   parentNumber,
   onOpenDetail,
 }: {
-  parentNumber: number;
-  onOpenDetail?: (issueNumber: number) => void;
+  parentNumber: IssueRef;
+  onOpenDetail?: (issueNumber: IssueRef) => void;
 }) {
   const [children, setChildren] = useState<IssueRelationPayload[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1066,7 +1116,7 @@ function SubIssuesSection({
     }
   }
 
-  async function handleAdd(childNumber: number): Promise<void> {
+  async function handleAdd(childNumber: IssueRef): Promise<void> {
     setError(null);
     try {
       await api.addIssueRelation({ parentNumber, childNumber });
@@ -1161,14 +1211,14 @@ function SubIssueAddPicker({
   onPick,
   onCancel,
 }: {
-  parentNumber: number;
-  existing: Set<number>;
+  parentNumber: IssueRef;
+  existing: Set<IssueRef>;
   allIssues: ReadonlyArray<{
-    number: number;
+    number: IssueRef;
     title: string;
     state: 'open' | 'closed';
   }>;
-  onPick: (issueNumber: number) => void;
+  onPick: (issueNumber: IssueRef) => void;
   onCancel: () => void;
 }) {
   const [query, setQuery] = useState('');
@@ -1180,8 +1230,8 @@ function SubIssueAddPicker({
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = allIssues.filter((i) => {
-      if (i.number === parentNumber) return false;
-      if (existing.has(i.number)) return false;
+      if (String(i.number) === String(parentNumber)) return false;
+      if (![...existing].some((n) => String(n) === String(i.number))) return false;
       if (!q) return true;
       const numStr = `#${i.number}`;
       return (
@@ -1214,7 +1264,7 @@ function SubIssueAddPicker({
         ) : (
           matches.map((i) => (
             <button
-              key={i.number}
+              key={String(i.number)}
               type="button"
               className="kb-sub-issue-match"
               onClick={() => onPick(i.number)}
@@ -1238,7 +1288,7 @@ function OverviewTab({
   issue: IssueDetailPayload['issue'];
   displayRun: AgentRun | null;
   cloudRunId: string | null;
-  onOpenDetail?: (issueNumber: number) => void;
+  onOpenDetail?: (issueNumber: IssueRef) => void;
 }) {
   const stream = useIssueRunStream(displayRun, cloudRunId);
   const { data: savedSpec } = useFetch(`spec:${issue.number}`, () => api.getSpec(issue.number));
@@ -1469,7 +1519,7 @@ function ThreadTab({
    * legacy/cloud payloads without local run rows. */
   runs: readonly { id: number; provider: string | null }[] | undefined;
   messages: Message[];
-  issueNumber: number;
+  issueNumber: IssueRef;
   issueLabels: readonly string[];
   issueStatus: StatusKey | null;
   onActionDone: () => void;
@@ -1618,7 +1668,7 @@ function ThreadTab({
  * while the modal is mounted; degrades to a single fetch on mount when
  * the workspace is in local mode or the PR can't be located.
  */
-function PrCommentsSection({ issueNumber }: { issueNumber: number }) {
+function PrCommentsSection({ issueNumber }: { issueNumber: IssueRef }) {
   const [data, setData] = useState<PrCommentsListResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
@@ -1903,7 +1953,7 @@ function CompletionActions({
   onChanged,
 }: {
   runId: number;
-  issueNumber: number;
+  issueNumber: IssueRef;
   issueLabels: readonly string[];
   issueStatus: StatusKey | null;
   onChanged: () => void;
@@ -2380,10 +2430,36 @@ function formatInspectHeader(sel: PreviewInspectSelection): string {
   return `Inspecting <${sel.tagName}>:`;
 }
 
-function RunsTab({ issueNumber, refreshKey }: { issueNumber: number; refreshKey: number }) {
-  const { data, loading, error } = useFetch<AgentRun[]>(`runs:${issueNumber}:${refreshKey}`, () =>
-    api.listIssueRuns(issueNumber),
+function RunsTab({
+  issueNumber,
+  refreshKey,
+  onViewRun,
+}: {
+  issueNumber: IssueRef;
+  refreshKey: number;
+  onViewRun: (run: AgentRun) => void;
+}) {
+  const { data, loading, error, refetch } = useFetch<AgentRun[]>(
+    `runs:${issueNumber}:${refreshKey}`,
+    () => api.listIssueRuns(issueNumber),
   );
+  const [stoppingRunId, setStoppingRunId] = useState<number | null>(null);
+  const [stopError, setStopError] = useState<string | null>(null);
+
+  async function stopRun(runId: number): Promise<void> {
+    if (stoppingRunId !== null) return;
+    setStoppingRunId(runId);
+    setStopError(null);
+    try {
+      await api.stopAgent(runId);
+      await refetch();
+      dispatchIssuesRefetch();
+    } catch (err) {
+      setStopError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setStoppingRunId(null);
+    }
+  }
 
   if (loading) {
     return (
@@ -2418,6 +2494,11 @@ function RunsTab({ issueNumber, refreshKey }: { issueNumber: number; refreshKey:
   return (
     <div className="kb-tdm-section">
       <h3>Run history</h3>
+      {stopError ? (
+        <div role="alert" className="kb-desc-md" style={{ color: 'var(--failed)' }}>
+          {stopError}
+        </div>
+      ) : null}
       <div className="kb-run-timeline">
         {runs.map((r) => {
           const status = r.status;
@@ -2445,8 +2526,19 @@ function RunsTab({ issueNumber, refreshKey }: { issueNumber: number; refreshKey:
                   <span>{fmtElapsed(r.startedAt, r.endedAt ?? undefined)}</span>
                 </div>
               </div>
-              <button type="button" className="kb-btn ghost" disabled title="Phase 11">
-                {isActive ? 'Stop' : 'View'}
+              <button
+                type="button"
+                className="kb-btn ghost"
+                disabled={isActive && stoppingRunId !== null}
+                onClick={() => {
+                  if (isActive) {
+                    void stopRun(r.id);
+                  } else {
+                    onViewRun(r);
+                  }
+                }}
+              >
+                {isActive && stoppingRunId === r.id ? 'Stopping…' : isActive ? 'Stop' : 'View'}
               </button>
             </div>
           );
@@ -2460,7 +2552,7 @@ function AutopilotStopButton({
   issueNumber,
   onAfter,
 }: {
-  issueNumber: number;
+  issueNumber: IssueRef;
   onAfter: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -2553,7 +2645,7 @@ function AutopilotStopButton({
   );
 }
 
-function AutopilotTab({ issueNumber }: { issueNumber: number }) {
+function AutopilotTab({ issueNumber }: { issueNumber: IssueRef }) {
   const { data, loading, error, refetch } = useFetch<AutopilotSession | null>(
     `autopilot:${issueNumber}`,
     () => api.getAutopilotByIssue(issueNumber),
@@ -2747,7 +2839,7 @@ function AutopilotTab({ issueNumber }: { issueNumber: number }) {
 }
 
 function ChildRow({ child }: { child: AutopilotChildEntry }) {
-  const isReal = child.issueNumber > 0;
+  const isReal = String(child.issueNumber) !== '0';
   return (
     <a
       href={isReal ? `#/issue/${child.issueNumber}` : undefined}

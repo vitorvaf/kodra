@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { IssueRef } from '@kanbots/core';
 import { api } from '../../api.js';
 import { getBridge } from '../../desktop-bridge.js';
 import { useFetch } from '../../hooks/useFetch.js';
@@ -12,8 +13,8 @@ import { WorkspaceTree } from './WorkspaceTree.js';
 import { WorktreesSection } from './WorktreesSection.js';
 
 export interface LeftRailProps {
-  selectedNumber: number | null;
-  onSelectIssue: (n: number) => void;
+  selectedNumber: IssueRef | null;
+  onSelectIssue: (n: IssueRef) => void;
   onOpenPalette?: () => void;
   authorLogin?: string | null;
   onOpenArchive?: () => void;
@@ -290,9 +291,9 @@ export function LeftRail({
         >
           {liveAgents.map((issue) => (
             <LiveAgentRow
-              key={issue.number}
+              key={String(issue.number)}
               issue={issue}
-              selected={selectedNumber === issue.number}
+              selected={selectedNumber !== null && String(selectedNumber) === String(issue.number)}
               onClick={() => onSelectIssue(issue.number)}
             />
           ))}

@@ -1,12 +1,19 @@
-import type { Issue } from '@kanbots/core';
-import type { AgentRunProvider } from '@kanbots/dispatcher';
+import { execFile } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
+import { promisify } from 'node:util';
+import type { Issue, IssueRef } from '@kanbots/core';
+import { removeWorktree, type AgentRunProvider } from '@kanbots/dispatcher';
 import type { AgentRun, Store } from '@kanbots/local-store';
 import { z } from 'zod';
 import type { DecoratedIssue, SplitResult } from '../bridge.js';
 import { buildActiveRunMap, decorateIssue } from './issues.js';
 import { badRequest, parseArgs } from './errors.js';
+import { issueRefSchema } from '../issue-ref.js';
 import { hasProviderCredentials, resolveProviderWithCreds } from './provider-credentials.js';
 import type { HandlerDeps } from './types.js';
+
+const execFileAsync = promisify(execFile);
 
 const REVIEWER_SYSTEM_PROMPT = `You are a code reviewer for a kodra task.
 
@@ -58,7 +65,7 @@ function resolveDispatchProvider(
 
 const startAgentSchema = z
   .object({
-    number: z.number().int().positive(),
+    number: issueRefSchema,
     threadId: z.number().int().positive(),
     prompt: z.string().min(1).max(20_000),
     appendSystemPrompt: z.string().max(20_000).optional(),
@@ -70,13 +77,13 @@ const startAgentSchema = z
 
 const issueNumberSchema = z
   .object({
-    number: z.number().int().positive(),
+    number: issueRefSchema,
   })
   .strict();
 
 const splitSchema = z
   .object({
-    number: z.number().int().positive(),
+    number: issueRefSchema,
     subtasks: z
       .array(
         z
@@ -95,7 +102,7 @@ const splitSchema = z
 
 const reviewerSchema = z
   .object({
-    number: z.number().int().positive(),
+    number: issueRefSchema,
     threadId: z.number().int().positive().optional(),
     prompt: z.string().min(1).max(20_000).optional(),
     model: z.string().min(1).max(120).optional(),
@@ -103,8 +110,15 @@ const reviewerSchema = z
   })
   .strict();
 
+const prRequestChangesSchema = z
+  .object({
+    number: issueRefSchema,
+    body: z.string().max(65_536).optional(),
+  })
+  .strict();
+
 export interface StartAgentArgs {
-  number: number;
+  number: IssueRef;
   threadId: number;
   prompt: string;
   appendSystemPrompt?: string;
@@ -126,22 +140,27 @@ export interface StartAgentArgs {
 }
 
 export interface NumberArgs {
-  number: number;
+  number: IssueRef;
 }
 
 export interface SplitArgs {
-  number: number;
+  number: IssueRef;
   subtasks: Array<{ title: string; body?: string }>;
   dispatch?: boolean;
   repoId?: number;
 }
 
 export interface ReviewerArgs {
-  number: number;
+  number: IssueRef;
   threadId?: number;
   prompt?: string;
   model?: string;
   repoId?: number;
+}
+
+export interface PrRequestChangesArgs {
+  number: IssueRef;
+  body?: string;
 }
 
 export async function startAgent(
@@ -262,6 +281,25 @@ export async function approve(
   return decorateIssue(updated);
 }
 
+export async function prApprove(
+  deps: HandlerDeps,
+  args: NumberArgs,
+): Promise<DecoratedIssue> {
+  const parsed = parseArgs(issueNumberSchema, args);
+  const issue = await deps.source.getIssue(parsed.number);
+  const pull = await findPullForIssueBranch(deps, parsed.number);
+  if (
+    pull !== null &&
+    typeof deps.source.approvePullRequest === 'function'
+  ) {
+    await deps.source.approvePullRequest({
+      pullNumber: pull.number,
+      body: 'Approved via Kodra.',
+    });
+  }
+  return updateApprovedIssue(deps, issue);
+}
+
 export async function requestChanges(
   deps: HandlerDeps,
   args: NumberArgs,
@@ -274,6 +312,25 @@ export async function requestChanges(
   labels.push('status:in-progress', 'agent:blocked');
   const updated = await deps.source.updateIssue(parsed.number, { labels });
   return decorateIssue(updated);
+}
+
+export async function prRequestChanges(
+  deps: HandlerDeps,
+  args: PrRequestChangesArgs,
+): Promise<DecoratedIssue> {
+  const parsed = parseArgs(prRequestChangesSchema, args);
+  const issue = await deps.source.getIssue(parsed.number);
+  const pull = await findPullForIssueBranch(deps, parsed.number);
+  if (
+    pull !== null &&
+    typeof deps.source.requestChangesPullRequest === 'function'
+  ) {
+    await deps.source.requestChangesPullRequest({
+      pullNumber: pull.number,
+      body: parsed.body ?? 'Changes requested via Kodra.',
+    });
+  }
+  return updateRequestedChangesIssue(deps, issue);
 }
 
 export async function split(
@@ -339,6 +396,26 @@ export async function reviewer(
   const reviewerPrompt =
     parsed.prompt ??
     `Review the implementation against the issue:\n\n${issue.title}\n\n${issue.body ?? ''}`;
+  const runs = deps.store.agentRuns.listByThread(threadId);
+  const sourceRun = [...runs].reverse().find(
+    (run) => run.worktreePath !== null && run.branchName !== null,
+  );
+  let reviewWorktreePath: string | undefined;
+  if (sourceRun?.worktreePath && sourceRun.branchName) {
+    const { stdout: headSha } = await execFileAsync(
+      'git',
+      ['rev-parse', 'HEAD'],
+      { cwd: sourceRun.worktreePath },
+    );
+    const stamp = Date.now().toString(36);
+    reviewWorktreePath = `${sourceRun.worktreePath}-review-${stamp}`;
+    await mkdir(dirname(reviewWorktreePath), { recursive: true });
+    await execFileAsync(
+      'git',
+      ['worktree', 'add', '--detach', reviewWorktreePath, headSha.trim()],
+      { cwd: sourceRun.worktreePath },
+    );
+  }
   return deps.supervisor.start({
     threadId,
     issueNumber: parsed.number,
@@ -346,18 +423,75 @@ export async function reviewer(
     appendSystemPrompt: REVIEWER_SYSTEM_PROMPT,
     ...(parsed.model ? { model: parsed.model } : {}),
     ...(parsed.repoId !== undefined ? { repoId: parsed.repoId } : {}),
+    ...(reviewWorktreePath !== undefined
+      ? {
+          worktreePath: reviewWorktreePath,
+          cleanup: () => {
+            void removeWorktree({
+              repoPath: sourceRun!.worktreePath!,
+              worktreePath: reviewWorktreePath!,
+              force: true,
+            }).catch(() => undefined);
+          },
+        }
+      : {}),
   });
+}
+
+async function findPullForIssueBranch(
+  deps: HandlerDeps,
+  issueNumber: IssueRef,
+): Promise<{ number: number } | null> {
+  const findOpenPull = deps.source.findOpenPullForBranch;
+  if (typeof findOpenPull !== 'function') return null;
+  const thread = findThreadForIssue(deps.store, issueNumber);
+  if (!thread) return null;
+  const runs = deps.store.agentRuns.listByThread(thread.id);
+  const branch = runs[runs.length - 1]?.branchName;
+  if (!branch) return null;
+  try {
+    return await findOpenPull.call(deps.source, branch);
+  } catch {
+    return null;
+  }
+}
+
+async function updateApprovedIssue(
+  deps: HandlerDeps,
+  issue: Issue,
+): Promise<DecoratedIssue> {
+  const labels = issue.labels.filter(
+    (l) => !l.startsWith('status:') && !l.startsWith('agent:'),
+  );
+  labels.push('status:done', 'agent:idle');
+  const updated = await deps.source.updateIssue(issue.number, {
+    labels,
+    state: 'closed',
+  });
+  return decorateIssue(updated);
+}
+
+async function updateRequestedChangesIssue(
+  deps: HandlerDeps,
+  issue: Issue,
+): Promise<DecoratedIssue> {
+  const labels = issue.labels.filter(
+    (l) => !l.startsWith('status:') && !l.startsWith('agent:'),
+  );
+  labels.push('status:in-progress', 'agent:blocked');
+  const updated = await deps.source.updateIssue(issue.number, { labels });
+  return decorateIssue(updated);
 }
 
 function findThreadForIssue(
   store: Store,
-  issueNumber: number,
-): { id: number; issueNumber: number } | null {
+  issueNumber: IssueRef,
+): { id: number; issueNumber: IssueRef } | null {
   const all = store.threads.list();
   return all.find((t) => t.issueNumber === issueNumber) ?? null;
 }
 
-function ensureThread(store: Store, issueNumber: number): { id: number } {
+function ensureThread(store: Store, issueNumber: IssueRef): { id: number } {
   const existing = findThreadForIssue(store, issueNumber);
   if (existing) return { id: existing.id };
   return store.threads.create({

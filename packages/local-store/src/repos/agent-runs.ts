@@ -8,6 +8,7 @@ import type {
   SuccessSignal,
   ThreadId,
 } from '../types.js';
+import type { IssueRef } from '@kanbots/core';
 
 interface AgentRunRow {
   id: number;
@@ -361,7 +362,7 @@ export class AgentRunsRepo {
     }));
   }
 
-  listActive(): Array<AgentRun & { issueNumber: number }> {
+  listActive(): Array<AgentRun & { issueNumber: IssueRef }> {
     const rows = this.db
       .prepare(
         `SELECT ar.*, t.issue_number AS issue_number_alias
@@ -370,14 +371,14 @@ export class AgentRunsRepo {
          WHERE ar.status IN ${ACTIVE_STATUSES}
          ORDER BY ar.id`,
       )
-      .all() as Array<AgentRunRow & { issue_number_alias: number }>;
+      .all() as Array<AgentRunRow & { issue_number_alias: IssueRef }>;
     return rows.map((row) => ({
       ...rowToAgentRun(row),
       issueNumber: row.issue_number_alias,
     }));
   }
 
-  listActiveForRepo(repoOwner: string, repoName: string): Array<AgentRun & { issueNumber: number }> {
+  listActiveForRepo(repoOwner: string, repoName: string): Array<AgentRun & { issueNumber: IssueRef }> {
     const rows = this.db
       .prepare(
         `SELECT ar.*, t.issue_number AS issue_number_alias
@@ -387,7 +388,7 @@ export class AgentRunsRepo {
            AND ar.status IN ${ACTIVE_STATUSES}
          ORDER BY ar.id`,
       )
-      .all(repoOwner, repoName) as Array<AgentRunRow & { issue_number_alias: number }>;
+      .all(repoOwner, repoName) as Array<AgentRunRow & { issue_number_alias: IssueRef }>;
     return rows.map((row) => ({
       ...rowToAgentRun(row),
       issueNumber: row.issue_number_alias,

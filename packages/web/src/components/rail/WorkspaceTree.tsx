@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import type { IssueRef } from '@kanbots/core';
 import { api } from '../../api.js';
 import { getBridge } from '../../desktop-bridge.js';
 import { useFocusedRepo } from '../../hooks/useFocusedRepo.js';
@@ -614,7 +615,7 @@ export interface WorkspaceTreeProps {
    * Optional callback so the file viewer can navigate to a freshly-
    * created task when the user starts a new agent run on a file.
    */
-  onSelectIssue?: (issueNumber: number) => void;
+  onSelectIssue?: (issueNumber: IssueRef) => void;
   /**
    * Called when the user clicks the "Bind local repo" CTA from the
    * empty state. The host opens Cloud Settings → Bind tab. Without

@@ -4,6 +4,8 @@ import { describeKanbotsDir } from '@kanbots/local-store';
 import { z } from 'zod';
 import type { PendingDecisionPayload } from '../bridge.js';
 import { parseArgs } from './errors.js';
+import { issueRefSchema } from '../issue-ref.js';
+import type { IssueRef } from '@kanbots/core';
 import type { HandlerDeps } from './types.js';
 
 export async function pending(
@@ -45,12 +47,12 @@ export async function pending(
 }
 
 const specsGetSchema = z
-  .object({ issueNumber: z.number().int().positive() })
+  .object({ issueNumber: issueRefSchema })
   .strict();
 
 export async function getSpec(
   deps: HandlerDeps,
-  args: { issueNumber: number },
+  args: { issueNumber: IssueRef },
 ): Promise<{ content: string | null }> {
   const parsed = parseArgs(specsGetSchema, args);
   if (!deps.config.repoPath) return { content: null };

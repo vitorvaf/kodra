@@ -1,4 +1,5 @@
 import type { Db } from '../db.js';
+import type { IssueRef } from '@kanbots/core';
 import type { AgentRunId, Card, CardId, CardStatus, CardType, MessageId } from '../types.js';
 
 export class CardAlreadyResolvedError extends Error {
@@ -155,7 +156,7 @@ export class CardsRepo {
   listPendingForRepo(
     repoOwner: string,
     repoName: string,
-  ): Array<{ card: Card; agentRunId: AgentRunId; issueNumber: number }> {
+  ): Array<{ card: Card; agentRunId: AgentRunId; issueNumber: IssueRef }> {
     const rows = this.db
       .prepare(
         `SELECT c.*,
@@ -171,7 +172,7 @@ export class CardsRepo {
          ORDER BY c.id`,
       )
       .all(repoOwner, repoName) as Array<
-        CardRow & { run_id_alias: number; issue_number_alias: number }
+        CardRow & { run_id_alias: number; issue_number_alias: IssueRef }
       >;
     return rows.map((row) => ({
       card: rowToCard(row),

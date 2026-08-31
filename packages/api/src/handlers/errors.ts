@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { DuplicateIssueNumberError, InvalidIssueIdError } from '@kanbots/local-store';
 
 export type NamedError = Error & { name: string };
 
@@ -20,7 +21,22 @@ export function notFound(message = 'not found'): NamedError {
 }
 
 export function badRequest(message: string): NamedError {
-  return namedError('BadRequest', message);
+  return namedError('BadRequest', message, { status: 400 });
+}
+
+export function conflict(message: string): NamedError {
+  return namedError('Conflict', message, { status: 409 });
+}
+
+/** Translate repository-specific create errors into transport-neutral API errors. */
+export function mapIssueError(err: unknown): NamedError | null {
+  if (err instanceof InvalidIssueIdError) {
+    return badRequest(`Invalid issue id '${err.issueId}'`);
+  }
+  if (err instanceof DuplicateIssueNumberError) {
+    return conflict(`Issue number '${err.issueNumber}' already exists`);
+  }
+  return null;
 }
 
 export function alreadyActive(

@@ -1,4 +1,5 @@
 import type { Db } from '../db.js';
+import type { IssueRef } from '@kanbots/core';
 import type {
   AutopilotChildEntry,
   AutopilotConfig,
@@ -9,7 +10,7 @@ import type {
 
 interface AutopilotSessionRow {
   id: number;
-  issue_number: number;
+  issue_number: IssueRef;
   kind: string;
   config: string;
   status: string;
@@ -38,7 +39,7 @@ function rowToSession(row: AutopilotSessionRow): AutopilotSession {
 }
 
 export interface CreateAutopilotSessionInput {
-  issueNumber: number;
+  issueNumber: IssueRef;
   kind: AutopilotKind;
   config: AutopilotConfig;
 }
@@ -116,7 +117,7 @@ export class AutopilotSessionsRepo {
     return row ? rowToSession(row) : null;
   }
 
-  findByIssueNumber(issueNumber: number): AutopilotSession | null {
+  findByIssueNumber(issueNumber: IssueRef): AutopilotSession | null {
     const row = this.db
       .prepare(
         'SELECT * FROM autopilot_sessions WHERE issue_number = ? ORDER BY id DESC LIMIT 1',
@@ -146,7 +147,7 @@ export class AutopilotSessionsRepo {
 
   updateChildByIssueNumber(
     id: number,
-    issueNumber: number,
+    issueNumber: IssueRef,
     patch: Partial<AutopilotChildEntry>,
   ): AutopilotSession {
     const session = this.findById(id);

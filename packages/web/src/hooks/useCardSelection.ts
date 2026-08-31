@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import type { IssueRef } from '@kanbots/core';
 
 /**
  * Multi-select state for the board. Selection is ephemeral per session —
@@ -12,12 +13,12 @@ import { useCallback, useMemo, useRef, useState } from 'react';
  * shapes and we don't want to bake the policy here.
  */
 export interface CardSelectionAPI {
-  selected: ReadonlySet<number>;
-  anchor: number | null;
-  isSelected: (n: number) => boolean;
-  toggle: (n: number) => void;
-  add: (n: number) => void;
-  remove: (n: number) => void;
+  selected: ReadonlySet<IssueRef>;
+  anchor: IssueRef | null;
+  isSelected: (n: IssueRef) => boolean;
+  toggle: (n: IssueRef) => void;
+  add: (n: IssueRef) => void;
+  remove: (n: IssueRef) => void;
   clear: () => void;
   /**
    * Select every card between `from` (the previous anchor) and `to`
@@ -25,31 +26,39 @@ export interface CardSelectionAPI {
    * not present in `byPosition`, behaves as a single-card toggle on
    * `to` so the user always gets visual feedback.
    */
-  selectRange: (from: number | null, to: number, byPosition: readonly number[]) => void;
+  selectRange: (from: IssueRef | null, to: IssueRef, byPosition: readonly IssueRef[]) => void;
+}
+
+function sameIssue(a: IssueRef, b: IssueRef): boolean {
+  return String(a) === String(b);
 }
 
 export function useCardSelection(): CardSelectionAPI {
-  const [selected, setSelected] = useState<ReadonlySet<number>>(() => new Set());
+  const [selected, setSelected] = useState<ReadonlySet<IssueRef>>(() => new Set());
   // anchorRef holds the last-toggled issue number so range selects can
   // span from it to the next click. We mirror it into state so renderer
   // hooks that read `anchor` (e.g. the bulk action bar) re-render when
   // it changes, but use a ref inside callbacks to avoid the stale-closure
   // problem of multiple toggles within the same render.
-  const anchorRef = useRef<number | null>(null);
-  const [anchor, setAnchor] = useState<number | null>(null);
+  const anchorRef = useRef<IssueRef | null>(null);
+  const [anchor, setAnchor] = useState<IssueRef | null>(null);
 
-  const setAnchorBoth = useCallback((next: number | null): void => {
+  const setAnchorBoth = useCallback((next: IssueRef | null): void => {
     anchorRef.current = next;
     setAnchor(next);
   }, []);
 
-  const isSelected = useCallback((n: number) => selected.has(n), [selected]);
+  const isSelected = useCallback(
+    (n: IssueRef) => [...selected].some((selectedRef) => sameIssue(selectedRef, n)),
+    [selected],
+  );
 
   const toggle = useCallback(
-    (n: number): void => {
+    (n: IssueRef): void => {
       setSelected((prev) => {
         const next = new Set(prev);
-        if (next.has(n)) next.delete(n);
+        const existing = [...next].find((selectedRef) => sameIssue(selectedRef, n));
+        if (existing !== undefined) next.delete(existing);
         else next.add(n);
         return next;
       });
@@ -59,9 +68,9 @@ export function useCardSelection(): CardSelectionAPI {
   );
 
   const add = useCallback(
-    (n: number): void => {
+    (n: IssueRef): void => {
       setSelected((prev) => {
-        if (prev.has(n)) return prev;
+        if ([...prev].some((selectedRef) => sameIssue(selectedRef, n))) return prev;
         const next = new Set(prev);
         next.add(n);
         return next;
@@ -72,11 +81,12 @@ export function useCardSelection(): CardSelectionAPI {
   );
 
   const remove = useCallback(
-    (n: number): void => {
+    (n: IssueRef): void => {
       setSelected((prev) => {
-        if (!prev.has(n)) return prev;
         const next = new Set(prev);
-        next.delete(n);
+        const existing = [...next].find((selectedRef) => sameIssue(selectedRef, n));
+        if (existing === undefined) return prev;
+        next.delete(existing);
         return next;
       });
     },
@@ -89,9 +99,10 @@ export function useCardSelection(): CardSelectionAPI {
   }, [setAnchorBoth]);
 
   const selectRange = useCallback(
-    (from: number | null, to: number, byPosition: readonly number[]): void => {
-      const fromIdx = from === null ? -1 : byPosition.indexOf(from);
-      const toIdx = byPosition.indexOf(to);
+    (from: IssueRef | null, to: IssueRef, byPosition: readonly IssueRef[]): void => {
+      const fromIdx =
+        from === null ? -1 : byPosition.findIndex((n) => String(n) === String(from));
+      const toIdx = byPosition.findIndex((n) => String(n) === String(to));
       if (toIdx === -1) return;
       if (fromIdx === -1) {
         // No valid anchor — promote `to` to a single-card add so the user
@@ -105,7 +116,12 @@ export function useCardSelection(): CardSelectionAPI {
         const next = new Set(prev);
         for (let i = lo; i <= hi; i++) {
           const n = byPosition[i];
-          if (n !== undefined) next.add(n);
+          if (
+            n !== undefined &&
+            ![...next].some((selectedRef) => sameIssue(selectedRef, n))
+          ) {
+            next.add(n);
+          }
         }
         return next;
       });

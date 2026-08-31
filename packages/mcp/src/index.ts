@@ -21,6 +21,13 @@ export interface ToolDef {
   inputSchema: Record<string, unknown>;
 }
 
+const ISSUE_REF_SCHEMA = {
+  anyOf: [
+    { type: 'integer', minimum: 1 },
+    { type: 'string', minLength: 1, maxLength: 32, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$' },
+  ],
+};
+
 export const KANBOTS_TOOLS: readonly ToolDef[] = [
   {
     name: 'listIssues',
@@ -45,7 +52,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
       type: 'object',
       additionalProperties: false,
       properties: {
-        number: { type: 'integer', minimum: 1 },
+        number: ISSUE_REF_SCHEMA,
       },
       required: ['number'],
     },
@@ -58,6 +65,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
       additionalProperties: false,
       properties: {
         title: { type: 'string', minLength: 1, maxLength: 200 },
+        number: { type: 'string', minLength: 1, maxLength: 32 },
         body: { type: 'string', maxLength: 65536 },
         labels: { type: 'array', items: { type: 'string' } },
       },
@@ -72,7 +80,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
       type: 'object',
       additionalProperties: false,
       properties: {
-        number: { type: 'integer', minimum: 1 },
+        number: ISSUE_REF_SCHEMA,
         title: { type: 'string' },
         body: { type: 'string' },
         state: { type: 'string', enum: ['open', 'closed'] },
@@ -89,7 +97,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
       type: 'object',
       additionalProperties: false,
       properties: {
-        number: { type: 'integer', minimum: 1 },
+        number: ISSUE_REF_SCHEMA,
         status: {
           type: 'string',
           enum: ['backlog', 'todo', 'inProgress', 'review', 'done'],
@@ -104,7 +112,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
     inputSchema: {
       type: 'object',
       additionalProperties: false,
-      properties: { number: { type: 'integer', minimum: 1 } },
+      properties: { number: ISSUE_REF_SCHEMA },
       required: ['number'],
     },
   },
@@ -116,7 +124,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
       type: 'object',
       additionalProperties: false,
       properties: {
-        number: { type: 'integer', minimum: 1 },
+        number: ISSUE_REF_SCHEMA,
         subtasks: {
           type: 'array',
           minItems: 1,
@@ -143,7 +151,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
       type: 'object',
       additionalProperties: false,
       properties: {
-        number: { type: 'integer', minimum: 1 },
+        number: ISSUE_REF_SCHEMA,
         fromStatus: {
           type: ['string', 'null'],
           enum: ['backlog', 'todo', 'inProgress', 'review', 'done', null],
@@ -169,7 +177,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
     inputSchema: {
       type: 'object',
       additionalProperties: false,
-      properties: { number: { type: 'integer', minimum: 1 } },
+      properties: { number: ISSUE_REF_SCHEMA },
       required: ['number'],
     },
   },

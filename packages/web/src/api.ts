@@ -1,4 +1,5 @@
 import { cardsToIssues, cardToIssue, statusFromLabels } from './cloud-adapter.js';
+import type { IssueRef } from '@kanbots/core';
 import type {
   ChannelArgs,
   ChannelName,
@@ -174,6 +175,13 @@ function getCloudBridge() {
   return window.kanbots;
 }
 
+function cloudIssueNumber(ref: IssueRef): number {
+  if (typeof ref !== 'number') {
+    throw new Error('Custom issue IDs are not supported in cloud mode');
+  }
+  return ref;
+}
+
 function refuseInCloud(op: string): never {
   throw new Error(`${op} is not yet available in cloud mode (phase 2-4 of the unification plan).`);
 }
@@ -220,7 +228,7 @@ function translateBridgeError(err: unknown): Error {
 }
 
 function buildPostMessageArgs(
-  n: number,
+  n: IssueRef,
   body: string,
   opts: PostMessageOptions,
 ): ChannelArgs<'issues:post-message'> {
@@ -237,7 +245,7 @@ function buildPostMessageArgs(
 }
 
 function buildDispatchArgs(
-  n: number,
+  n: IssueRef,
   input: DispatchIssueInput,
 ): ChannelArgs<'issues:dispatch'> {
   const args: ChannelArgs<'issues:dispatch'> = {
@@ -288,19 +296,19 @@ export const api = {
       ...(folderId !== undefined ? { folderId } : {}),
     });
   },
-  issue: async (n: number): Promise<IssueDetail> => {
+  issue: async (n: IssueRef): Promise<IssueDetail> => {
     if (cloudCtx !== null) {
       const bridge = getCloudBridge();
       const [card, commentsResp] = await Promise.all([
         bridge.cloudCardsGet({
           orgSlug: cloudCtx.orgSlug,
           projectSlug: cloudCtx.projectSlug,
-          number: n,
+          number: cloudIssueNumber(n),
         }),
         bridge.cloudCommentsList({
           orgSlug: cloudCtx.orgSlug,
           projectSlug: cloudCtx.projectSlug,
-          number: n,
+          number: cloudIssueNumber(n),
         }),
       ]);
       const comments: Comment[] = commentsResp.data.map((c) => ({
@@ -338,7 +346,7 @@ export const api = {
     }
     return invoke('issues:get', { number: n });
   },
-  updateIssue: async (n: number, patch: UpdateIssuePatch): Promise<Issue> => {
+  updateIssue: async (n: IssueRef, patch: UpdateIssuePatch): Promise<Issue> => {
     if (cloudCtx !== null) {
       const bridge = getCloudBridge();
       const body: Parameters<typeof bridge.cloudCardsUpdate>[0]['body'] = {};
@@ -361,20 +369,20 @@ export const api = {
       const updated = await bridge.cloudCardsUpdate({
         orgSlug: cloudCtx.orgSlug,
         projectSlug: cloudCtx.projectSlug,
-        number: n,
+        number: cloudIssueNumber(n),
         body,
       });
       return cardToIssue(updated);
     }
     return invoke('issues:patch', { number: n, patch });
   },
-  addComment: async (n: number, body: string): Promise<Comment> => {
+  addComment: async (n: IssueRef, body: string): Promise<Comment> => {
     if (cloudCtx !== null) {
       const bridge = getCloudBridge();
       const created = await bridge.cloudCommentsAdd({
         orgSlug: cloudCtx.orgSlug,
         projectSlug: cloudCtx.projectSlug,
-        number: n,
+        number: cloudIssueNumber(n),
         body,
       });
       // CommentSummary → renderer Comment: stub the GitHub-shaped user.
@@ -390,7 +398,7 @@ export const api = {
     return invoke('issues:add-comment', { number: n, body });
   },
   postMessage: async (
-    n: number,
+    n: IssueRef,
     body: string,
     opts: PostMessageOptions = {},
   ): Promise<PostMessageResult> => {
@@ -406,7 +414,7 @@ export const api = {
       const created = await bridge.cloudCommentsAdd({
         orgSlug: cloudCtx.orgSlug,
         projectSlug: cloudCtx.projectSlug,
-        number: n,
+        number: cloudIssueNumber(n),
         body,
       });
       return {
@@ -458,7 +466,7 @@ export const api = {
     return invoke('composer:suggest', args);
   },
   startAgent: async (
-    issueNumber: number,
+    issueNumber: IssueRef,
     input: {
       threadId: number;
       prompt: string;
@@ -475,7 +483,7 @@ export const api = {
       const { runId } = await bridge.cloudStartAgentRun({
         orgSlug: cloudCtx.orgSlug,
         projectSlug: cloudCtx.projectSlug,
-        number: issueNumber,
+        number: cloudIssueNumber(issueNumber),
         prompt: input.prompt,
         ...(input.appendSystemPrompt !== undefined
           ? { appendSystemPrompt: input.appendSystemPrompt }
@@ -511,7 +519,7 @@ export const api = {
     return invoke('issues:start-agent', args);
   },
   dispatchIssue: async (
-    issueNumber: number,
+    issueNumber: IssueRef,
     input: DispatchIssueInput,
   ): Promise<DispatchIssueResult> => {
     if (cloudCtx !== null) {
@@ -525,7 +533,7 @@ export const api = {
       const card = await bridge.cloudCardsGet({
         orgSlug: cloudCtx.orgSlug,
         projectSlug: cloudCtx.projectSlug,
-        number: issueNumber,
+        number: cloudIssueNumber(issueNumber),
       });
       const prompt =
         (card.body && card.body.trim().length > 0
@@ -535,7 +543,7 @@ export const api = {
       const { runId } = await bridge.cloudStartAgentRun({
         orgSlug: cloudCtx.orgSlug,
         projectSlug: cloudCtx.projectSlug,
-        number: issueNumber,
+        number: cloudIssueNumber(issueNumber),
         prompt,
         ...(input.model !== undefined ? { model: input.model } : {}),
         ...(input.provider !== undefined ? { provider: input.provider } : {}),
@@ -571,13 +579,13 @@ export const api = {
     runId: number,
   ): Promise<{ additions: number; deletions: number; filesChanged: number }> =>
     invoke('agent-runs:stats', { runId }),
-  listIssueRuns: (issueNumber: number): Promise<AgentRun[]> =>
+  listIssueRuns: (issueNumber: IssueRef): Promise<AgentRun[]> =>
     invoke('issues:list-runs', { number: issueNumber }),
   listPendingDecisions: (): Promise<PendingDecisionPayload[]> => {
     if (cloudCtx !== null) return Promise.resolve([]);
     return invoke('decisions:pending', undefined);
   },
-  getSpec: (issueNumber: number): Promise<SpecPayload> =>
+  getSpec: (issueNumber: IssueRef): Promise<SpecPayload> =>
     invoke('specs:get', { issueNumber }),
   workspace: async (): Promise<Workspace> => {
     if (cloudCtx !== null) {
@@ -644,7 +652,7 @@ export const api = {
    * workspace is in local mode, or when the cloud bridge is active —
    * the renderer hides the section in all of these.
    */
-  listPrComments: (issueNumber: number): Promise<PrCommentsListResult> => {
+  listPrComments: (issueNumber: IssueRef): Promise<PrCommentsListResult> => {
     if (cloudCtx !== null) {
       return Promise.resolve({
         linkedPullNumber: null,
@@ -660,9 +668,10 @@ export const api = {
    * to the PR's main thread on GitHub.
    */
   replyToPrComment: (
-    issueNumber: number,
+    issueNumber: IssueRef,
     body: string,
-  ): Promise<PrCommentPayload> => invoke('pr-comments:reply', { issueNumber, body }),
+  ): Promise<PrCommentPayload> =>
+    invoke('pr-comments:reply', { issueNumber, body }),
   listFolders: (): Promise<WorkspaceFolderPayload[]> => {
     if (cloudCtx !== null) return Promise.resolve([]);
     return invoke('folders:list', undefined);
@@ -752,14 +761,21 @@ export const api = {
     invoke('agent-runs:preview:start', { runId }),
   stopAgentRunPreview: (runId: number): Promise<PreviewStatePayload> =>
     invoke('agent-runs:preview:stop', { runId }),
-  approveIssue: (issueNumber: number): Promise<Issue> =>
+  approveIssue: (issueNumber: IssueRef): Promise<Issue> =>
     invoke('issues:approve', { number: issueNumber }),
-  requestChangesIssue: (issueNumber: number): Promise<Issue> =>
+  requestChangesIssue: (issueNumber: IssueRef): Promise<Issue> =>
     invoke('issues:request-changes', { number: issueNumber }),
-  shipStatus: (issueNumber: number): Promise<ShipStatus> =>
+  approvePullRequest: (issueNumber: IssueRef): Promise<Issue> =>
+    invoke('issues:pr-approve', { number: issueNumber }),
+  requestChangesPullRequest: (issueNumber: IssueRef, body?: string): Promise<Issue> =>
+    invoke('issues:pr-request-changes', {
+      number: issueNumber,
+      ...(body !== undefined ? { body } : {}),
+    }),
+  shipStatus: (issueNumber: IssueRef): Promise<ShipStatus> =>
     invoke('ship:status', { issueNumber }),
   shipCommit: (
-    issueNumber: number,
+    issueNumber: IssueRef,
     message?: string,
   ): Promise<ShipCommitResult> =>
     invoke('ship:commit', {
@@ -767,18 +783,18 @@ export const api = {
       ...(message !== undefined ? { message } : {}),
     }),
   shipMerge: (
-    issueNumber: number,
+    issueNumber: IssueRef,
     targetBranch: string,
   ): Promise<ShipMergeResult> =>
     invoke('ship:merge', { issueNumber, targetBranch }),
   shipCreatePR: (input: {
-    issueNumber: number;
+    issueNumber: IssueRef;
     targetBranch?: string;
     title?: string;
     body?: string;
     draft?: boolean;
   }): Promise<ShipPRResult> => invoke('ship:create-pr', input),
-  archiveIssue: async (issueNumber: number): Promise<Issue> => {
+  archiveIssue: async (issueNumber: IssueRef): Promise<Issue> => {
     if (cloudCtx !== null) {
       // Cloud archive is a soft-delete (sets archived_at) — it's the DELETE
       // verb on the card resource, not a status change. Re-fetch the card
@@ -787,24 +803,24 @@ export const api = {
       await bridge.cloudCardsArchive({
         orgSlug: cloudCtx.orgSlug,
         projectSlug: cloudCtx.projectSlug,
-        number: issueNumber,
+        number: cloudIssueNumber(issueNumber),
       });
       const card = await bridge.cloudCardsGet({
         orgSlug: cloudCtx.orgSlug,
         projectSlug: cloudCtx.projectSlug,
-        number: issueNumber,
+        number: cloudIssueNumber(issueNumber),
       });
       return cardToIssue(card);
     }
     return invoke('issues:archive', { number: issueNumber });
   },
-  unarchiveIssue: async (issueNumber: number): Promise<Issue> => {
+  unarchiveIssue: async (issueNumber: IssueRef): Promise<Issue> => {
     if (cloudCtx !== null) {
       const bridge = getCloudBridge();
       const restored = await bridge.cloudCardsUnarchive({
         orgSlug: cloudCtx.orgSlug,
         projectSlug: cloudCtx.projectSlug,
-        number: issueNumber,
+        number: cloudIssueNumber(issueNumber),
       });
       return cardToIssue(restored);
     }
@@ -825,10 +841,10 @@ export const api = {
     return invoke('issues:list-archived', undefined);
   },
   splitIssue: (
-    issueNumber: number,
+    issueNumber: IssueRef,
     subtasks: Array<{ title: string; body?: string }>,
     opts: { dispatch?: boolean; repoId?: number } = {},
-  ): Promise<{ parent: number; children: Issue[] }> =>
+  ): Promise<{ parent: IssueRef; children: Issue[] }> =>
     invoke('issues:split', {
       number: issueNumber,
       subtasks,
@@ -836,7 +852,7 @@ export const api = {
       ...(opts.repoId !== undefined ? { repoId: opts.repoId } : {}),
     }),
   spawnReviewer: (
-    issueNumber: number,
+    issueNumber: IssueRef,
     opts: { threadId?: number; prompt?: string; model?: string; repoId?: number } = {},
   ): Promise<AgentRun> => {
     const args: ChannelArgs<'issues:reviewer'> = { number: issueNumber };
@@ -964,7 +980,10 @@ export const api = {
   }): Promise<{ sessionId: number; issueNumber: number }> => {
     const args: ChannelArgs<'autopilot:start'> = { kind: input.kind, config: input.config };
     if (input.title !== undefined) args.title = input.title;
-    return invoke('autopilot:start', args);
+    return invoke('autopilot:start', args) as Promise<{
+      sessionId: number;
+      issueNumber: number;
+    }>;
   },
   stopAutopilot: (
     sessionId: number,
@@ -973,7 +992,7 @@ export const api = {
     invoke('autopilot:stop', { sessionId, stopChildren: opts.stopChildren }),
   listActiveAutopilots: (): Promise<AutopilotSession[]> =>
     invoke('autopilot:list-active', undefined),
-  getAutopilotByIssue: (issueNumber: number): Promise<AutopilotSession | null> =>
+  getAutopilotByIssue: (issueNumber: IssueRef): Promise<AutopilotSession | null> =>
     invoke('autopilot:get-by-issue', { issueNumber }),
   getSentryConfig: (): Promise<SentryConfigPayload> =>
     invoke('sentry:get-config', undefined),
@@ -987,9 +1006,9 @@ export const api = {
     invoke('sentry:test-connection', input),
   syncSentryNow: (): Promise<SentrySyncResult> =>
     invoke('sentry:sync-now', undefined),
-  analyzeSentryIssue: (issueNumber: number): Promise<SentrySuggestion> =>
+  analyzeSentryIssue: (issueNumber: IssueRef): Promise<SentrySuggestion> =>
     invoke('sentry:analyze', { issueNumber }),
-  applySentrySuggestion: (issueNumber: number): Promise<Issue> =>
+  applySentrySuggestion: (issueNumber: IssueRef): Promise<Issue> =>
     invoke('sentry:apply-suggestion', { issueNumber }),
   getProviders: (): Promise<ProvidersPayload> => invoke('providers:get', undefined),
   saveProvider: (input: ProviderSaveInput): Promise<ProvidersPayload> =>
@@ -1089,22 +1108,31 @@ export const api = {
    * don't host the local store today, so all four helpers degrade to
    * empty/no-op until a cloud-side endpoint is added.
    */
-  listIssueChildren: (parentNumber: number): Promise<IssueRelationPayload[]> => {
+  listIssueChildren: (parentNumber: IssueRef): Promise<IssueRelationPayload[]> => {
     if (cloudCtx !== null) return Promise.resolve([]);
-    return invoke('issue-relations:list-children', { parentNumber });
+    return invoke(
+      'issue-relations:list-children',
+      { parentNumber } as unknown as ChannelArgs<'issue-relations:list-children'>,
+    );
   },
-  listIssueParents: (childNumber: number): Promise<IssueRelationPayload[]> => {
+  listIssueParents: (childNumber: IssueRef): Promise<IssueRelationPayload[]> => {
     if (cloudCtx !== null) return Promise.resolve([]);
-    return invoke('issue-relations:list-parents', { childNumber });
+    return invoke(
+      'issue-relations:list-parents',
+      { childNumber } as unknown as ChannelArgs<'issue-relations:list-parents'>,
+    );
   },
   addIssueRelation: (input: {
-    parentNumber: number;
-    childNumber: number;
+    parentNumber: IssueRef;
+    childNumber: IssueRef;
   }): Promise<IssueRelationPayload> => {
     if (cloudCtx !== null) {
       refuseInCloud('api.addIssueRelation');
     }
-    return invoke('issue-relations:add', input);
+    return invoke(
+      'issue-relations:add',
+      input as unknown as ChannelArgs<'issue-relations:add'>,
+    );
   },
   removeIssueRelation: (id: number): Promise<{ ok: boolean }> => {
     if (cloudCtx !== null) {

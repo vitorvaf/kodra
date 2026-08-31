@@ -1,4 +1,5 @@
 import { useDroppable } from '@dnd-kit/core';
+import type { IssueRef } from '@kanbots/core';
 import { useEffect, useState } from 'react';
 import type { Issue, StatusKey } from '../types.js';
 import { Card, type CardSelectModifiers } from './Card.js';
@@ -45,12 +46,12 @@ export interface ColumnProps {
   status: 'inbox' | StatusKey;
   label: string;
   issues: Issue[];
-  selectedNumber?: number | null;
+  selectedNumber?: IssueRef | null;
   /** Numbers of cards that are currently part of the bulk selection. */
-  multiSelected?: ReadonlySet<number>;
+  multiSelected?: ReadonlySet<IssueRef>;
   liveByRun?: RunLiveMap;
-  onSelect?: (n: number, modifiers: CardSelectModifiers) => void;
-  onOpen?: (n: number) => void;
+  onSelect?: (n: IssueRef, modifiers: CardSelectModifiers) => void;
+  onOpen?: (n: IssueRef) => void;
   onAdd?: (status: StatusKey | null) => void;
   onSuggest?: () => void;
   suggesting?: boolean;
@@ -127,10 +128,13 @@ export function Column({
                 : null;
             return (
               <Card
-                key={issue.number}
+                key={String(issue.number)}
                 issue={issue}
-                selected={selectedNumber === issue.number}
-                multiSelected={multiSelected?.has(issue.number) ?? false}
+                selected={selectedNumber !== null && String(selectedNumber) === String(issue.number)}
+                multiSelected={
+                  multiSelected !== undefined &&
+                  [...multiSelected].some((n) => String(n) === String(issue.number))
+                }
                 liveTool={live}
                 onSelect={onSelect ?? (() => undefined)}
                 onOpen={onOpen ?? (() => undefined)}

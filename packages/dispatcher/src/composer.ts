@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 import { AGENT_CLI_ADAPTERS } from './adapters/registry.js';
 import type { StreamEvent } from './stream-parser.js';
+import type { IssueRef } from '@kanbots/core';
 
 export type SuggesterProvider =
   | 'claude-code'
@@ -42,7 +43,7 @@ export interface BacklogEntry {
   title: string;
   body?: string;
   status?: SuggestionEntryStatus;
-  number?: number;
+  number?: IssueRef;
 }
 
 export type PlannerEvent =

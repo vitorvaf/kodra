@@ -1,4 +1,5 @@
 import { Logo } from '../Logo.js';
+import type { IssueRef } from '@kanbots/core';
 import {
   useEffect,
   useMemo,
@@ -19,7 +20,7 @@ import type { Issue } from '../../types.js';
 
 export interface ArchiveModalProps {
   onClose: () => void;
-  onOpenDetail: (issueNumber: number) => void;
+  onOpenDetail: (issueNumber: IssueRef) => void;
 }
 
 const searchIcon = (
@@ -50,7 +51,10 @@ function matchesQuery(issue: Issue, q: string): boolean {
   if (!lower) return true;
   // "#123" or "123" → match by issue number
   const numericQuery = lower.startsWith('#') ? lower.slice(1) : lower;
-  if (/^\d+$/.test(numericQuery) && String(issue.number).includes(numericQuery)) {
+  if (
+    /^[A-Za-z0-9._-]+$/.test(numericQuery) &&
+    String(issue.number).toLowerCase().includes(numericQuery)
+  ) {
     return true;
   }
   if (issue.title.toLowerCase().includes(lower)) return true;
@@ -66,7 +70,7 @@ export function ArchiveModal({ onClose, onOpenDetail }: ArchiveModalProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [query, setQuery] = useState('');
-  const [busyNumber, setBusyNumber] = useState<number | null>(null);
+  const [busyNumber, setBusyNumber] = useState<IssueRef | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   async function load(): Promise<void> {
@@ -102,12 +106,12 @@ export function ArchiveModal({ onClose, onOpenDetail }: ArchiveModalProps) {
     e.stopPropagation();
   }
 
-  async function handleUnarchive(issueNumber: number): Promise<void> {
+  async function handleUnarchive(issueNumber: IssueRef): Promise<void> {
     if (busyNumber !== null) return;
     setBusyNumber(issueNumber);
     try {
       await api.unarchiveIssue(issueNumber);
-      setIssues((prev) => prev.filter((i) => i.number !== issueNumber));
+      setIssues((prev) => prev.filter((i) => String(i.number) !== String(issueNumber)));
       dispatchIssuesRefetch();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -117,7 +121,7 @@ export function ArchiveModal({ onClose, onOpenDetail }: ArchiveModalProps) {
     }
   }
 
-  function handleOpen(issueNumber: number): void {
+  function handleOpen(issueNumber: IssueRef): void {
     onOpenDetail(issueNumber);
     onClose();
   }
@@ -209,9 +213,9 @@ export function ArchiveModal({ onClose, onOpenDetail }: ArchiveModalProps) {
             <ul className="kb-archive-list" role="list">
               {filtered.map((issue) => (
                 <ArchiveRow
-                  key={issue.number}
+                  key={String(issue.number)}
                   issue={issue}
-                  busy={busyNumber === issue.number}
+                  busy={busyNumber !== null && String(busyNumber) === String(issue.number)}
                   disabled={busyNumber !== null}
                   onOpen={() => handleOpen(issue.number)}
                   onUnarchive={() => void handleUnarchive(issue.number)}

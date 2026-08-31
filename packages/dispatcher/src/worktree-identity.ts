@@ -1,14 +1,15 @@
 import { execFile } from 'node:child_process';
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import type { IssueRef } from '@kanbots/core';
 
 const execFileAsync = promisify(execFile);
 
 export interface StampWorktreeIdentityInput {
   worktreePath: string;
   runId: number;
-  issueNumber: number;
+  issueNumber: IssueRef;
 }
 
 export interface StampWorktreeIdentityResult {
@@ -60,7 +61,10 @@ export async function stampWorktreeIdentity(
   // Hooks placed there are not auto-discovered by git, but pointing
   // core.hooksPath at it gives us a private hook directory that won't show
   // up as an untracked file inside the worktree itself.
-  const hooksDir = join(gitDir, 'kodra-hooks');
+  // Git resolves a relative core.hooksPath against the git directory, so an
+  // already-relative `git rev-parse --git-dir` result would otherwise become
+  // `.git/.git/kodra-hooks` and silently skip the hook.
+  const hooksDir = resolve(worktreePath, gitDir, 'kodra-hooks');
   await mkdir(hooksDir, { recursive: true });
 
   const hookPath = join(hooksDir, 'commit-msg');
@@ -106,7 +110,7 @@ async function git(cwd: string, args: string[]): Promise<string> {
   return stdout;
 }
 
-function renderCommitMsgHook(opts: { runId: number; issueNumber: number }): string {
+function renderCommitMsgHook(opts: { runId: number; issueNumber: IssueRef }): string {
   // POSIX shell: idempotent — skip if Kodra-Run-Id is already present.
   // `git interpret-trailers` keeps the trailer block well-formed and
   // composes with Co-authored-by / Signed-off-by etc.
@@ -123,7 +127,7 @@ git interpret-trailers \\
   --in-place \\
   --if-exists addIfDifferent \\
   --trailer "${TRAILER_RUN_ID}=${opts.runId}" \\
-  --trailer "${TRAILER_ISSUE}=${opts.issueNumber}" \\
+  --trailer "${TRAILER_ISSUE}=${String(opts.issueNumber)}" \\
   "$msg_file"
 `;
 }

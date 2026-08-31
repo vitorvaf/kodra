@@ -1,6 +1,6 @@
-import type { Comment, Issue } from '@kanbots/core';
+import type { Comment, Issue, IssueRef } from '@kanbots/core';
 
-export function issueFixture(number: number, title: string, overrides: Partial<Issue> = {}): Issue {
+export function issueFixture(number: IssueRef, title: string, overrides: Partial<Issue> = {}): Issue {
   return {
     number,
     title,

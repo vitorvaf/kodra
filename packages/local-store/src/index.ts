@@ -143,6 +143,9 @@ export type { SetCacheInput } from './repos/http-cache.js';
 
 export {
   LocalIssueNotFoundError,
+  InvalidIssueIdError,
+  DuplicateIssueNumberError,
+  bindIssueRef,
   type CreateLocalCommentInput,
   type CreateLocalIssueInput,
   type UpdateLocalIssuePatch,

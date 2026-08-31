@@ -39,6 +39,7 @@ import type {
   Comment,
   CreateIssueInput,
   Issue,
+  IssueRef,
   PullRequest,
   StatusKey,
   UpdateIssuePatch,
@@ -78,6 +79,7 @@ export type {
   Comment,
   CreateIssueInput,
   Issue,
+  IssueRef,
   StatusKey,
   UpdateIssuePatch,
   SentryImportStatus,
@@ -160,7 +162,7 @@ export interface SuggestFeatureBacklogEntry {
   title: string;
   body?: string;
   status?: SuggestFeatureEntryStatus;
-  number?: number;
+  number?: IssueRef;
 }
 
 export type PlannerEvent =
@@ -402,7 +404,7 @@ export interface DispatchResult {
 }
 
 export interface SplitResult {
-  parent: number;
+  parent: IssueRef;
   children: DecoratedIssue[];
 }
 
@@ -456,10 +458,10 @@ export interface ForkRunResult {
  */
 export interface IssueRelationPayload {
   id: number;
-  parentNumber: number;
-  childNumber: number;
+  parentNumber: IssueRef;
+  childNumber: IssueRef;
   child: {
-    number: number;
+    number: IssueRef;
     title: string;
     status: StatusKey | null;
     state: 'open' | 'closed';
@@ -701,7 +703,7 @@ export interface DiffPayload {
 export interface PendingDecisionPayload {
   cardId: number;
   runId: number;
-  issueNumber: number;
+  issueNumber: IssueRef;
   question: string;
   options: Array<{ value: string; label: string }>;
   createdAt: string;
@@ -784,19 +786,19 @@ export interface BridgeChannels {
     result: DecoratedIssue[];
   };
   'issues:list-archived': { args: void; result: DecoratedIssue[] };
-  'issues:get': { args: { number: number }; result: IssueDetail };
+  'issues:get': { args: { number: IssueRef }; result: IssueDetail };
   'issues:create': { args: CreateIssueInput; result: DecoratedIssue };
   'issues:patch': {
-    args: { number: number; patch: UpdateIssuePatch };
+    args: { number: IssueRef; patch: UpdateIssuePatch };
     result: DecoratedIssue;
   };
   'issues:add-comment': {
-    args: { number: number; body: string };
+    args: { number: IssueRef; body: string };
     result: Comment;
   };
   'issues:post-message': {
     args: {
-      number: number;
+      number: IssueRef;
       body: string;
       dispatch?: boolean;
       model?: string;
@@ -814,10 +816,10 @@ export interface BridgeChannels {
     };
     result: PostMessageResult;
   };
-  'issues:list-runs': { args: { number: number }; result: AgentRun[] };
+  'issues:list-runs': { args: { number: IssueRef }; result: AgentRun[] };
   'issues:dispatch': {
     args: {
-      number: number;
+      number: IssueRef;
       fromStatus: StatusKey | null;
       model?: string;
       provider?: ProviderId;
@@ -829,7 +831,7 @@ export interface BridgeChannels {
   };
   'issues:start-agent': {
     args: {
-      number: number;
+      number: IssueRef;
       threadId: number;
       prompt: string;
       appendSystemPrompt?: string;
@@ -841,13 +843,18 @@ export interface BridgeChannels {
     };
     result: AgentRun;
   };
-  'issues:archive': { args: { number: number }; result: DecoratedIssue };
-  'issues:unarchive': { args: { number: number }; result: DecoratedIssue };
-  'issues:approve': { args: { number: number }; result: DecoratedIssue };
-  'issues:request-changes': { args: { number: number }; result: DecoratedIssue };
+  'issues:archive': { args: { number: IssueRef }; result: DecoratedIssue };
+  'issues:unarchive': { args: { number: IssueRef }; result: DecoratedIssue };
+  'issues:approve': { args: { number: IssueRef }; result: DecoratedIssue };
+  'issues:request-changes': { args: { number: IssueRef }; result: DecoratedIssue };
+  'issues:pr-approve': { args: { number: IssueRef }; result: DecoratedIssue };
+  'issues:pr-request-changes': {
+    args: { number: IssueRef; body?: string };
+    result: DecoratedIssue;
+  };
   'issues:split': {
     args: {
-      number: number;
+      number: IssueRef;
       subtasks: Array<{ title: string; body?: string }>;
       dispatch?: boolean;
       /** Workspace repo to base each dispatched child run's worktree on.
@@ -859,7 +866,7 @@ export interface BridgeChannels {
   };
   'issues:reviewer': {
     args: {
-      number: number;
+      number: IssueRef;
       threadId?: number;
       prompt?: string;
       model?: string;
@@ -870,20 +877,20 @@ export interface BridgeChannels {
     result: AgentRun;
   };
   'ship:status': {
-    args: { issueNumber: number };
+    args: { issueNumber: IssueRef };
     result: ShipStatus;
   };
   'ship:commit': {
-    args: { issueNumber: number; message?: string };
+    args: { issueNumber: IssueRef; message?: string };
     result: ShipCommitResult;
   };
   'ship:merge': {
-    args: { issueNumber: number; targetBranch: string };
+    args: { issueNumber: IssueRef; targetBranch: string };
     result: ShipMergeResult;
   };
   'ship:create-pr': {
     args: {
-      issueNumber: number;
+      issueNumber: IssueRef;
       targetBranch?: string;
       title?: string;
       body?: string;
@@ -994,7 +1001,7 @@ export interface BridgeChannels {
     result: DecoratedIssue;
   };
   'decisions:pending': { args: void; result: PendingDecisionPayload[] };
-  'specs:get': { args: { issueNumber: number }; result: SpecPayload };
+  'specs:get': { args: { issueNumber: IssueRef }; result: SpecPayload };
   'cost:today': { args: void; result: CostTodayResult };
   'cost:usage': { args: void; result: CostUsageResult };
   'cost:breakdown': { args: void; result: CostBreakdownItem[] };
@@ -1055,11 +1062,11 @@ export interface BridgeChannels {
     result: { ok: boolean; ide: 'vscode' | 'cursor' | 'system' | null; error?: string };
   };
   'pr-comments:list': {
-    args: { issueNumber: number };
+    args: { issueNumber: IssueRef };
     result: PrCommentsListResult;
   };
   'pr-comments:reply': {
-    args: { issueNumber: number; body: string };
+    args: { issueNumber: IssueRef; body: string };
     result: PrCommentPayload;
   };
   'review-comments:list': {
@@ -1106,7 +1113,7 @@ export interface BridgeChannels {
       title?: string;
       config: AutopilotConfig;
     };
-    result: { sessionId: number; issueNumber: number };
+    result: { sessionId: number; issueNumber: IssueRef };
   };
   'autopilot:stop': {
     args: { sessionId: number; stopChildren: boolean };
@@ -1114,7 +1121,7 @@ export interface BridgeChannels {
   };
   'autopilot:list-active': { args: void; result: AutopilotSession[] };
   'autopilot:get-by-issue': {
-    args: { issueNumber: number };
+    args: { issueNumber: IssueRef };
     result: AutopilotSession | null;
   };
   'sentry:get-config': { args: void; result: SentryConfigPayload };
@@ -1128,11 +1135,11 @@ export interface BridgeChannels {
   };
   'sentry:sync-now': { args: void; result: SentrySyncResult };
   'sentry:analyze': {
-    args: { issueNumber: number };
+    args: { issueNumber: IssueRef };
     result: SentrySuggestion;
   };
   'sentry:apply-suggestion': {
-    args: { issueNumber: number };
+    args: { issueNumber: IssueRef };
     result: DecoratedIssue;
   };
   'providers:get': { args: void; result: ProvidersPayload };
@@ -1363,7 +1370,7 @@ export interface RecentActivityPayload {
   id: number;
   agentRunId: number;
   /** Issue number on the run's thread; used as the clickable target. */
-  issueNumber: number;
+  issueNumber: IssueRef;
   kind: RecentActivityKind;
   /** One-line description e.g. "Edit src/api.ts" or "Awaiting decision". */
   summary: string;

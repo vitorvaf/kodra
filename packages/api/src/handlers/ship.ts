@@ -17,7 +17,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { z } from 'zod';
-import type { PullRequest } from '@kanbots/core';
+import type { IssueRef, PullRequest } from '@kanbots/core';
 import {
   detectLocalBase,
   isWorktreeClean,
@@ -26,6 +26,7 @@ import {
 } from './agent-runs.js';
 import type { HandlerDeps } from './types.js';
 import { badRequest, notFound, parseArgs } from './errors.js';
+import { issueRefSchema } from '../issue-ref.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -62,17 +63,17 @@ export interface ShipCommitResult {
   commitSha: string;
 }
 
-const numberSchema = z.object({ issueNumber: z.number().int().positive() });
+const numberSchema = z.object({ issueNumber: issueRefSchema });
 const commitSchema = z.object({
-  issueNumber: z.number().int().positive(),
+  issueNumber: issueRefSchema,
   message: z.string().min(1).optional(),
 });
 const mergeSchema = z.object({
-  issueNumber: z.number().int().positive(),
+  issueNumber: issueRefSchema,
   targetBranch: z.string().min(1),
 });
 const prSchema = z.object({
-  issueNumber: z.number().int().positive(),
+  issueNumber: issueRefSchema,
   targetBranch: z.string().min(1).optional(),
   title: z.string().min(1).optional(),
   body: z.string().optional(),
@@ -81,7 +82,7 @@ const prSchema = z.object({
 
 async function resolveRun(
   deps: HandlerDeps,
-  issueNumber: number,
+  issueNumber: IssueRef,
 ): Promise<{
   run: {
     id: number;
@@ -274,7 +275,7 @@ export async function createPR(
     head: run.branchName,
     ...(parsed.targetBranch !== undefined ? { base: parsed.targetBranch } : {}),
     draft: parsed.draft ?? true,
-    issueNumber: issue.number,
+    ...(typeof issue.number === 'number' ? { issueNumber: issue.number } : {}),
   });
   return { pr };
 }

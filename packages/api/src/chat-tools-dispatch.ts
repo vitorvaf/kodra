@@ -1,6 +1,7 @@
 import { withStatusLabel } from '@kanbots/core';
 import type { Handlers } from './handlers/index.js';
 import type { ToolDispatcher } from './tool-bridge.js';
+import { issueRefSchema } from './issue-ref.js';
 
 /**
  * Maps each MCP-exposed kanban tool to the typed IPC handler that performs
@@ -20,12 +21,13 @@ export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) 
       return handlers['issues:list']({ state });
     }
     case 'getIssue': {
-      const number = expectNumber(args, 'number');
+      const number = expectIssueRef(args, 'number');
       return handlers['issues:get']({ number });
     }
     case 'createIssue': {
       const title = expectString(args, 'title');
       const out: Parameters<Handlers['issues:create']>[0] = { title };
+      if (typeof args.number === 'string') out.number = args.number;
       if (typeof args.body === 'string') out.body = args.body;
       if (Array.isArray(args.labels)) {
         out.labels = (args.labels as unknown[]).filter(
@@ -35,7 +37,7 @@ export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) 
       return handlers['issues:create'](out);
     }
     case 'updateIssue': {
-      const number = expectNumber(args, 'number');
+      const number = expectIssueRef(args, 'number');
       const patch: Parameters<Handlers['issues:patch']>[0]['patch'] = {};
       if (typeof args.title === 'string') patch.title = args.title;
       if (typeof args.body === 'string') patch.body = args.body;
@@ -48,7 +50,7 @@ export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) 
       return handlers['issues:patch']({ number, patch });
     }
     case 'moveIssueStatus': {
-      const number = expectNumber(args, 'number');
+      const number = expectIssueRef(args, 'number');
       const status = expectString(args, 'status') as
         | 'backlog'
         | 'todo'
@@ -63,11 +65,11 @@ export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) 
       });
     }
     case 'archiveIssue': {
-      const number = expectNumber(args, 'number');
+      const number = expectIssueRef(args, 'number');
       return handlers['issues:archive']({ number });
     }
     case 'splitIssue': {
-      const number = expectNumber(args, 'number');
+      const number = expectIssueRef(args, 'number');
       if (!Array.isArray(args.subtasks) || args.subtasks.length === 0) {
         throw new Error('splitIssue: subtasks must be a non-empty array');
       }
@@ -86,7 +88,7 @@ export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) 
       return handlers['issues:split'](split);
     }
     case 'dispatchAgent': {
-      const number = expectNumber(args, 'number');
+      const number = expectIssueRef(args, 'number');
       const fromStatus =
         args.fromStatus === undefined || args.fromStatus === null
           ? null
@@ -108,7 +110,7 @@ export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) 
       return handlers['agent-runs:stop']({ runId });
     }
     case 'listAgentRuns': {
-      const number = expectNumber(args, 'number');
+      const number = expectIssueRef(args, 'number');
       return handlers['issues:list-runs']({ number });
     }
     case 'resolvePendingDecision': {
@@ -175,6 +177,15 @@ export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) 
       throw new Error(`unknown tool: ${name}`);
   }
 };
+
+function expectIssueRef(args: Record<string, unknown>, key: string): number | string {
+  const v = args[key];
+  const parsed = issueRefSchema.safeParse(v);
+  if (!parsed.success) {
+    throw new Error(`missing or invalid '${key}' (expected issue number or custom id)`);
+  }
+  return parsed.data;
+}
 
 function expectNumber(args: Record<string, unknown>, key: string): number {
   const v = args[key];

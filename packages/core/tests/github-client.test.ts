@@ -218,4 +218,34 @@ describe('GitHubClient', () => {
       expect(body.draft).toBe(true);
     });
   });
+
+  describe('pull request reviews', () => {
+    it('approves a pull request with a review body', async () => {
+      fetcher.enqueue({ status: 200, body: {} });
+      await client.approvePullRequest({ pullNumber: 87, body: 'Looks good.' });
+
+      const call = fetcher.calls[0];
+      expect(call?.method).toBe('POST');
+      expect(call?.url).toContain('/repos/octo/hello/pulls/87/reviews');
+      expect(JSON.parse(call?.body ?? '{}')).toEqual({
+        event: 'APPROVED',
+        body: 'Looks good.',
+      });
+    });
+
+    it('requests changes on a pull request', async () => {
+      fetcher.enqueue({ status: 200, body: {} });
+      await client.requestChangesPullRequest({
+        pullNumber: 87,
+        body: 'Please address this.',
+      });
+
+      const call = fetcher.calls[0];
+      expect(call?.method).toBe('POST');
+      expect(JSON.parse(call?.body ?? '{}')).toEqual({
+        event: 'REQUEST_CHANGES',
+        body: 'Please address this.',
+      });
+    });
+  });
 });

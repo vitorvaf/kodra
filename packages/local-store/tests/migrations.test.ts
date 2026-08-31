@@ -1,8 +1,9 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { openStore, openStoreInMemory } from '../src/index.js';
+import { migrations, openStore, openStoreInMemory, runMigrations } from '../src/index.js';
 
 describe('migrations', () => {
   it('creates all expected tables and indexes', () => {
@@ -39,6 +40,8 @@ describe('migrations', () => {
     expect(idxNames).toContain('idx_card_templates_workspace');
     expect(idxNames).toContain('idx_issue_relations_parent');
     expect(idxNames).toContain('idx_issue_relations_child');
+    expect(idxNames).toContain('idx_local_issues_state');
+    expect(idxNames).toContain('idx_local_comments_issue');
     expect(idxNames).toContain('idx_local_issues_folder');
 
     store.close();
@@ -82,7 +85,96 @@ describe('migrations', () => {
       '0030_issue_relations',
       '0031_agy_cli_provider',
       '0032_issue_folders',
+      '0033_issue_ref_text',
     ]);
+    store.close();
+  });
+
+  it('0033 preserves issues and comments and keeps cascade deletes', () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    runMigrations(db, migrations.slice(0, -1));
+    db.prepare(
+      `INSERT INTO workspaces (id, name, created_at)
+       VALUES ('default', 'Default', '2026-01-01')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO folders (id, workspace_id, name, path, added_at)
+       VALUES ('folder-a', 'default', 'A', '/repo/a', '2026-01-01')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO folders (id, workspace_id, name, path, added_at)
+       VALUES ('folder-b', 'default', 'B', '/repo/b', '2026-01-01')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO local_issues
+       (number, title, author_login, created_at, updated_at, folder_id)
+       VALUES (5, 'legacy', 'leo', '2026-01-01', '2026-01-01', 'folder-a')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO local_issues
+       (number, title, author_login, created_at, updated_at)
+       VALUES (6, 'unscoped', 'leo', '2026-01-01', '2026-01-01')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO local_comments
+       (issue_number, body, author_login, created_at, updated_at)
+       VALUES (5, 'comment', 'leo', '2026-01-01', '2026-01-01')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO threads (repo_owner, repo_name, issue_number, created_at)
+       VALUES ('octo', 'repo', 42, '2026-01-01')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO sentry_imports
+       (sentry_issue_id, local_issue_number, count, first_seen_at, last_seen_at)
+       VALUES ('legacy-sentry', 5, 1, '2026-01-01', '2026-01-01')`,
+    ).run();
+    runMigrations(db, migrations);
+
+    const issue = db
+      .prepare('SELECT number, folder_id FROM local_issues WHERE number = ?')
+      .get('5') as { number: unknown; folder_id: unknown };
+    expect(issue.number).toBe('5');
+    expect(issue.folder_id).toBe('folder-a');
+    expect(
+      (db.prepare('SELECT folder_id FROM local_issues WHERE number = ?').get('6') as { folder_id: unknown })
+        .folder_id,
+    ).toBeNull();
+    expect(db.prepare('SELECT issue_number FROM local_comments').get()).toEqual({ issue_number: '5' });
+    expect(db.prepare('SELECT local_issue_number FROM sentry_imports').get()).toEqual({
+      local_issue_number: 5,
+    });
+
+    db.prepare(
+      `INSERT INTO local_issues (number, title, author_login, created_at, updated_at)
+       VALUES ('FEAT-42', 'custom', 'leo', '2026-01-01', '2026-01-01')`,
+    ).run();
+    expect(() =>
+      db
+        .prepare(
+          `INSERT INTO sentry_imports
+           (sentry_issue_id, local_issue_number, count, first_seen_at, last_seen_at)
+           VALUES ('custom-sentry', 'FEAT-42', 1, '2026-01-01', '2026-01-01')`,
+        )
+        .run(),
+    ).not.toThrow();
+    db.prepare('DELETE FROM local_issues WHERE number = ?').run('5');
+    expect(db.prepare('SELECT COUNT(*) AS n FROM local_comments').get()).toEqual({ n: 0 });
+    db.close();
+  });
+
+  it('preserves affinity equality for numeric thread references', () => {
+    const store = openStoreInMemory();
+    const created = store.threads.getOrCreate({
+      repoOwner: 'octo',
+      repoName: 'repo',
+      issueNumber: '42',
+    });
+    expect(store.threads.findByIssue('octo', 'repo', 42)?.id).toBe(created.id);
+    expect(store.threads.getOrCreate({ repoOwner: 'octo', repoName: 'repo', issueNumber: 42 }).id).toBe(
+      created.id,
+    );
     store.close();
   });
 

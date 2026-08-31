@@ -1,4 +1,5 @@
 import type { Db } from '../db.js';
+import type { IssueRef } from '@kanbots/core';
 import type { AgentEvent, AgentEventType, AgentRunId } from '../types.js';
 
 interface AgentEventRow {
@@ -134,7 +135,7 @@ export class AgentEventsRepo {
    */
   listRecentAcrossWorkspace(
     limit: number,
-  ): Array<AgentEvent & { issueNumber: number; runStatus: string }> {
+  ): Array<AgentEvent & { issueNumber: IssueRef; runStatus: string }> {
     const rows = this.db
       .prepare(
         `SELECT e.*, t.issue_number AS issue_number_alias, r.status AS run_status_alias
@@ -145,7 +146,7 @@ export class AgentEventsRepo {
          LIMIT ?`,
       )
       .all(limit) as Array<
-      AgentEventRow & { issue_number_alias: number; run_status_alias: string }
+      AgentEventRow & { issue_number_alias: IssueRef; run_status_alias: string }
     >;
     return rows.map((row) => ({
       ...rowToAgentEvent(row),

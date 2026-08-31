@@ -28,3 +28,7 @@ design_plan/
 docs/monetization.md
 
 .tasks/
+
+# BEGIN oh-my-opencode-slim deepwork
+.slim/deepwork/
+# END oh-my-opencode-slim deepwork

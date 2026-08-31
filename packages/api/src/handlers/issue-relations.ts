@@ -1,9 +1,10 @@
-import { statusFromLabels, type Issue } from '@kanbots/core';
+import { statusFromLabels, type Issue, type IssueRef } from '@kanbots/core';
 import type { IssueRelation } from '@kanbots/local-store';
 import { z } from 'zod';
 import type { IssueRelationPayload } from '../bridge.js';
 import { bootstrapWorkspace } from '../workspace-bootstrap.js';
 import { badRequest, notFound, parseArgs } from './errors.js';
+import { issueRefSchema } from '../issue-ref.js';
 import type { HandlerDeps } from './types.js';
 
 /**
@@ -15,33 +16,33 @@ import type { HandlerDeps } from './types.js';
 const MAX_CYCLE_DEPTH = 16;
 
 const listChildrenSchema = z
-  .object({ parentNumber: z.number().int().positive() })
+  .object({ parentNumber: issueRefSchema })
   .strict();
 
 const listParentsSchema = z
-  .object({ childNumber: z.number().int().positive() })
+  .object({ childNumber: issueRefSchema })
   .strict();
 
 const addSchema = z
   .object({
-    parentNumber: z.number().int().positive(),
-    childNumber: z.number().int().positive(),
+    parentNumber: issueRefSchema,
+    childNumber: issueRefSchema,
   })
   .strict();
 
 const removeSchema = z.object({ id: z.number().int().positive() }).strict();
 
 export interface ListChildrenArgs {
-  parentNumber: number;
+  parentNumber: IssueRef;
 }
 
 export interface ListParentsArgs {
-  childNumber: number;
+  childNumber: IssueRef;
 }
 
 export interface AddRelationArgs {
-  parentNumber: number;
-  childNumber: number;
+  parentNumber: IssueRef;
+  childNumber: IssueRef;
 }
 
 export interface RemoveRelationArgs {
@@ -69,7 +70,7 @@ function requireWorkspaceId(deps: HandlerDeps): string {
  */
 async function tryGetIssue(
   deps: HandlerDeps,
-  number: number,
+  number: IssueRef,
 ): Promise<Issue | null> {
   try {
     return await deps.source.getIssue(number);
@@ -188,8 +189,8 @@ export async function add(
   // appears among the *ancestors* of `childNumber`. Walking from the
   // candidate parent upward checks every existing chain whose end
   // would loop back into itself once the new link is inserted.
-  let cursor: number | null = parsed.parentNumber;
-  const seen = new Set<number>();
+  let cursor: IssueRef | null = parsed.parentNumber;
+  const seen = new Set<IssueRef>();
   for (let i = 0; i < MAX_CYCLE_DEPTH && cursor !== null; i++) {
     if (cursor === parsed.childNumber) {
       throw badRequest(

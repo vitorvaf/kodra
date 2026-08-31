@@ -43,6 +43,13 @@ describe('ThreadsRepo', () => {
     expect(t2.id).toBe(t1.id);
   });
 
+  it('getOrCreate round-trips alphanumeric issue numbers', () => {
+    const t1 = store.threads.getOrCreate({ repoOwner: 'a', repoName: 'b', issueNumber: 'FEAT-42' });
+    const t2 = store.threads.getOrCreate({ repoOwner: 'a', repoName: 'b', issueNumber: 'FEAT-42' });
+    expect(t1.issueNumber).toBe('FEAT-42');
+    expect(t2).toEqual(t1);
+  });
+
   it('lists threads in id order', () => {
     const a = store.threads.create({ repoOwner: 'r', repoName: 'r', issueNumber: 1 });
     const b = store.threads.create({ repoOwner: 'r', repoName: 'r', issueNumber: 2 });

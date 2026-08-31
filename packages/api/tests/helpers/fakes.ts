@@ -1,10 +1,14 @@
+import { isValidCustomIssueId } from '@kanbots/core';
 import type {
   Comment,
   CreateIssueInput,
   Issue,
+  IssueRef,
   IssueSource,
+  PullRequest,
   UpdateIssuePatch,
 } from '@kanbots/core';
+import { DuplicateIssueNumberError, InvalidIssueIdError } from '@kanbots/local-store';
 import type {
   AgentEvent,
   AgentRunStatus,
@@ -25,10 +29,22 @@ function apiError(status: number, message: string): ApiError {
 
 export class FakeIssueSource implements IssueSource {
   private readonly issuesByState = new Map<string, Issue[]>();
-  private readonly issuesByNumber = new Map<number, Issue>();
-  private readonly commentsByIssue = new Map<number, Comment[]>();
+  private readonly issuesByNumber = new Map<IssueRef, Issue>();
+  private readonly commentsByIssue = new Map<IssueRef, Comment[]>();
   private nextCommentId = 1;
   private nextIssueNumber = 1000;
+
+  findOpenPullForBranch(_branch: string): Promise<PullRequest | null> {
+    return Promise.resolve(null);
+  }
+
+  approvePullRequest(_input: { pullNumber: number; body?: string }): Promise<void> {
+    return Promise.resolve();
+  }
+
+  requestChangesPullRequest(_input: { pullNumber: number; body: string }): Promise<void> {
+    return Promise.resolve();
+  }
 
   failNextUpdateWith: ApiError | null = null;
   failNextAddCommentWith: ApiError | null = null;
@@ -45,7 +61,7 @@ export class FakeIssueSource implements IssueSource {
     this.issuesByNumber.set(issue.number, issue);
   }
 
-  setComments(n: number, comments: Comment[]): void {
+  setComments(n: IssueRef, comments: Comment[]): void {
     this.commentsByIssue.set(n, comments);
   }
 
@@ -65,17 +81,17 @@ export class FakeIssueSource implements IssueSource {
     return this.issuesByState.get(opts.state ?? 'open') ?? [];
   }
 
-  async getIssue(n: number): Promise<Issue> {
+  async getIssue(n: IssueRef): Promise<Issue> {
     const issue = this.issuesByNumber.get(n);
     if (!issue) throw apiError(404, `Issue #${n} not found`);
     return issue;
   }
 
-  async listComments(n: number): Promise<Comment[]> {
+  async listComments(n: IssueRef): Promise<Comment[]> {
     return this.commentsByIssue.get(n) ?? [];
   }
 
-  async updateIssue(n: number, patch: UpdateIssuePatch): Promise<Issue> {
+  async updateIssue(n: IssueRef, patch: UpdateIssuePatch): Promise<Issue> {
     if (this.failNextUpdateWith) {
       const err = this.failNextUpdateWith;
       this.failNextUpdateWith = null;
@@ -96,7 +112,7 @@ export class FakeIssueSource implements IssueSource {
     return updated;
   }
 
-  async addComment(n: number, body: string): Promise<Comment> {
+  async addComment(n: IssueRef, body: string): Promise<Comment> {
     if (this.failNextAddCommentWith) {
       const err = this.failNextAddCommentWith;
       this.failNextAddCommentWith = null;
@@ -124,7 +140,27 @@ export class FakeIssueSource implements IssueSource {
       this.failNextCreateIssueWith = null;
       throw err;
     }
-    const number = this.nextIssueNumber++;
+    let number: IssueRef = input.number ?? this.nextIssueNumber++;
+    if (typeof number === 'string') {
+      const requestedNumber = number;
+      if (!isValidCustomIssueId(requestedNumber)) throw new InvalidIssueIdError(requestedNumber);
+      if (/^\d+$/.test(requestedNumber)) {
+        const numeric = Number(requestedNumber);
+        if (!Number.isSafeInteger(numeric) || String(numeric) !== requestedNumber) {
+          throw new InvalidIssueIdError(requestedNumber);
+        }
+        number = numeric;
+      } else if (
+        [...this.issuesByNumber.keys()].some(
+          (existing) => typeof existing === 'string' && existing.toLowerCase() === requestedNumber.toLowerCase(),
+        )
+      ) {
+        throw new DuplicateIssueNumberError(requestedNumber);
+      }
+    }
+    if (this.issuesByNumber.has(number)) {
+      throw new DuplicateIssueNumberError(String(number));
+    }
     const now = new Date().toISOString();
     const issue: Issue = {
       number,

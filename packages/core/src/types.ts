@@ -1,4 +1,5 @@
 export type IssueState = 'open' | 'closed';
+export type IssueRef = number | string;
 
 export interface User {
   login: string;
@@ -6,7 +7,7 @@ export interface User {
 }
 
 export interface Issue {
-  number: number;
+  number: IssueRef;
   title: string;
   body: string;
   state: IssueState;
@@ -80,6 +81,7 @@ export interface Repo {
 
 export interface CreateIssueInput {
   title: string;
+  number?: string;
   body?: string;
   labels?: string[];
   assignees?: string[];

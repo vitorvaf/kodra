@@ -1,7 +1,6 @@
-// Web-side type aliases. The canonical types live in `@kanbots/api`
-// (re-exported from `@kanbots/local-store` and `@kanbots/core`); this
-// module re-exports them under the names the renderer was already
-// using and adds a few view-only types.
+// Web-side type aliases. The canonical domain types live in `@kanbots/core`
+// and bridge/view types live in `@kanbots/api`; this module re-exports them
+// under the names the renderer was already using and adds view-only types.
 
 import type {
   Comment,
@@ -12,8 +11,27 @@ import type {
   PreviewStatePayload as ApiPreviewStatePayload,
   ThreadPayload,
 } from '@kanbots/api';
+import type {
+  CreateIssueInput,
+  Issue as CoreIssue,
+  IssueRef,
+  StatusKey,
+} from '@kanbots/core';
 
-export type { IssueRelationPayload } from '@kanbots/api';
+export type { CreateIssueInput, IssueRef, StatusKey } from '@kanbots/core';
+
+export interface IssueRelationPayload {
+  id: number;
+  parentNumber: IssueRef;
+  childNumber: IssueRef;
+  child: {
+    number: IssueRef;
+    title: string;
+    status: StatusKey | null;
+    state: 'open' | 'closed';
+  };
+  createdAt: string;
+}
 
 export type {
   AgentCheck,
@@ -46,7 +64,6 @@ export type {
   Comment,
   Config,
   CostBreakdownItem,
-  CreateIssueInput,
   DecisionPayload,
   DiffFile,
   DiffFileStatus,
@@ -82,7 +99,6 @@ export type {
   ShipPRResult,
   ShipStatus,
   SlashCommandPayload,
-  StatusKey,
   UpdateIssuePatch,
   Workspace,
   WorkspaceAcpCommandBridgePayload,
@@ -103,14 +119,14 @@ export type IssueState = 'open' | 'closed';
 
 // In the UI, `Issue` always means the decorated issue (with status,
 // agent, activeRun) — the renderer never sees the bare GitHub Issue.
-export type Issue = DecoratedIssue;
+export type Issue = DecoratedIssue & CoreIssue;
 
 // Same convention: the renderer-facing active-run shape is the payload
 // shape from the bridge, not the wider supervisor `AgentRun`.
 export type IssueActiveRun = IssueActiveRunPayload;
 
 export type Thread = ThreadPayload;
-export type IssueDetail = ApiIssueDetail;
+export type IssueDetail = Omit<ApiIssueDetail, 'issue'> & { issue: Issue };
 
 // Web's preview UI strictly types `state` to the live state union; the
 // bridge keeps it as `PreviewState | string` for forward-compat. Narrow

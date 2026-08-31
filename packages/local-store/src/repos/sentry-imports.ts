@@ -1,9 +1,10 @@
 import type { Db } from '../db.js';
+import type { IssueRef } from '@kanbots/core';
 import type { SentryImport, SentryImportStatus, SentrySuggestion } from '../types.js';
 
 interface SentryImportRow {
   sentry_issue_id: string;
-  local_issue_number: number;
+  local_issue_number: IssueRef;
   status: string;
   count: number;
   first_seen_at: string;
@@ -46,7 +47,7 @@ function rowToImport(row: SentryImportRow): SentryImport {
 
 export interface UpsertSentryImportInput {
   sentryIssueId: string;
-  localIssueNumber: number;
+  localIssueNumber: IssueRef;
   count: number;
   firstSeenAt: string;
   lastSeenAt: string;
@@ -67,16 +68,16 @@ export class SentryImportsRepo {
     return row ? rowToImport(row) : null;
   }
 
-  findByLocalNumber(localIssueNumber: number): SentryImport | null {
+  findByLocalNumber(localIssueNumber: IssueRef): SentryImport | null {
     const row = this.db
       .prepare('SELECT * FROM sentry_imports WHERE local_issue_number = ?')
       .get(localIssueNumber) as SentryImportRow | undefined;
     return row ? rowToImport(row) : null;
   }
 
-  mapByLocalNumber(): Map<number, SentryImport> {
+  mapByLocalNumber(): Map<IssueRef, SentryImport> {
     const rows = this.db.prepare('SELECT * FROM sentry_imports').all() as SentryImportRow[];
-    const map = new Map<number, SentryImport>();
+    const map = new Map<IssueRef, SentryImport>();
     for (const row of rows) {
       map.set(row.local_issue_number, rowToImport(row));
     }
@@ -116,7 +117,7 @@ export class SentryImportsRepo {
     return result;
   }
 
-  setSuggestion(localIssueNumber: number, suggestion: SentrySuggestion): SentryImport {
+  setSuggestion(localIssueNumber: IssueRef, suggestion: SentrySuggestion): SentryImport {
     const now = new Date().toISOString();
     this.db
       .prepare(
@@ -130,7 +131,7 @@ export class SentryImportsRepo {
     return updated;
   }
 
-  markApplied(localIssueNumber: number): SentryImport {
+  markApplied(localIssueNumber: IssueRef): SentryImport {
     this.db
       .prepare(`UPDATE sentry_imports SET status = 'applied' WHERE local_issue_number = ?`)
       .run(localIssueNumber);

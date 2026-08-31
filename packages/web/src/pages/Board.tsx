@@ -8,6 +8,7 @@ import {
   type DragStartEvent,
   type UniqueIdentifier,
 } from '@dnd-kit/core';
+import { isValidCustomIssueId, parseIssueRef, type IssueRef } from '@kanbots/core';
 import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { api } from '../api.js';
 import { AutopilotLaunchModal } from '../components/modals/AutopilotLaunchModal.js';
@@ -61,10 +62,10 @@ function sortIssues(issues: Issue[], mode: SortMode): Issue[] {
 
 const STATUS_KEYS: readonly StatusKey[] = ['backlog', 'todo', 'inProgress', 'review', 'done'];
 
-function issueNumberFromDragId(id: UniqueIdentifier): number | null {
+function issueNumberFromDragId(id: UniqueIdentifier): IssueRef | null {
   if (typeof id !== 'string' || !id.startsWith('card:')) return null;
-  const n = Number.parseInt(id.slice(5), 10);
-  return Number.isFinite(n) ? n : null;
+  const raw = id.slice(5);
+  return isValidCustomIssueId(raw) ? parseIssueRef(raw) : null;
 }
 
 function statusFromDropId(id: UniqueIdentifier): StatusKey | null | undefined {
@@ -88,7 +89,7 @@ function groupByStatus(issues: Issue[]): GroupedIssues {
     if (issue.status === null) {
       grouped.untagged.push(issue);
     } else {
-      grouped.byKey[issue.status].push(issue);
+      grouped.byKey[issue.status as StatusKey]!.push(issue);
     }
   }
   // Inbox order: unreviewed (no sentryMeta or sentryMeta.status === 'imported')
@@ -106,7 +107,7 @@ function groupByStatus(issues: Issue[]): GroupedIssues {
 }
 
 export interface BoardProps {
-  onOpenDetail?: (issueNumber: number) => void;
+  onOpenDetail?: (issueNumber: IssueRef) => void;
   onOpenCreate?: () => void;
   onOpenPalette?: () => void;
   /** Optional handler for the toolbar's workspace cost meter — typically
@@ -166,7 +167,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
     };
   }, [refetchCostUsage, refetchCostToday]);
 
-  const [activeNumber, setActiveNumber] = useState<number | null>(null);
+  const [activeNumber, setActiveNumber] = useState<IssueRef | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
   const [suggesting, setSuggesting] = useState(false);
   const [suggestActivity, setSuggestActivity] = useState<SuggestActivity[]>([]);
@@ -266,16 +267,16 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
   // location after the guards caused a `useMemo` to be skipped on the
   // first render and added on later renders, tripping the Rules of Hooks.
 
-  const orderedNumbers = useMemo<number[]>(() => {
-    const out: number[] = [];
+  const orderedNumbers = useMemo<IssueRef[]>(() => {
+    const out: IssueRef[] = [];
     for (const issue of grouped.untagged) out.push(issue.number);
     if (filterApi.includeBacklog) {
-      for (const issue of grouped.byKey.backlog) out.push(issue.number);
+      for (const issue of grouped.byKey.backlog ?? []) out.push(issue.number);
     }
-    for (const issue of grouped.byKey.todo) out.push(issue.number);
-    for (const issue of grouped.byKey.inProgress) out.push(issue.number);
-    for (const issue of grouped.byKey.review) out.push(issue.number);
-    for (const issue of grouped.byKey.done) out.push(issue.number);
+    for (const issue of grouped.byKey.todo ?? []) out.push(issue.number);
+    for (const issue of grouped.byKey.inProgress ?? []) out.push(issue.number);
+    for (const issue of grouped.byKey.review ?? []) out.push(issue.number);
+    for (const issue of grouped.byKey.done ?? []) out.push(issue.number);
     return out;
   }, [grouped, filterApi.includeBacklog]);
 
@@ -317,7 +318,9 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
     );
   }
   const activeIssue =
-    activeNumber !== null ? (list.find((i) => i.number === activeNumber) ?? null) : null;
+    activeNumber !== null
+      ? (list.find((i) => String(i.number) === String(activeNumber)) ?? null)
+      : null;
 
   const stats = {
     issues: list.length,
@@ -342,7 +345,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
     const targetStatus = statusFromDropId(over.id);
     if (targetStatus === undefined) return;
 
-    const current = list.find((i) => i.number === issueNumber);
+    const current = list.find((i) => String(i.number) === String(issueNumber));
     if (!current) return;
     if (current.status === targetStatus) return;
 
@@ -352,13 +355,17 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
 
     mutate((prev) =>
       (prev ?? []).map((i) =>
-        i.number === issueNumber ? { ...i, status: targetStatus, labels: nextLabels } : i,
+        String(i.number) === String(issueNumber)
+          ? { ...i, status: targetStatus, labels: nextLabels }
+          : i,
       ),
     );
 
     try {
       const updated = await api.updateIssue(issueNumber, { labels: nextLabels });
-      mutate((prev) => (prev ?? []).map((i) => (i.number === issueNumber ? updated : i)));
+      mutate((prev) =>
+        (prev ?? []).map((i) => (String(i.number) === String(issueNumber) ? updated : i)),
+      );
       setMoveError(null);
     } catch (err) {
       mutate(before);
@@ -429,7 +436,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
   // earlier in the function — see the block before the loading/error
   // early returns. Kept here as documentation only.)
 
-  function handleCardSelect(n: number, modifiers: CardSelectModifiers): void {
+  function handleCardSelect(n: IssueRef, modifiers: CardSelectModifiers): void {
     if (modifiers.shiftKey) {
       cardSelection.selectRange(cardSelection.anchor, n, orderedNumbers);
       return;
@@ -478,7 +485,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
       const before = issues;
       const results = await Promise.allSettled(
         targets.map(async (n) => {
-          const issue = before.find((i) => i.number === n);
+          const issue = before.find((i) => String(i.number) === String(n));
           if (!issue) return null;
           const nextLabels = withStatus(issue.labels, status);
           return api.updateIssue(n, { labels: nextLabels });
@@ -499,7 +506,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
       const before = issues;
       const results = await Promise.allSettled(
         targets.map(async (n) => {
-          const issue = before.find((i) => i.number === n);
+          const issue = before.find((i) => String(i.number) === String(n));
           if (!issue) return null;
           const set = new Set(issue.labels);
           for (const l of labels) set.add(l);
@@ -521,7 +528,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
       const before = issues;
       const results = await Promise.allSettled(
         targets.map(async (n) => {
-          const issue = before.find((i) => i.number === n);
+          const issue = before.find((i) => String(i.number) === String(n));
           if (!issue) return null;
           if (issue.activeRun !== null) return null;
           return api.dispatchIssue(n, {

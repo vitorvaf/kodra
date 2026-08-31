@@ -245,10 +245,10 @@ export function createAgentMemoryClient(config: MemoryClientConfig): AgentMemory
 export function memorySessionId(parts: {
   workspaceId: string;
   repoId: string;
-  issueNumber: number;
+  issueNumber: string | number;
   runId: number;
 }): string {
-  return `kanbots:${parts.workspaceId}:${parts.repoId}:${parts.issueNumber}:${parts.runId}`;
+  return `kanbots:${parts.workspaceId}:${parts.repoId}:${String(parts.issueNumber)}:${parts.runId}`;
 }
 
 /** This value is passed as agentmemory's `project` field (agentmemory has no generic `namespace`). See ADR-0004. */

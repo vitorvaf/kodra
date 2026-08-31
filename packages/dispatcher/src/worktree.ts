@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import { issueBranchSlug, type IssueRef } from '@kanbots/core';
 
 const execFileAsync = promisify(execFile);
 
@@ -96,10 +97,10 @@ export async function removeWorktree(input: RemoveWorktreeInput): Promise<void> 
 
 export function resolveWorktreePath(
   repoPath: string,
-  issueNumber: number | string,
+  issueNumber: IssueRef,
   runId: string,
 ): string {
-  const worktreeName = `issue-${issueNumber}-${runId}`;
+  const worktreeName = `issue-${issueBranchSlug(issueNumber)}-${runId}`;
   const legacyPath = join(repoPath, LEGACY_DIR, 'worktrees', worktreeName);
   return existsSync(legacyPath)
     ? legacyPath
@@ -108,12 +109,12 @@ export function resolveWorktreePath(
 
 export function defaultWorktreePath(opts: {
   repoPath: string;
-  issueNumber: number;
+  issueNumber: IssueRef;
   runId: number;
 }): string {
   return resolveWorktreePath(opts.repoPath, opts.issueNumber, String(opts.runId));
 }
 
-export function defaultBranchName(opts: { issueNumber: number; runId: number }): string {
-  return `kodra/issue-${opts.issueNumber}-${opts.runId}`;
+export function defaultBranchName(opts: { issueNumber: IssueRef; runId: number }): string {
+  return `kodra/issue-${issueBranchSlug(opts.issueNumber)}-${opts.runId}`;
 }

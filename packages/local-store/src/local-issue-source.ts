@@ -2,6 +2,7 @@ import type {
   Comment,
   CreateIssueInput,
   Issue,
+  IssueRef,
   IssueSource,
   UpdateIssuePatch,
 } from '@kanbots/core';
@@ -30,7 +31,7 @@ export class LocalIssueSource implements IssueSource {
     return this.repo.list(opts);
   }
 
-  async getIssue(number: number): Promise<Issue> {
+  async getIssue(number: IssueRef): Promise<Issue> {
     const issue = this.repo.findByNumber(number);
     if (!issue) throw new LocalIssueNotFoundError(number);
     return issue;
@@ -39,6 +40,7 @@ export class LocalIssueSource implements IssueSource {
   async createIssue(input: CreateIssueInput): Promise<Issue> {
     return this.repo.create({
       title: input.title,
+      ...(input.number !== undefined ? { number: input.number } : {}),
       ...(input.body !== undefined ? { body: input.body } : {}),
       ...(input.labels !== undefined ? { labels: input.labels } : {}),
       ...(input.assignees !== undefined ? { assignees: input.assignees } : {}),
@@ -47,15 +49,15 @@ export class LocalIssueSource implements IssueSource {
     });
   }
 
-  async updateIssue(number: number, patch: UpdateIssuePatch): Promise<Issue> {
+  async updateIssue(number: IssueRef, patch: UpdateIssuePatch): Promise<Issue> {
     return this.repo.update(number, patch);
   }
 
-  async listComments(number: number): Promise<Comment[]> {
+  async listComments(number: IssueRef): Promise<Comment[]> {
     return this.repo.listComments(number);
   }
 
-  async addComment(number: number, body: string): Promise<Comment> {
+  async addComment(number: IssueRef, body: string): Promise<Comment> {
     return this.repo.addComment({
       issueNumber: number,
       body,

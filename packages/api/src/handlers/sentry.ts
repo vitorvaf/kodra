@@ -1,5 +1,5 @@
 import { SentryAuthError, SentryClient } from '@kanbots/core';
-import type { SentryEventDetail, SentryStackFrame } from '@kanbots/core';
+import type { IssueRef, SentryEventDetail, SentryStackFrame } from '@kanbots/core';
 import { z } from 'zod';
 import type {
   DecoratedIssue,
@@ -12,6 +12,7 @@ import type {
 import type { SentrySuggestion } from '@kanbots/local-store';
 import { badRequest, parseArgs } from './errors.js';
 import { decorateIssue, lookupSentryMeta } from './issues.js';
+import { issueRefSchema } from '../issue-ref.js';
 import type { HandlerDeps } from './types.js';
 
 const STATUS_PREFIX = 'status:';
@@ -38,9 +39,9 @@ const testConnectionSchema = z
   })
   .strict();
 
-const issueRefSchema = z
+const sentryIssueRefSchema = z
   .object({
-    issueNumber: z.number().int().positive(),
+    issueNumber: issueRefSchema,
   })
   .strict();
 
@@ -116,9 +117,9 @@ export async function syncNow(deps: HandlerDeps): Promise<SentrySyncResult> {
 
 export async function analyze(
   deps: HandlerDeps,
-  args: { issueNumber: number },
+  args: { issueNumber: IssueRef },
 ): Promise<SentrySuggestion> {
-  const parsed = parseArgs(issueRefSchema, args);
+  const parsed = parseArgs(sentryIssueRefSchema, args);
   const importRow = deps.store.sentryImports.findByLocalNumber(parsed.issueNumber);
   if (!importRow) {
     throw badRequest(`Issue #${parsed.issueNumber} is not from Sentry`);
@@ -146,9 +147,9 @@ export async function analyze(
 
 export async function applySuggestion(
   deps: HandlerDeps,
-  args: { issueNumber: number },
+  args: { issueNumber: IssueRef },
 ): Promise<DecoratedIssue> {
-  const parsed = parseArgs(issueRefSchema, args);
+  const parsed = parseArgs(sentryIssueRefSchema, args);
   const importRow = deps.store.sentryImports.findByLocalNumber(parsed.issueNumber);
   if (!importRow) {
     throw badRequest(`Issue #${parsed.issueNumber} is not from Sentry`);

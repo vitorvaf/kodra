@@ -1,4 +1,5 @@
 import { Logo } from '../Logo.js';
+import type { IssueRef } from '@kanbots/core';
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { api } from '../../api.js';
 import { useFocusedRepo } from '../../hooks/useFocusedRepo.js';
@@ -6,7 +7,7 @@ import { dispatchIssuesRefetch } from '../../hooks/useIssues.js';
 import type { Issue } from '../../types.js';
 
 export interface SplitModalProps {
-  parentNumber: number;
+  parentNumber: IssueRef;
   parentTitle: string;
   onClose: () => void;
   onSplit?: (children: Issue[]) => void;

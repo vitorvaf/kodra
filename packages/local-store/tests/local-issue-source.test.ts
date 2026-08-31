@@ -16,6 +16,11 @@ describe('LocalIssueSource', () => {
     expect(issue.number).toBe(1);
   });
 
+  it('forwards custom issue numbers', async () => {
+    const issue = await source.createIssue({ title: 'feature', number: 'FEAT-42' });
+    expect(issue.number).toBe('FEAT-42');
+  });
+
   it('listIssues defaults to open state', async () => {
     await source.createIssue({ title: 'a' });
     await source.createIssue({ title: 'b' });

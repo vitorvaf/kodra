@@ -4,11 +4,12 @@ import {
   withAgentLabel,
   withStatusLabel,
   type IssueSource,
+  type IssueRef,
 } from '@kanbots/core';
 import type { Store } from '@kanbots/local-store';
 
 export interface ReconcileLabelsResult {
-  demoted: number[];
+  demoted: IssueRef[];
 }
 
 /**
@@ -32,7 +33,7 @@ export async function reconcileIssueLabels(
   );
 
   const issues = await source.listIssues({ state: 'open' });
-  const demoted: number[] = [];
+  const demoted: IssueRef[] = [];
 
   for (const issue of issues) {
     if (activeIssueNumbers.has(issue.number)) continue;

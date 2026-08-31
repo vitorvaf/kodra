@@ -1,8 +1,14 @@
-import type { Comment, Issue, IssueState } from '@kanbots/core';
+import {
+  isValidCustomIssueId,
+  type Comment,
+  type Issue,
+  type IssueRef,
+  type IssueState,
+} from '@kanbots/core';
 import type { Db } from '../db.js';
 
 interface IssueRow {
-  number: number;
+  number: string;
   title: string;
   body: string;
   state: string;
@@ -16,7 +22,7 @@ interface IssueRow {
 
 interface CommentRow {
   id: number;
-  issue_number: number;
+  issue_number: string;
   body: string;
   author_login: string;
   created_at: string;
@@ -25,7 +31,7 @@ interface CommentRow {
 
 function rowToIssue(row: IssueRow): Issue {
   return {
-    number: row.number,
+    number: /^\d+$/.test(row.number) ? Number(row.number) : row.number,
     title: row.title,
     body: row.body,
     state: row.state as IssueState,
@@ -61,6 +67,7 @@ function parseStringArray(json: string): string[] {
 }
 
 export interface CreateLocalIssueInput {
+  number?: string;
   title: string;
   body?: string;
   labels?: string[];
@@ -78,20 +85,37 @@ export interface UpdateLocalIssuePatch {
 }
 
 export interface CreateLocalCommentInput {
-  issueNumber: number;
+  issueNumber: IssueRef;
   body: string;
   authorLogin: string;
 }
 
 export class LocalIssueNotFoundError extends Error {
   readonly status = 404;
-  constructor(public readonly issueNumber: number) {
+  constructor(public readonly issueNumber: IssueRef) {
     super(`Local issue #${issueNumber} not found`);
     this.name = 'LocalIssueNotFoundError';
   }
 }
 
+export class InvalidIssueIdError extends Error {
+  constructor(public readonly issueId: string) {
+    super(`Invalid issue id: ${issueId}`);
+    this.name = 'InvalidIssueIdError';
+  }
+}
+
+export class DuplicateIssueNumberError extends Error {
+  constructor(public readonly issueNumber: string) {
+    super(`Issue number ${issueNumber} already exists`);
+    this.name = 'DuplicateIssueNumberError';
+  }
+}
+
+export const bindIssueRef = (ref: IssueRef): string => String(ref);
+
 export class LocalIssuesRepo {
+  // local_issues.number is TEXT: always bind String(ref)
   constructor(private readonly db: Db) {}
 
   list(opts: { state?: 'open' | 'closed' | 'all'; folderId?: string } = {}): Issue[] {
@@ -107,14 +131,19 @@ export class LocalIssuesRepo {
       params.push(opts.folderId);
     }
     const where = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
-    const rows = this.db
-      .prepare(`SELECT * FROM local_issues${where} ORDER BY number DESC`)
-      .all(...params) as IssueRow[];
-    return rows.map(rowToIssue);
+    const rows = this.db.prepare(`SELECT * FROM local_issues${where}`).all(...params) as IssueRow[];
+    return rows.map(rowToIssue).sort((a, b) => {
+      if (typeof a.number === 'number' && typeof b.number === 'number') return b.number - a.number;
+      if (typeof a.number === 'number') return -1;
+      if (typeof b.number === 'number') return 1;
+      return a.number === b.number ? 0 : a.number > b.number ? -1 : 1;
+    });
   }
 
-  findByNumber(number: number): Issue | null {
-    const row = this.db.prepare('SELECT * FROM local_issues WHERE number = ?').get(number) as
+  findByNumber(number: IssueRef): Issue | null {
+    const row = this.db
+      .prepare('SELECT * FROM local_issues WHERE number = ?')
+      .get(bindIssueRef(number)) as
       | IssueRow
       | undefined;
     return row ? rowToIssue(row) : null;
@@ -123,10 +152,26 @@ export class LocalIssuesRepo {
   create(input: CreateLocalIssueInput): Issue {
     const now = new Date().toISOString();
     const tx = this.db.transaction((args: CreateLocalIssueInput): Issue => {
-      const maxRow = this.db
-        .prepare('SELECT COALESCE(MAX(number), 0) AS max FROM local_issues')
-        .get() as { max: number };
-      const nextNumber = maxRow.max + 1;
+      const rows = this.db.prepare('SELECT number FROM local_issues').all() as Array<{ number: string }>;
+      const numericNumbers = rows
+        .map((row) => row.number)
+        .filter((number) => /^\d+$/.test(number))
+        .map(Number);
+      const nextNumber = (numericNumbers.length > 0 ? Math.max(...numericNumbers) : 0) + 1;
+      const issueNumber = args.number ?? String(nextNumber);
+      if (args.number !== undefined) {
+        if (!isValidCustomIssueId(args.number)) throw new InvalidIssueIdError(args.number);
+        if (/^\d+$/.test(args.number)) {
+          const n = Number(args.number);
+          if (!Number.isSafeInteger(n) || String(n) !== args.number) {
+            throw new InvalidIssueIdError(args.number);
+          }
+        }
+        const duplicate = this.db
+          .prepare('SELECT 1 FROM local_issues WHERE number = ? COLLATE NOCASE LIMIT 1')
+          .get(bindIssueRef(args.number));
+        if (duplicate) throw new DuplicateIssueNumberError(args.number);
+      }
       if (args.folderId === undefined) {
         this.db
           .prepare(
@@ -135,7 +180,7 @@ export class LocalIssuesRepo {
              VALUES (?, ?, ?, 'open', ?, ?, ?, ?, ?)`,
           )
           .run(
-            nextNumber,
+            bindIssueRef(issueNumber),
             args.title,
             args.body ?? '',
             JSON.stringify(args.labels ?? []),
@@ -152,7 +197,7 @@ export class LocalIssuesRepo {
              VALUES (?, ?, ?, 'open', ?, ?, ?, ?, ?, ?)`,
           )
           .run(
-            nextNumber,
+            bindIssueRef(issueNumber),
             args.title,
             args.body ?? '',
             JSON.stringify(args.labels ?? []),
@@ -163,14 +208,14 @@ export class LocalIssuesRepo {
             args.folderId,
           );
       }
-      const issue = this.findByNumber(nextNumber);
-      if (!issue) throw new Error(`Failed to insert local issue ${nextNumber}`);
+      const issue = this.findByNumber(issueNumber);
+      if (!issue) throw new Error(`Failed to insert local issue ${issueNumber}`);
       return issue;
     });
-    return tx(input);
+    return tx.immediate(input);
   }
 
-  update(number: number, patch: UpdateLocalIssuePatch): Issue {
+  update(number: IssueRef, patch: UpdateLocalIssuePatch): Issue {
     const fields: string[] = [];
     const values: unknown[] = [];
 
@@ -199,7 +244,7 @@ export class LocalIssuesRepo {
 
     fields.push('updated_at = ?');
     values.push(new Date().toISOString());
-    values.push(number);
+    values.push(bindIssueRef(number));
 
     const result = this.db
       .prepare(`UPDATE local_issues SET ${fields.join(', ')} WHERE number = ?`)
@@ -213,10 +258,10 @@ export class LocalIssuesRepo {
     return updated;
   }
 
-  listComments(issueNumber: number): Comment[] {
+  listComments(issueNumber: IssueRef): Comment[] {
     const rows = this.db
       .prepare('SELECT * FROM local_comments WHERE issue_number = ? ORDER BY id')
-      .all(issueNumber) as CommentRow[];
+      .all(bindIssueRef(issueNumber)) as CommentRow[];
     return rows.map(rowToComment);
   }
 
@@ -229,11 +274,11 @@ export class LocalIssuesRepo {
         `INSERT INTO local_comments (issue_number, body, author_login, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?)`,
       )
-      .run(input.issueNumber, input.body, input.authorLogin, now, now);
+      .run(bindIssueRef(input.issueNumber), input.body, input.authorLogin, now, now);
 
     this.db
       .prepare('UPDATE local_issues SET updated_at = ? WHERE number = ?')
-      .run(now, input.issueNumber);
+      .run(now, bindIssueRef(input.issueNumber));
 
     return {
       id: Number(result.lastInsertRowid),

@@ -79,7 +79,7 @@ const EFFORT_GUIDANCE: Record<AutopilotEffort, string> = {
 };
 
 function buildAutopilotKickoff(
-  issue: { number: number; title: string; body: string | null | undefined },
+  issue: { number: Issue['number']; title: string; body: string | null | undefined },
   effort: AutopilotEffort | undefined,
 ): string {
   const body = issue.body && issue.body.trim().length > 0 ? issue.body : '(no description)';

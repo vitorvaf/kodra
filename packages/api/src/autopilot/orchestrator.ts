@@ -1,4 +1,4 @@
-import type { IssueSource } from '@kanbots/core';
+import type { IssueRef, IssueSource } from '@kanbots/core';
 import type {
   AgentRunStatus,
   AutopilotChildEntry,
@@ -113,14 +113,14 @@ export interface StartAutopilotInput {
 
 export interface StartAutopilotResult {
   session: AutopilotSession;
-  issueNumber: number;
+  issueNumber: IssueRef;
 }
 
 export interface AutopilotManager {
   start(input: StartAutopilotInput): Promise<StartAutopilotResult>;
   stop(sessionId: number, opts: { stopChildren: boolean }): Promise<AutopilotSession>;
   getSession(sessionId: number): AutopilotSession | null;
-  getSessionByIssue(issueNumber: number): AutopilotSession | null;
+  getSessionByIssue(issueNumber: IssueRef): AutopilotSession | null;
   listActive(): AutopilotSession[];
   stopAllForShutdown(): Promise<void>;
 }
@@ -373,7 +373,7 @@ export function createAutopilotManager(opts: AutopilotManagerOpts): AutopilotMan
     return session ? planning.decorate(session) : null;
   }
 
-  function getSessionByIssue(issueNumber: number): AutopilotSession | null {
+  function getSessionByIssue(issueNumber: IssueRef): AutopilotSession | null {
     const session = store.autopilotSessions.findByIssueNumber(issueNumber);
     return session ? planning.decorate(session) : null;
   }

@@ -174,6 +174,8 @@ async function runSlot(
       consecutiveFailures += 1;
       // Record a "skipped" entry so the user sees the gap.
       const entry: AutopilotChildEntry = {
+        // Internal placeholder for a failed iteration; it is never looked up
+        // as a real issue reference.
         issueNumber: -1,
         runId: null,
         kind: 'feat',

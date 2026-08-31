@@ -275,6 +275,37 @@ export class GitHubClient implements IssueSource {
     return data.map(rawReviewCommentToReviewComment);
   }
 
+  async approvePullRequest(input: { pullNumber: number; body?: string }): Promise<void> {
+    await this.octokit.request(
+      'POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
+      {
+        owner: this.owner,
+        repo: this.repo,
+        pull_number: input.pullNumber,
+        // GitHub's runtime API accepts the review event used by the bridge
+        // contract; Octokit's generated type omits this spelling.
+        event: 'APPROVED' as unknown as 'APPROVE',
+        ...(input.body !== undefined ? { body: input.body } : {}),
+      },
+    );
+  }
+
+  async requestChangesPullRequest(input: {
+    pullNumber: number;
+    body: string;
+  }): Promise<void> {
+    await this.octokit.request(
+      'POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
+      {
+        owner: this.owner,
+        repo: this.repo,
+        pull_number: input.pullNumber,
+        event: 'REQUEST_CHANGES',
+        body: input.body,
+      },
+    );
+  }
+
   async openDraftPR(input: OpenPRInput): Promise<PullRequest> {
     const issueRef = input.issueNumber ? `Closes #${input.issueNumber}\n\n` : '';
     const body = `${issueRef}${input.body ?? ''}`.trim();

@@ -1,11 +1,12 @@
 import type { Db } from '../db.js';
+import type { IssueRef } from '@kanbots/core';
 import type { Thread, ThreadId } from '../types.js';
 
 interface ThreadRow {
   id: number;
   repo_owner: string;
   repo_name: string;
-  issue_number: number;
+  issue_number: IssueRef;
   created_at: string;
   last_provider: string | null;
   last_model: string | null;
@@ -26,7 +27,7 @@ function rowToThread(row: ThreadRow): Thread {
 export interface CreateThreadInput {
   repoOwner: string;
   repoName: string;
-  issueNumber: number;
+  issueNumber: IssueRef;
 }
 
 export class ThreadsRepo {
@@ -55,7 +56,7 @@ export class ThreadsRepo {
     return existing ?? this.create(input);
   }
 
-  findByIssue(repoOwner: string, repoName: string, issueNumber: number): Thread | null {
+  findByIssue(repoOwner: string, repoName: string, issueNumber: IssueRef): Thread | null {
     const row = this.db
       .prepare('SELECT * FROM threads WHERE repo_owner = ? AND repo_name = ? AND issue_number = ?')
       .get(repoOwner, repoName, issueNumber) as ThreadRow | undefined;

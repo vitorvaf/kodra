@@ -11,6 +11,18 @@ describe('issues:list', () => {
     expect(result[0]?.status).toBe('todo');
     expect(result[0]).toHaveProperty('activeRun');
   });
+
+  it('includes direct child counts for numeric parents', async () => {
+    const { handlers, source, store } = makeHandlerTestKit({ repoPath: '/tmp/repo' });
+    source.setIssues('open', [issueFixture(42, 'parent')]);
+    store.workspaces.ensure({ id: 'default', name: 'Default' });
+    store.issueRelations.add({ workspaceId: 'default', parentNumber: 42, childNumber: 100 });
+    store.issueRelations.add({ workspaceId: 'default', parentNumber: 42, childNumber: 101 });
+
+    const result = await handlers['issues:list']({ state: 'open' });
+
+    expect(result[0]?.subIssueCount).toBe(2);
+  });
 });
 
 describe('issues:get', () => {
@@ -81,6 +93,15 @@ describe('issues:dispatch', () => {
       handlers['issues:dispatch']({ number: 7, fromStatus: 'todo' }),
     ).rejects.toMatchObject({ name: 'AlreadyActive' });
   });
+
+  it('dispatches a custom issue id through to the supervisor', async () => {
+    const { handlers, source, supervisor } = makeHandlerTestKit({ mode: 'local' });
+    source.setIssue(issueFixture('FEAT-42', 'feature'));
+    await handlers['issues:dispatch']({ number: 'FEAT-42', fromStatus: 'todo' });
+    expect(supervisor.calls.find((call) => call.type === 'start')?.args).toMatchObject({
+      issueNumber: 'FEAT-42',
+    });
+  });
 });
 
 describe('issues:list-runs', () => {
@@ -100,6 +121,51 @@ describe('issues:create', () => {
     });
     expect(result.title).toBe('fresh');
     expect(result.status).toBe('backlog');
+  });
+
+  it('creates an issue with a custom id in a local workspace', async () => {
+    const { handlers } = makeHandlerTestKit({ mode: 'local' });
+    const result = await handlers['issues:create']({ title: 'feature', number: 'FEAT-42' });
+    expect(result.number).toBe('FEAT-42');
+  });
+
+  it('returns conflict for a duplicate custom id', async () => {
+    const { handlers } = makeHandlerTestKit({ mode: 'local' });
+    await handlers['issues:create']({ title: 'first', number: 'FEAT-42' });
+    await expect(
+      handlers['issues:create']({ title: 'duplicate', number: 'FEAT-42' }),
+    ).rejects.toMatchObject({ name: 'Conflict', status: 409 });
+  });
+
+  it.each(['bad id', 'a..b'])('rejects invalid custom id %s', async (number) => {
+    const { handlers } = makeHandlerTestKit({ mode: 'local' });
+    await expect(handlers['issues:create']({ title: 'invalid', number })).rejects.toMatchObject({
+      name: 'BadRequest',
+      status: 400,
+    });
+  });
+
+  it('rejects custom ids in a GitHub workspace', async () => {
+    const { handlers } = makeHandlerTestKit({ mode: 'github' });
+    await expect(handlers['issues:create']({ title: 'feature', number: 'FEAT-42' })).rejects.toMatchObject({
+      name: 'BadRequest',
+      status: 400,
+    });
+  });
+});
+
+describe('custom ids in dispatch', () => {
+  it('passes an alphanumeric issue id through to the supervisor', async () => {
+    const { handlers, source, supervisor } = makeHandlerTestKit({ mode: 'local' });
+    source.setIssue(issueFixture('FEAT-42', 'feature'));
+    await handlers['issues:post-message']({
+      number: 'FEAT-42',
+      body: 'please work on this',
+      dispatch: true,
+    });
+    expect(supervisor.calls.find((call) => call.type === 'start')?.args).toMatchObject({
+      issueNumber: 'FEAT-42',
+    });
   });
 });
 

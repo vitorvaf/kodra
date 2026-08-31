@@ -1,6 +1,8 @@
 import type { AutopilotConfig, AutopilotSession } from '@kanbots/local-store';
+import type { IssueRef } from '@kanbots/core';
 import { z } from 'zod';
 import { badRequest, parseArgs } from './errors.js';
+import { issueRefSchema } from '../issue-ref.js';
 import type { HandlerDeps } from './types.js';
 
 const personaSnapshotSchema = z
@@ -84,7 +86,7 @@ const stopSchema = z
   .strict();
 
 const getByIssueSchema = z
-  .object({ issueNumber: z.number().int().positive() })
+  .object({ issueNumber: issueRefSchema })
   .strict();
 
 export interface StartArgs {
@@ -96,7 +98,7 @@ export interface StartArgs {
 export async function start(
   deps: HandlerDeps,
   args: StartArgs,
-): Promise<{ sessionId: number; issueNumber: number }> {
+): Promise<{ sessionId: number; issueNumber: IssueRef }> {
   const parsed = parseArgs(startSchema, args);
   if (parsed.kind === 'qa') {
     throw badRequest(
@@ -131,7 +133,7 @@ export async function listActive(deps: HandlerDeps): Promise<AutopilotSession[]>
 }
 
 export interface GetByIssueArgs {
-  issueNumber: number;
+  issueNumber: IssueRef;
 }
 
 export async function getByIssue(

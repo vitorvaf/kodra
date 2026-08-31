@@ -1,4 +1,5 @@
 import type { Db } from '../db.js';
+import { parseIssueRef, type IssueRef } from '@kanbots/core';
 
 /**
  * A persisted parent ↔ child link between two issues in the same
@@ -9,23 +10,23 @@ import type { Db } from '../db.js';
 export interface IssueRelation {
   id: number;
   workspaceId: string;
-  parentNumber: number;
-  childNumber: number;
+  parentNumber: IssueRef;
+  childNumber: IssueRef;
   createdAt: string;
 }
 
 interface IssueRelationRow {
   id: number;
   workspace_id: string;
-  parent_number: number;
-  child_number: number;
+  parent_number: IssueRef;
+  child_number: IssueRef;
   created_at: string;
 }
 
 export interface AddIssueRelationInput {
   workspaceId: string;
-  parentNumber: number;
-  childNumber: number;
+  parentNumber: IssueRef;
+  childNumber: IssueRef;
 }
 
 function rowToRelation(row: IssueRelationRow): IssueRelation {
@@ -49,7 +50,7 @@ const MAX_ANCESTOR_DEPTH = 16;
 export class IssueRelationsRepo {
   constructor(private readonly db: Db) {}
 
-  listChildren(workspaceId: string, parentNumber: number): IssueRelation[] {
+  listChildren(workspaceId: string, parentNumber: IssueRef): IssueRelation[] {
     const rows = this.db
       .prepare(
         `SELECT * FROM issue_relations
@@ -60,7 +61,7 @@ export class IssueRelationsRepo {
     return rows.map(rowToRelation);
   }
 
-  listParents(workspaceId: string, childNumber: number): IssueRelation[] {
+  listParents(workspaceId: string, childNumber: IssueRef): IssueRelation[] {
     const rows = this.db
       .prepare(
         `SELECT * FROM issue_relations
@@ -109,7 +110,7 @@ export class IssueRelationsRepo {
    * (one parent per child), but the schema doesn't enforce single
    * parentage, so this picks the deterministic-by-id-order branch.
    */
-  findRoot(workspaceId: string, childNumber: number): number | null {
+  findRoot(workspaceId: string, childNumber: IssueRef): IssueRef | null {
     let current = childNumber;
     for (let i = 0; i < MAX_ANCESTOR_DEPTH; i++) {
       const parentRow = this.db
@@ -119,7 +120,7 @@ export class IssueRelationsRepo {
            ORDER BY id
            LIMIT 1`,
         )
-        .get(workspaceId, current) as { parent_number: number } | undefined;
+        .get(workspaceId, current) as { parent_number: IssueRef } | undefined;
       if (!parentRow) {
         // No parent — `current` is the root. Return null if we never
         // moved (the original input is standalone).
@@ -139,7 +140,7 @@ export class IssueRelationsRepo {
    * board can show a "↳N" badge per card without an N+1 fetch. Parents
    * with zero children simply don't appear in the map.
    */
-  countChildrenByParent(workspaceId: string): Map<number, number> {
+  countChildrenByParent(workspaceId: string): Map<IssueRef, number> {
     const rows = this.db
       .prepare(
         `SELECT parent_number AS parent, COUNT(*) AS count
@@ -147,10 +148,10 @@ export class IssueRelationsRepo {
          WHERE workspace_id = ?
          GROUP BY parent_number`,
       )
-      .all(workspaceId) as Array<{ parent: number; count: number }>;
-    const out = new Map<number, number>();
+      .all(workspaceId) as Array<{ parent: IssueRef; count: number }>;
+    const out = new Map<IssueRef, number>();
     for (const row of rows) {
-      out.set(row.parent, row.count);
+      out.set(parseIssueRef(String(row.parent)), row.count);
     }
     return out;
   }
@@ -161,9 +162,9 @@ export class IssueRelationsRepo {
    * handler — when adding a new relation parent→child, the new parent
    * is rejected if it appears in this set.
    */
-  listAncestors(workspaceId: string, childNumber: number): number[] {
-    const out: number[] = [];
-    const seen = new Set<number>([childNumber]);
+  listAncestors(workspaceId: string, childNumber: IssueRef): IssueRef[] {
+    const out: IssueRef[] = [];
+    const seen = new Set<IssueRef>([childNumber]);
     let current = childNumber;
     for (let i = 0; i < MAX_ANCESTOR_DEPTH; i++) {
       const parentRow = this.db
@@ -173,7 +174,7 @@ export class IssueRelationsRepo {
            ORDER BY id
            LIMIT 1`,
         )
-        .get(workspaceId, current) as { parent_number: number } | undefined;
+        .get(workspaceId, current) as { parent_number: IssueRef } | undefined;
       if (!parentRow) break;
       const next = parentRow.parent_number;
       // Defensive cycle break — the CHECK constraint and the handler's

@@ -1,16 +1,17 @@
-import type { PullRequest } from '@kanbots/core';
+import type { IssueRef, PullRequest } from '@kanbots/core';
 import { z } from 'zod';
 import type { PrCommentPayload, PrCommentsListResult } from '../bridge.js';
 import { badRequest, notFound, parseArgs } from './errors.js';
+import { issueRefSchema } from '../issue-ref.js';
 import type { HandlerDeps } from './types.js';
 
 const listSchema = z
-  .object({ issueNumber: z.number().int().positive() })
+  .object({ issueNumber: issueRefSchema })
   .strict();
 
 const replySchema = z
   .object({
-    issueNumber: z.number().int().positive(),
+    issueNumber: issueRefSchema,
     body: z.string().min(1).max(65_536),
   })
   .strict();
@@ -41,10 +42,11 @@ interface ResolvedPull {
  */
 async function resolveLinkedPull(
   deps: HandlerDeps,
-  issueNumber: number,
+  issueNumber: IssueRef,
 ): Promise<ResolvedPull | null> {
   const issue = await deps.source.getIssue(issueNumber);
   if (issue.isPullRequest) {
+    if (typeof issue.number !== 'number') return null;
     return {
       number: issue.number,
       htmlUrl: issue.htmlUrl,
@@ -86,7 +88,7 @@ async function resolveLinkedPull(
 
 export async function list(
   deps: HandlerDeps,
-  args: { issueNumber: number },
+  args: { issueNumber: IssueRef },
 ): Promise<PrCommentsListResult> {
   const parsed = parseArgs(listSchema, args);
   if (deps.config.mode !== 'github') {
@@ -151,7 +153,7 @@ export async function list(
 
 export async function reply(
   deps: HandlerDeps,
-  args: { issueNumber: number; body: string },
+  args: { issueNumber: IssueRef; body: string },
 ): Promise<PrCommentPayload> {
   const parsed = parseArgs(replySchema, args);
   if (deps.config.mode !== 'github') {

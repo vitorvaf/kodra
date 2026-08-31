@@ -4,6 +4,7 @@ import {
   type Comment,
   type CreateIssueInput,
   type Issue,
+  type IssueRef,
   type StatusKey,
   type UpdateIssuePatch,
 } from '@kanbots/core';
@@ -20,7 +21,9 @@ import type {
 } from '../bridge.js';
 import { bootstrapWorkspace } from '../workspace-bootstrap.js';
 import { sweepAllRunsForThread } from './agent-runs.js';
-import { alreadyActive, badRequest, notFound, parseArgs } from './errors.js';
+import { GitHubClient } from '@kanbots/core';
+import { issueRefSchema } from '../issue-ref.js';
+import { alreadyActive, badRequest, mapIssueError, notFound, parseArgs } from './errors.js';
 import type { HandlerDeps } from './types.js';
 
 /**
@@ -29,7 +32,7 @@ import type { HandlerDeps } from './types.js';
  * workspace (e.g. cloud mode pre-bootstrap) so callers don't have to
  * special-case.
  */
-function buildSubIssueCountMap(deps: HandlerDeps): Map<number, number> {
+function buildSubIssueCountMap(deps: HandlerDeps): Map<IssueRef, number> {
   if (!deps.config.repoPath) return new Map();
   const { workspace } = bootstrapWorkspace(
     deps.store,
@@ -48,13 +51,14 @@ const issueListSchema = z
 
 const issueGetSchema = z
   .object({
-    number: z.number().int().positive(),
+    number: issueRefSchema,
   })
   .strict();
 
 const issueCreateSchema = z
   .object({
     title: z.string().min(1).max(200),
+    number: z.string().min(1).max(32).optional(),
     body: z.string().max(65_536).optional(),
     labels: z.array(z.string()).optional(),
     assignees: z.array(z.string()).optional(),
@@ -63,7 +67,7 @@ const issueCreateSchema = z
 
 const issuePatchSchema = z
   .object({
-    number: z.number().int().positive(),
+    number: issueRefSchema,
     patch: z
       .object({
         title: z.string().min(1).optional(),
@@ -78,7 +82,7 @@ const issuePatchSchema = z
 
 const addCommentSchema = z
   .object({
-    number: z.number().int().positive(),
+    number: issueRefSchema,
     body: z.string().min(1).max(65_536),
   })
   .strict();
@@ -100,7 +104,7 @@ const PROVIDER_ENUM = z.enum([
 
 const postMessageSchema = z
   .object({
-    number: z.number().int().positive(),
+    number: issueRefSchema,
     body: z.string().min(1).max(65_536),
     dispatch: z.boolean().optional(),
     model: z.string().min(1).max(120).optional(),
@@ -113,13 +117,13 @@ const postMessageSchema = z
 
 const listRunsSchema = z
   .object({
-    number: z.number().int().positive(),
+    number: issueRefSchema,
   })
   .strict();
 
 const dispatchSchema = z
   .object({
-    number: z.number().int().positive(),
+    number: issueRefSchema,
     fromStatus: z
       .enum(['backlog', 'todo', 'inProgress', 'review', 'done'])
       .nullable()
@@ -136,28 +140,29 @@ export interface ListIssuesArgs {
 }
 
 export interface GetIssueArgs {
-  number: number;
+  number: IssueRef;
 }
 
 export interface CreateIssueArgs {
   title: string;
+  number?: string;
   body?: string;
   labels?: string[];
   assignees?: string[];
 }
 
 export interface PatchIssueArgs {
-  number: number;
+  number: IssueRef;
   patch: UpdateIssuePatch;
 }
 
 export interface AddCommentArgs {
-  number: number;
+  number: IssueRef;
   body: string;
 }
 
 export interface PostMessageArgs {
-  number: number;
+  number: IssueRef;
   body: string;
   dispatch?: boolean;
   model?: string;
@@ -180,11 +185,11 @@ export interface PostMessageArgs {
 }
 
 export interface ListRunsArgs {
-  number: number;
+  number: IssueRef;
 }
 
 export interface DispatchArgs {
-  number: number;
+  number: IssueRef;
   fromStatus: StatusKey | null;
   model?: string;
   provider?:
@@ -289,11 +294,25 @@ export async function create(
   const parsed = parseArgs(issueCreateSchema, args);
   const input: CreateIssueInput = {
     title: parsed.title,
+    ...(parsed.number !== undefined ? { number: parsed.number } : {}),
     ...(parsed.body !== undefined ? { body: parsed.body } : {}),
     ...(parsed.labels !== undefined ? { labels: parsed.labels } : {}),
     ...(parsed.assignees !== undefined ? { assignees: parsed.assignees } : {}),
   };
-  const issue = await deps.source.createIssue(input);
+  if (
+    parsed.number !== undefined &&
+    (deps.config.mode === 'github' || deps.source instanceof GitHubClient)
+  ) {
+    throw badRequest('Custom issue ids are only available for local workspaces');
+  }
+  let issue: Issue;
+  try {
+    issue = await deps.source.createIssue(input);
+  } catch (err) {
+    const mapped = mapIssueError(err);
+    if (mapped) throw mapped;
+    throw err;
+  }
   return decorateIssue(issue);
 }
 
@@ -548,8 +567,8 @@ export function decorateIssue(
   };
 }
 
-export function buildSentryMetaMap(deps: HandlerDeps): Map<number, SentryMetaPayload> {
-  const out = new Map<number, SentryMetaPayload>();
+export function buildSentryMetaMap(deps: HandlerDeps): Map<IssueRef, SentryMetaPayload> {
+  const out = new Map<IssueRef, SentryMetaPayload>();
   for (const [number, row] of deps.store.sentryImports.mapByLocalNumber()) {
     out.set(number, sentryImportToPayload(row));
   }
@@ -558,7 +577,7 @@ export function buildSentryMetaMap(deps: HandlerDeps): Map<number, SentryMetaPay
 
 export function lookupSentryMeta(
   deps: HandlerDeps,
-  issueNumber: number,
+  issueNumber: IssueRef,
 ): SentryMetaPayload | null {
   const row = deps.store.sentryImports.findByLocalNumber(issueNumber);
   return row ? sentryImportToPayload(row) : null;
@@ -594,8 +613,8 @@ function sentryImportToPayload(row: {
 
 export function buildActiveRunMap(
   deps: HandlerDeps,
-): Map<number, IssueActiveRunPayload> {
-  const out = new Map<number, IssueActiveRunPayload>();
+): Map<IssueRef, IssueActiveRunPayload> {
+  const out = new Map<IssueRef, IssueActiveRunPayload>();
   const active = deps.store.agentRuns.listActiveForRepo(
     deps.config.owner,
     deps.config.repo,
@@ -708,7 +727,7 @@ export function buildThreadPayload(
 }
 
 export function buildTaskSystemPrompt(issue: {
-  number: number;
+  number: IssueRef;
   title: string;
   body?: string | null;
 }): string {
@@ -728,7 +747,7 @@ interface DecisionOption {
 }
 
 function buildDispatchKickoff(
-  issue: { number: number; title: string; body: string },
+  issue: { number: IssueRef; title: string; body: string },
   fromStatus: StatusKey | null,
   hasPriorRuns: boolean,
 ): string {

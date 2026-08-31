@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { LocalIssueNotFoundError, openStoreInMemory, type Store } from '../src/index.js';
+import {
+  DuplicateIssueNumberError,
+  InvalidIssueIdError,
+  LocalIssueNotFoundError,
+  openStoreInMemory,
+  type Store,
+} from '../src/index.js';
 
 describe('LocalIssuesRepo', () => {
   let store: Store;
@@ -44,6 +50,72 @@ describe('LocalIssuesRepo', () => {
       expect(issue.assignees).toEqual(['leo']);
     });
 
+    it('round-trips custom and digit-only custom ids with canonical types', () => {
+      const custom = store.localIssues.create({ title: 'custom', authorLogin: 'x', number: 'FEAT-42' });
+      const numeric = store.localIssues.create({ title: 'numeric', authorLogin: 'x', number: '7' });
+      expect(custom.number).toBe('FEAT-42');
+      expect(typeof custom.number).toBe('string');
+      expect(numeric.number).toBe(7);
+      expect(typeof numeric.number).toBe('number');
+      expect(store.localIssues.findByNumber('FEAT-42')?.number).toBe('FEAT-42');
+    });
+
+    it('rejects non-canonical and unsafe digit-only custom ids', () => {
+      store.localIssues.create({ title: 'seven', authorLogin: 'x', number: '7' });
+      expect(() => store.localIssues.create({ title: 'leading zero', authorLogin: 'x', number: '007' })).toThrow(
+        InvalidIssueIdError,
+      );
+      expect(() =>
+        store.localIssues.create({ title: 'unsafe', authorLogin: 'x', number: '9007199254740993' }),
+      ).toThrow(InvalidIssueIdError);
+    });
+
+    it('rejects case-variant duplicate custom ids', () => {
+      store.localIssues.create({ title: 'feature', authorLogin: 'x', number: 'FEAT-42' });
+      expect(() => store.localIssues.create({ title: 'duplicate', authorLogin: 'x', number: 'feat-42' })).toThrow(
+        DuplicateIssueNumberError,
+      );
+    });
+
+    it.each(['', 'a'.repeat(33), '-bad', '.bad', 'a..b', 'x.lock', 'HEAD', 'a b', 'a/b', 'é'])(
+      'rejects invalid custom id %s',
+      (number) => {
+        expect(() => store.localIssues.create({ title: 'bad', authorLogin: 'x', number })).toThrow(
+          InvalidIssueIdError,
+        );
+      },
+    );
+
+    it('rejects duplicate numeric and alphanumeric ids', () => {
+      store.localIssues.create({ title: 'numeric', authorLogin: 'x', number: '42' });
+      store.localIssues.create({ title: 'custom', authorLogin: 'x', number: 'FEAT-42' });
+      expect(() => store.localIssues.create({ title: 'dup', authorLogin: 'x', number: '42' })).toThrow(
+        DuplicateIssueNumberError,
+      );
+      expect(() => store.localIssues.create({ title: 'dup', authorLogin: 'x', number: 'FEAT-42' })).toThrow(
+        DuplicateIssueNumberError,
+      );
+    });
+
+    it('auto-numbers above numeric ids and ignores alphanumeric ids', () => {
+      store.localIssues.create({ title: 'five', authorLogin: 'x', number: '5' });
+      store.localIssues.create({ title: 'three', authorLogin: 'x', number: '3' });
+      store.localIssues.create({ title: 'feature', authorLogin: 'x', number: 'FEAT-9' });
+      expect(store.localIssues.create({ title: 'next', authorLogin: 'x' }).number).toBe(6);
+    });
+
+    it('starts auto-numbering at one when all existing ids are custom', () => {
+      store.localIssues.create({ title: 'feature', authorLogin: 'x', number: 'FEAT-9' });
+      expect(store.localIssues.create({ title: 'first numeric', authorLogin: 'x' }).number).toBe(1);
+    });
+
+    it('orders numeric ids descending before alphanumeric ids descending', () => {
+      for (const number of ['12', 'ZZ-1', '9', 'AB-2']) {
+        store.localIssues.create({ title: number, authorLogin: 'x', number });
+      }
+      expect(store.localIssues.list().map((issue) => issue.number)).toEqual([12, 9, 'ZZ-1', 'AB-2']);
+    });
+
     it('lists open issues by default, newest first', () => {
       store.localIssues.create({ title: 'a', authorLogin: 'x' });
       store.localIssues.create({ title: 'b', authorLogin: 'x' });
@@ -67,7 +139,7 @@ describe('LocalIssuesRepo', () => {
         folderId: folder.id,
       });
 
-      expect(store.db.prepare('SELECT folder_id FROM local_issues WHERE number = ?').get(issue.number)).toEqual({
+      expect(store.db.prepare('SELECT folder_id FROM local_issues WHERE number = ?').get(String(issue.number))).toEqual({
         folder_id: folder.id,
       });
     });
@@ -99,8 +171,8 @@ describe('LocalIssuesRepo', () => {
       });
       const a = store.localIssues.create({ title: 'a', authorLogin: 'x' });
       const b = store.localIssues.create({ title: 'b', authorLogin: 'x' });
-      store.db.prepare('UPDATE local_issues SET folder_id = ? WHERE number = ?').run(first.id, a.number);
-      store.db.prepare('UPDATE local_issues SET folder_id = ? WHERE number = ?').run(second.id, b.number);
+      store.db.prepare('UPDATE local_issues SET folder_id = ? WHERE number = ?').run(first.id, String(a.number));
+      store.db.prepare('UPDATE local_issues SET folder_id = ? WHERE number = ?').run(second.id, String(b.number));
 
       expect(store.localIssues.list({ folderId: first.id }).map((i) => i.title)).toEqual(['a']);
       expect(store.localIssues.list({ folderId: second.id }).map((i) => i.title)).toEqual(['b']);
@@ -201,11 +273,19 @@ describe('LocalIssuesRepo', () => {
         body: 'c',
         authorLogin: 'leo',
       });
-      store.db.prepare('DELETE FROM local_issues WHERE number = ?').run(issue.number);
+      store.db.prepare('DELETE FROM local_issues WHERE number = ?').run(String(issue.number));
       const remaining = store.db.prepare('SELECT COUNT(*) AS n FROM local_comments').get() as {
         n: number;
       };
       expect(remaining.n).toBe(0);
+    });
+
+    it('adds and lists comments on an alphanumeric issue', () => {
+      const issue = store.localIssues.create({ title: 'custom', authorLogin: 'x', number: 'FEAT-42' });
+      store.localIssues.addComment({ issueNumber: issue.number, body: 'custom comment', authorLogin: 'leo' });
+      expect(store.localIssues.listComments('FEAT-42').map((comment) => comment.body)).toEqual([
+        'custom comment',
+      ]);
     });
 
     it('bumps issue updated_at when a comment is added', async () => {

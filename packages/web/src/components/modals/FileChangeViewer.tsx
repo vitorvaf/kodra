@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { isValidCustomIssueId, parseIssueRef, type IssueRef } from '@kanbots/core';
 import type { AgentRunSummary } from '@kanbots/cloud-client';
 import { api, getCloudCtx } from '../../api.js';
 import { getBridge } from '../../desktop-bridge.js';
@@ -81,7 +82,7 @@ export interface FileChangeViewerProps {
    * inside the viewer. When omitted, the viewer just shows an inline
    * confirmation and the user can find the task in the rail.
    */
-  onSelectIssue?: (issueNumber: number) => void;
+  onSelectIssue?: (issueNumber: IssueRef) => void;
 }
 
 /**
@@ -116,7 +117,7 @@ interface StartAgentOnFilePanelProps {
   heading: string;
   /** Placeholder text inside the prompt box. */
   placeholder: string;
-  onSelectIssue?: (issueNumber: number) => void;
+  onSelectIssue?: (issueNumber: IssueRef) => void;
 }
 
 /**
@@ -253,20 +254,28 @@ interface DiffViewState {
 }
 
 /**
- * `.kanbots/worktrees/issue-<n>-<r>` is the convention used by both
+ * `.kodra/worktrees/issue-<id>-<r>` is the convention used by both
  * the local supervisor (`defaultWorktreePath` in @kanbots/dispatcher,
  * numeric runId) and the cloud dispatcher (last-10-chars of the
- * KSUID, alphanumeric). The regex accepts both shapes; the caller
+ * KSUID, alphanumeric). Legacy runs still resolve under
+ * `.kanbots/worktrees` with the same name shape. The regex accepts
+ * both dirs and both id shapes (numeric or alphanumeric); the caller
  * treats runId as opaque.
  */
 function parseWorktreeContext(
   worktreePath: string,
-): { issueNumber: number; runId: string } | null {
-  const m = /\.kanbots\/worktrees\/issue-(\d+)-([A-Za-z0-9]+)\/?$/.exec(worktreePath);
+): { issueNumber: IssueRef; runId: string } | null {
+  const m =
+    /\.(?:kanbots|kodra)\/worktrees\/issue-([A-Za-z0-9._-]+)-([A-Za-z0-9]+)\/?$/.exec(
+      worktreePath,
+    );
   if (m === null) return null;
-  const issueNumber = Number.parseInt(m[1] ?? '', 10);
+  const rawIssueNumber = m[1] ?? '';
+  const issueNumber = isValidCustomIssueId(rawIssueNumber)
+    ? parseIssueRef(rawIssueNumber)
+    : null;
   const runId = m[2] ?? '';
-  if (!Number.isFinite(issueNumber) || runId.length === 0) return null;
+  if (issueNumber === null || runId.length === 0) return null;
   return { issueNumber, runId };
 }
 
@@ -474,7 +483,7 @@ interface WorktreeDiffCardProps {
   expandTick: number;
   collapseTick: number;
   onMessageSent?: () => void;
-  onSelectIssue?: (issueNumber: number) => void;
+  onSelectIssue?: (issueNumber: IssueRef) => void;
 }
 
 function WorktreeDiffCard({
@@ -555,6 +564,10 @@ function WorktreeDiffCard({
       setMeta({ loading: false, run: null, cardTitle: null, error: null });
       return;
     }
+    if (typeof ctx.issueNumber !== 'number') {
+      setMeta({ loading: false, run: null, cardTitle: null, error: null });
+      return;
+    }
     const bridge = getBridge();
     if (!bridge) {
       setMeta({ loading: false, run: null, cardTitle: null, error: null });
@@ -611,16 +624,17 @@ function WorktreeDiffCard({
         await api.postMessage(ctx.issueNumber, body, { dispatch: false });
         if (action === 'send-restart' && cloudCtx !== null) {
           const bridge = getBridge();
-          if (bridge !== null) {
+          if (bridge !== null && typeof ctx.issueNumber === 'number') {
+            const issueNumber = ctx.issueNumber;
             const context = await buildRestartContext(
               cloudCtx.orgSlug,
               cloudCtx.projectSlug,
-              ctx.issueNumber,
+              issueNumber,
             );
             await bridge.cloudStartAgentRun({
               orgSlug: cloudCtx.orgSlug,
               projectSlug: cloudCtx.projectSlug,
-              number: ctx.issueNumber,
+              number: issueNumber,
               prompt: body,
               ...(context !== null ? { appendSystemPrompt: context } : {}),
             });
@@ -942,7 +956,7 @@ export function FileChangeViewer({
                 placeholder={`Tell an agent what to do with ${filePath}…`}
                 {...(onSelectIssue !== undefined
                   ? {
-                      onSelectIssue: (n: number) => {
+                      onSelectIssue: (n: IssueRef) => {
                         onSelectIssue(n);
                         onClose();
                       },
@@ -963,7 +977,7 @@ export function FileChangeViewer({
                 collapseTick={collapseTick}
                 {...(onSelectIssue !== undefined
                   ? {
-                      onSelectIssue: (n: number) => {
+                      onSelectIssue: (n: IssueRef) => {
                         onSelectIssue(n);
                         onClose();
                       },

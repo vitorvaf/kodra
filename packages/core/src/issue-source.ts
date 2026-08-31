@@ -5,6 +5,7 @@ import type {
   OpenPRInput,
   PullRequest,
   PullRequestReviewComment,
+  IssueRef,
   UpdateIssuePatch,
 } from './types.js';
 
@@ -17,11 +18,11 @@ import type {
  */
 export interface IssueSource {
   listIssues(opts?: { state?: 'open' | 'closed' | 'all'; folderId?: string }): Promise<Issue[]>;
-  getIssue(number: number): Promise<Issue>;
+  getIssue(number: IssueRef): Promise<Issue>;
   createIssue(input: CreateIssueInput): Promise<Issue>;
-  updateIssue(number: number, patch: UpdateIssuePatch): Promise<Issue>;
-  listComments(number: number): Promise<Comment[]>;
-  addComment(number: number, body: string): Promise<Comment>;
+  updateIssue(number: IssueRef, patch: UpdateIssuePatch): Promise<Issue>;
+  listComments(number: IssueRef): Promise<Comment[]>;
+  addComment(number: IssueRef, body: string): Promise<Comment>;
   // Optional — only github-backed sources can open PRs.
   openDraftPR?(input: OpenPRInput): Promise<PullRequest>;
   /**
@@ -30,6 +31,14 @@ export interface IssueSource {
    * because local-only sources have no notion of PRs.
    */
   findOpenPullForBranch?(branch: string): Promise<PullRequest | null>;
+  approvePullRequest?(input: {
+    pullNumber: number;
+    body?: string;
+  }): Promise<void>;
+  requestChangesPullRequest?(input: {
+    pullNumber: number;
+    body: string;
+  }): Promise<void>;
   /**
    * List inline review comments on a PR. These are the file/line-anchored
    * comments shown alongside the diff on github.com; they are distinct

@@ -539,7 +539,7 @@ export async function promotePr(
     ...(finalBody ? { body: finalBody } : {}),
     head: run.branchName,
     base,
-    issueNumber: issue.number,
+    ...(typeof issue.number === 'number' ? { issueNumber: issue.number } : {}),
   });
   // PR open is a "promoted" signal too — the user has chosen to land this
   // run via review rather than direct commit. Monotonic upgrade.

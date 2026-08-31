@@ -89,6 +89,8 @@ export function createHandlers(opts: CreateHandlersOptions): Handlers {
     'issues:unarchive': (args) => agentActions.unarchive(deps, args),
     'issues:approve': (args) => agentActions.approve(deps, args),
     'issues:request-changes': (args) => agentActions.requestChanges(deps, args),
+    'issues:pr-approve': (args) => agentActions.prApprove(deps, args),
+    'issues:pr-request-changes': (args) => agentActions.prRequestChanges(deps, args),
     'issues:split': (args) => agentActions.split(deps, args),
     'issues:reviewer': (args) => agentActions.reviewer(deps, args),
     'issue-relations:list-children': (args) => issueRelations.listChildren(deps, args),

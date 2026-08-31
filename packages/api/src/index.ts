@@ -11,6 +11,7 @@ export {
   type ResumeRunInput,
   type StartRunInput,
 } from './agent-runs/supervisor.js';
+export type { CheckChangeListener } from './checks-changed.js';
 export {
   createAutopilotManager,
   type AutopilotManager,
@@ -76,6 +77,8 @@ export {
   type SubscriptionRegistry,
 } from './handlers/index.js';
 export { hasProviderCredentials, resolveProviderWithCreds } from './handlers/provider-credentials.js';
+export { CHECKS_CHANGED_CHANNEL, DECISIONS_CHANGED_CHANNEL } from './bridge.js';
+export { notifyChecksChanged, subscribeChecksChanged } from './checks-changed.js';
 export type {
   AgentCheck,
   AgentEvent,
@@ -111,6 +114,7 @@ export type {
   ChatSessionPayload,
   ChatSessionStatus,
   CheckKind,
+  CheckChangePayload,
   Comment,
   Config,
   DecisionChangePayload,

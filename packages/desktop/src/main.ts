@@ -11,6 +11,7 @@ import {
   createCurator,
   createHandlers,
   createSupervisor,
+  CHECKS_CHANGED_CHANNEL,
   DECISIONS_CHANGED_CHANNEL,
   bootstrapWorkspace,
   dispatchChatTool,
@@ -210,6 +211,7 @@ interface ActiveWorkspace {
   detachOwnerCleanup: () => void;
   cooldownUnsub: () => void;
   decisionsChangedUnsub: () => void;
+  checksChangedUnsub: () => void;
   dbWatcher: DbWatcher;
   toolBridge: ToolBridge | null;
   toolBridgeRuntimeDir: string | null;
@@ -470,6 +472,18 @@ function wrapNotifyingSource(source: IssueSource): IssueSource {
   if (source.openDraftPR) {
     wrapped.openDraftPR = source.openDraftPR.bind(source);
   }
+  if (source.findOpenPullForBranch) {
+    wrapped.findOpenPullForBranch = source.findOpenPullForBranch.bind(source);
+  }
+  if (source.listPullReviewComments) {
+    wrapped.listPullReviewComments = source.listPullReviewComments.bind(source);
+  }
+  if (source.approvePullRequest) {
+    wrapped.approvePullRequest = source.approvePullRequest.bind(source);
+  }
+  if (source.requestChangesPullRequest) {
+    wrapped.requestChangesPullRequest = source.requestChangesPullRequest.bind(source);
+  }
   return wrapped;
 }
 
@@ -539,6 +553,11 @@ async function closeActiveWorkspace(): Promise<void> {
   }
   try {
     activeWorkspace.decisionsChangedUnsub();
+  } catch {
+    // ignore
+  }
+  try {
+    activeWorkspace.checksChangedUnsub();
   } catch {
     // ignore
   }
@@ -775,6 +794,11 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
     if (!sender || sender.isDestroyed()) return;
     sender.send(DECISIONS_CHANGED_CHANNEL, payload);
   });
+  const checksChangedUnsub = supervisor.subscribeChecksChanged((payload) => {
+    const sender = mainWindow?.webContents;
+    if (!sender || sender.isDestroyed()) return;
+    sender.send(CHECKS_CHANGED_CHANNEL, payload);
+  });
 
   const subscriptions = createSubscriptionRegistry({
     supervisor,
@@ -955,6 +979,7 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
     detachOwnerCleanup,
     cooldownUnsub,
     decisionsChangedUnsub,
+    checksChangedUnsub,
     dbWatcher,
     toolBridge,
     toolBridgeRuntimeDir,

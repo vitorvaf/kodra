@@ -183,6 +183,8 @@ export async function fork(
     issueNumber: thread.issueNumber,
     prompt: `Continue from a fork of run #${parsed.runId} (branch ${source.branchName}).`,
     ...(source.model ? { model: source.model } : {}),
+    worktreePath: newWorktreePath,
+    branchName: newBranch,
   });
   return { source: parsed.runId, run, worktree: newWorktreePath, branch: newBranch };
 }

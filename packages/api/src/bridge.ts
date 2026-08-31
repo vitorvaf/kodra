@@ -716,6 +716,13 @@ export interface DecisionChangePayload {
 /** Workspace-level event forwarded by the desktop IPC host. */
 export const DECISIONS_CHANGED_CHANNEL = 'decisions:changed' as const;
 
+export interface CheckChangePayload {
+  runId: number;
+}
+
+/** Workspace-level event forwarded by the desktop IPC host. */
+export const CHECKS_CHANGED_CHANNEL = 'checks:changed' as const;
+
 export interface SpecPayload {
   content: string | null;
 }

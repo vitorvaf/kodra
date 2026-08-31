@@ -9,7 +9,6 @@ import {
   readWorkspaceConfig,
   type AgentCheck,
   type CheckKind,
-  type Store,
 } from '@kanbots/local-store';
 import { z } from 'zod';
 import { badRequest, notFound, parseArgs } from './errors.js';
@@ -76,6 +75,9 @@ export async function runChecks(
   const started = kinds
     .filter((kind) => !queued.has(kind))
     .map((kind) => deps.store.checks.start({ agentRunId: parsed.runId, kind }));
+  for (const check of started) {
+    deps.supervisor.notifyChecksChanged(check.agentRunId);
+  }
   for (const kind of kinds) queued.add(kind);
 
   const overrides = await loadCheckOverrides(deps);
@@ -84,11 +86,11 @@ export async function runChecks(
     const command = resolveCheckCommand(checkRow.kind, overrides);
     void runImpl({ cwd, command })
       .then((result) => {
-        finishCheck(deps.store, checkRow.id, result.status, result.summary);
+        finishCheck(deps, checkRow.id, result.status, result.summary);
       })
       .catch((err: unknown) => {
         finishCheck(
-          deps.store,
+          deps,
           checkRow.id,
           'fail',
           err instanceof Error ? err.message : String(err),
@@ -103,12 +105,14 @@ export async function runChecks(
 }
 
 function finishCheck(
-  store: Store,
+  deps: RunChecksDeps,
   id: number,
   status: 'pass' | 'fail',
   summary: string,
 ): void {
+  const store = deps.store;
   const check = store.checks.finish({ id, status, summary });
+  deps.supervisor.notifyChecksChanged(check.agentRunId);
   // A failed check downgrades a clean completion. Monotonic upgrade ordering
   // means `failed`/`stopped`/`promoted` are unaffected by this — only a run
   // sitting at `completed_clean` flips to `completed_with_failed_checks`.

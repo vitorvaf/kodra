@@ -25,6 +25,7 @@ const IssuesContext = createContext<IssuesContextValue | null>(null);
 
 export const ISSUES_REFETCH_EVENT = 'kanbots:issues-refetch';
 export const ISSUES_CHANGED_CHANNEL = 'issues:changed';
+export const CHECKS_CHANGED_CHANNEL = 'checks:changed';
 
 export function IssuesProvider({ children }: { children: ReactNode }) {
   const [refetchTick, setRefetchTick] = useState(0);
@@ -61,6 +62,14 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     const bridge = typeof window !== 'undefined' ? window.kanbots : undefined;
     if (!bridge) return;
     return bridge.subscribe(ISSUES_CHANGED_CHANNEL, () => {
+      debouncedRefetch();
+    });
+  }, [debouncedRefetch]);
+
+  useEffect(() => {
+    const bridge = typeof window !== 'undefined' ? window.kanbots : undefined;
+    if (!bridge) return;
+    return bridge.subscribe(CHECKS_CHANGED_CHANNEL, () => {
       debouncedRefetch();
     });
   }, [debouncedRefetch]);

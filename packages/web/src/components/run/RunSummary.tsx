@@ -108,6 +108,23 @@ export function RunSummary({ run, layout = 'inspector', onRunChecks }: RunSummar
     };
   }, [run?.id, refreshTick]);
 
+  useEffect(() => {
+    if (!run) return;
+    const bridge = typeof window !== 'undefined' ? window.kanbots : undefined;
+    if (!bridge) return;
+    const runId = run.id;
+    return bridge.subscribe('checks:changed', (payload: unknown) => {
+      if (
+        payload !== null &&
+        typeof payload === 'object' &&
+        'runId' in payload &&
+        payload.runId === runId
+      ) {
+        setRefreshTick((t) => t + 1);
+      }
+    });
+  }, [run?.id]);
+
   // Light polling while any check is running
   useEffect(() => {
     const anyRunning = checks.some((c) => c.status === 'running');

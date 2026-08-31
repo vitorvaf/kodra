@@ -33,6 +33,11 @@ import type {
 import { DECISIONS_CHANGED_CHANNEL } from '../bridge.js';
 import type { IssueRef } from '@kanbots/core';
 import type { DecisionChangePayload } from '../bridge.js';
+import {
+  notifyChecksChanged as notifyChecksChangedEvent,
+  subscribeChecksChanged as subscribeChecksChangedEvent,
+  type CheckChangeListener,
+} from '../checks-changed.js';
 import { memoryNamespace, type AgentMemoryClient } from '../memory/client.js';
 import { BRIEFING_MARKER, renderSiblingBriefing } from './sibling-briefing.js';
 import {
@@ -172,6 +177,10 @@ export interface StartRunInput {
   env?: Record<string, string>;
   /** Called once the run reaches a terminal status. */
   cleanup?: () => void;
+  /** Use an already-created worktree instead of creating a new one. */
+  worktreePath?: string;
+  /** Branch associated with an already-created worktree, if any. */
+  branchName?: string | null;
 }
 
 export interface ResumeRunInput {
@@ -268,6 +277,8 @@ export interface AgentSupervisor {
   getCooldown(): CooldownState;
   subscribeCooldown(listener: CooldownListener): () => void;
   subscribeDecisionsChanged(listener: DecisionChangeListener): () => void;
+  notifyChecksChanged(runId: number): void;
+  subscribeChecksChanged(listener: CheckChangeListener): () => void;
   waitForCooldown(signal?: AbortSignal): Promise<void>;
 }
 
@@ -634,6 +645,14 @@ export async function createSupervisor(
     return () => {
       emitter.off(DECISIONS_CHANGED_CHANNEL, wrap);
     };
+  }
+
+  function notifyChecksChanged(runId: number): void {
+    notifyChecksChangedEvent(runId);
+  }
+
+  function subscribeChecksChanged(listener: CheckChangeListener): () => void {
+    return subscribeChecksChangedEvent(listener);
   }
 
   function waitForCooldown(signal?: AbortSignal): Promise<void> {
@@ -1249,7 +1268,7 @@ export async function createSupervisor(
         : {}),
     });
     if (input.cleanup) runCleanups.set(run.id, input.cleanup);
-    const branch = defaultBranchName({
+    const branch = input.branchName ?? defaultBranchName({
       issueNumber: input.issueNumber,
       runId: run.id,
     });
@@ -1269,7 +1288,7 @@ export async function createSupervisor(
       memoryNamespace({ workspaceId: 'default', repoId: repoPath }),
     );
     runIssueNumbers.set(run.id, input.issueNumber);
-    const worktreePath = defaultWorktreePath({
+    const worktreePath = input.worktreePath ?? defaultWorktreePath({
       repoPath,
       issueNumber: input.issueNumber,
       runId: run.id,
@@ -1277,16 +1296,23 @@ export async function createSupervisor(
     // Persist branch + worktree before the slow worktree-creation awaits so
     // that any `listActiveForRepo` read during that window sees a row with
     // branchName populated, not null.
-    run = store.agentRuns.update(run.id, { worktreePath, branchName: branch });
+    run = store.agentRuns.update(run.id, {
+      worktreePath,
+      ...(input.worktreePath !== undefined
+        ? { branchName: input.branchName ?? null }
+        : { branchName: branch }),
+    });
 
     try {
-      await prepareDir(worktreePath);
-      await makeWorktree({ repoPath, branch, worktreePath });
-      await stampIdentity({
-        worktreePath,
-        runId: run.id,
-        issueNumber: input.issueNumber,
-      });
+      if (input.worktreePath === undefined) {
+        await prepareDir(worktreePath);
+        await makeWorktree({ repoPath, branch, worktreePath });
+        await stampIdentity({
+          worktreePath,
+          runId: run.id,
+          issueNumber: input.issueNumber,
+        });
+      }
     } catch (err) {
       invokeRunCleanup(run.id);
       runMemoryProjects.delete(run.id);
@@ -1556,6 +1582,8 @@ export async function createSupervisor(
     getCooldown,
     subscribeCooldown,
     subscribeDecisionsChanged,
+    notifyChecksChanged,
+    subscribeChecksChanged,
     waitForCooldown,
   };
 }

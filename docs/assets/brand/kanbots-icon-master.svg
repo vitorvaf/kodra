@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="kanbots app icon">
+  <title>kanbots</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f1916"/>
+      <stop offset="1" stop-color="#0f0d0b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffa872"/>
+      <stop offset="1" stop-color="#ff8a4c"/>
+    </linearGradient>
+    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="28" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#bg)"/>
+  <g transform="translate(192 192) scale(26.67)" filter="url(#glow)">
+    <rect x="3" y="3" width="7" height="9" rx="1.5" fill="none" stroke="url(#accent)" stroke-width="1.6"/>
+    <rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="url(#accent)" stroke-width="1.6"/>
+    <rect x="13" y="3" width="8" height="6" rx="1.5" fill="none" stroke="url(#accent)" stroke-width="1.6"/>
+    <rect x="13" y="11" width="8" height="10" rx="1.5" fill="url(#accent)" opacity="0.92"/>
+  </g>
+</svg>

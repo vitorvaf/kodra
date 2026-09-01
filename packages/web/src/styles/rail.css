@@ -1,0 +1,1214 @@
+/* =========================================================================
+   kanbots — left rail
+   Mirrors design_handoff_kanbots/source/styles.css §Left Rail.
+   ========================================================================= */
+
+.kb-rail {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  font-family: var(--ff-sans);
+  color: var(--ink-1);
+}
+.kb-rail-section {
+  padding: 14px 12px 8px;
+}
+.kb-rail-section + .kb-rail-section {
+  border-top: 1px solid var(--hairline-soft);
+}
+.kb-rail-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 6px 8px;
+}
+.kb-rail-label .kb-rail-add {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  border: 1px solid var(--hairline);
+  background: transparent;
+  cursor: pointer;
+}
+.kb-rail-label .kb-rail-add:hover {
+  color: var(--ink);
+  border-color: var(--ink-2);
+}
+
+/* Collapsible-section header: a row with a toggle button + optional trailing
+   action (e.g. a "+" button). Toggle and trailing are siblings — nesting
+   <button> in <button> is invalid HTML and breaks hydration. */
+.kb-rail-label-row {
+  display: flex;
+  align-items: center;
+}
+.kb-rail-label-button {
+  flex: 1 1 auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  /* Match .kb-rail-label visual rules even though the element is a button. */
+  font-family: inherit;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 8px;
+}
+.kb-rail-label-button:hover .kb-rail-label-text { color: var(--ink-2); }
+.kb-rail-label-caret {
+  display: inline-flex;
+  justify-content: center;
+  width: 10px;
+  font-size: 10px;
+  color: var(--ink-3);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.kb-rail-label-text { flex: 1 1 auto; }
+.kb-rail-label-trailing {
+  display: inline-flex;
+  align-items: center;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 0 6px 8px 0;
+}
+.kb-rail-collapsible.is-collapsed { padding-bottom: 4px; }
+.kb-rail-collapsible.is-collapsed .kb-rail-label-button,
+.kb-rail-collapsible.is-collapsed .kb-rail-label-trailing { padding-bottom: 4px; }
+
+/* Workspace card */
+.kb-workspace {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.kb-workspace-glyph {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, var(--accent), oklch(0.6 0.15 25));
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow:
+    0 0 0 1px var(--accent-line),
+    0 0 12px var(--accent-soft);
+}
+.kb-workspace-meta {
+  flex: 1;
+  min-width: 0;
+}
+.kb-workspace-name {
+  font-size: 13px;
+  color: var(--ink);
+  font-weight: 500;
+}
+.kb-workspace-path {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-workspace-pulse {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--running);
+  font-variant-numeric: tabular-nums;
+}
+.kb-workspace-pulse .kb-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--running);
+  animation: kb-pulse 1.4s infinite;
+}
+
+/* Inline label-pulse used by the workspace section header when one or
+   more agents are mid-flight. */
+.kb-rail-label-pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--running);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.kb-rail-label-pulse .kb-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--running);
+  animation: kb-pulse 1.4s infinite;
+}
+
+/* File tree (workspace section, VSCode-style)
+   Flex chain: .kb-rail (col) → .kb-rail-tree-section (col, flex:1, min-h:0)
+   → .kb-rail-section-body (col, flex:1, min-h:0) → .kb-tree (overflow-y).
+   Every link needs min-height: 0, otherwise the inner overflow:auto has
+   no fixed parent height to scroll against and the tree expands to its
+   intrinsic size, pushing the Worktrees / Chats / footer off-screen. */
+.kb-rail-tree-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.kb-rail-tree-section > .kb-rail-section-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.kb-tree {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  border-radius: 7px;
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.kb-tree-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline-soft);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  width: 100%;
+}
+.kb-tree-header:hover { background: var(--bg-3, var(--bg-2)); }
+
+/* Search + bulk-expand toolbar above the tree body. Search dominates the
+   row; the expand/collapse actions sit beside it as compact 24×24 icon
+   buttons. Keeps the toolbar at a single rail-friendly row while leaving
+   the filter input room to breathe even in narrow rails. */
+.kb-tree-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.kb-tree-search {
+  appearance: none;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 24px;
+  background: var(--bg-inset);
+  border: 1px solid var(--hairline);
+  border-radius: 5px;
+  color: var(--ink);
+  padding: 0 8px;
+  font: 500 11.5px var(--ff-sans);
+  letter-spacing: 0.01em;
+}
+.kb-tree-search::placeholder { color: var(--ink-4); }
+.kb-tree-search:focus {
+  outline: none;
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.kb-tree-tool {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--hairline-soft);
+  color: var(--ink-3);
+  padding: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.kb-tree-tool:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--hairline);
+  background: var(--bg-1);
+}
+.kb-tree-tool:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Multi-repo workspace switcher — sits between the project header and the
+   file-tree toolbar. When the workspace has a single repo we collapse the
+   chrome to a plain inline label (no chevron, no menu). With two or more
+   repos the button opens a small menu of `displayName · targetBranch`
+   rows. Visual idiom matches `kb-tree-header` so the rail stays one
+   continuous surface from project name → repo → file actions → tree. */
+.kb-repo-switcher {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 5px 8px 6px;
+  border-bottom: 1px solid var(--hairline-soft);
+  gap: 6px;
+  min-width: 0;
+}
+.kb-repo-switcher.is-single {
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-family: var(--ff-mono);
+}
+.kb-repo-switcher-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 3px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--ink);
+  font: 500 11.5px var(--ff-sans);
+  text-align: left;
+}
+.kb-repo-switcher-button:hover {
+  background: var(--bg-3, var(--bg-2));
+  border-color: var(--hairline-soft);
+}
+.kb-repo-switcher-button[aria-expanded='true'] {
+  background: var(--bg-3, var(--bg-2));
+  border-color: var(--hairline);
+}
+.kb-repo-switcher-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ff-mono);
+  color: var(--ink);
+}
+.kb-repo-switcher-branch {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  background: var(--hairline-soft);
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.kb-repo-switcher-caret {
+  font-size: 9px;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+.kb-repo-switcher-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 8px;
+  right: 8px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px -10px oklch(0.05 0.01 60 / 0.6),
+    0 2px 8px -2px oklch(0.05 0.01 60 / 0.4);
+  animation: kb-rail-account-pop 120ms ease-out;
+}
+.kb-repo-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--ink-1);
+  font-size: 12px;
+}
+.kb-repo-switcher-item:hover,
+.kb-repo-switcher-item:focus-within {
+  background: var(--bg-3);
+  outline: none;
+}
+.kb-repo-switcher-item.is-active {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.kb-repo-switcher-item-main {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+.kb-repo-switcher-item-main:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.kb-repo-switcher-item-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ff-mono);
+}
+.kb-repo-switcher-item-branch {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  background: var(--hairline-soft);
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.kb-repo-switcher-primary {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--accent-soft);
+}
+/* Inline branch + ahead/behind + dirty indicator on each row. Glyphs
+   stay flush with the row text instead of sitting in pill boxes so the
+   dropdown reads as a status line, not a control surface. */
+.kb-repo-switcher-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.kb-repo-switcher-status-branch {
+  color: var(--ink-3);
+}
+.kb-repo-switcher-status-sep {
+  color: var(--ink-4);
+}
+.kb-repo-switcher-status-parity {
+  color: var(--ink-4);
+}
+.kb-repo-switcher-ahead {
+  color: var(--ink-2);
+}
+.kb-repo-switcher-behind {
+  color: var(--ink-2);
+}
+.kb-repo-switcher-dirty-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--awaiting, var(--accent));
+  display: inline-block;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+/* IDE launcher button — visible on row hover so the dropdown stays
+   visually quiet at rest. The button itself stays focusable via keyboard
+   regardless of the visual hover gate. */
+.kb-repo-switcher-ide-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--ink-3);
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 80ms ease-out, color 80ms ease-out, background 80ms ease-out;
+}
+.kb-repo-switcher-item:hover .kb-repo-switcher-ide-btn,
+.kb-repo-switcher-ide-btn:focus-visible {
+  opacity: 1;
+}
+.kb-repo-switcher-ide-btn:hover {
+  color: var(--ink);
+  background: var(--hairline-soft);
+}
+.kb-repo-switcher-ide-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.kb-tree-header-name {
+  font-size: 12px;
+  color: var(--ink);
+  font-weight: 500;
+}
+.kb-tree-header-sub {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+}
+.kb-tree-row {
+  display: grid;
+  grid-template-columns: 14px 16px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 8px 3px 0;
+  border: none;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 4px;
+}
+.kb-tree-row:hover { background: var(--hairline-soft); color: var(--ink); }
+/* VSCode-style colour-by-status on the file name itself.
+   The badge keeps its own pill colour; here we tint the row text so a
+   glance at the tree tells you which files git status calls out. */
+.kb-tree-row.is-status-m { color: oklch(0.78 0.16 70); }
+.kb-tree-row.is-status-a { color: oklch(0.72 0.16 145); }
+.kb-tree-row.is-status-d { color: oklch(0.7 0.18 25); }
+.kb-tree-row.is-status-r { color: oklch(0.7 0.13 280); }
+.kb-tree-row.is-status-u { color: oklch(0.72 0.16 145); }  /* untracked, VSCode green */
+.kb-tree-row.has-dirty-descendants { color: oklch(0.78 0.13 70 / 0.9); }
+.kb-tree-row.is-touched .kb-tree-icon { opacity: 1; }
+.kb-tree-row.is-touched.is-live {
+  font-weight: 500;
+  /* keep the status colour but add a soft glow so the eye catches it */
+  filter: drop-shadow(0 0 4px currentColor);
+}
+.kb-tree-caret {
+  font-size: 10px;
+  color: var(--ink-3);
+  display: inline-flex;
+  justify-content: center;
+}
+.kb-tree-icon {
+  display: inline-flex;
+  justify-content: center;
+  font-size: 12px;
+  opacity: 0.85;
+}
+.kb-tree-name {
+  font-family: var(--ff-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-tree-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  font-family: var(--ff-mono);
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--hairline);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.kb-tree-badge-m { background: oklch(0.78 0.16 70 / 0.18); color: oklch(0.78 0.16 70); }
+.kb-tree-badge-a { background: oklch(0.72 0.16 145 / 0.18); color: oklch(0.72 0.16 145); }
+.kb-tree-badge-d { background: oklch(0.7 0.18 25 / 0.18); color: oklch(0.7 0.18 25); }
+.kb-tree-badge-r { background: oklch(0.7 0.13 280 / 0.18); color: oklch(0.7 0.13 280); }
+.kb-tree-badge-u { background: oklch(0.68 0.16 25 / 0.22); color: oklch(0.68 0.16 25); }
+.kb-tree-badge-count { background: var(--hairline-soft); color: var(--ink-3); }
+.kb-tree-badge.is-live {
+  box-shadow: 0 0 0 1px currentColor;
+  animation: kb-pulse 1.6s infinite;
+}
+.kb-tree-loading,
+.kb-tree-empty {
+  font-size: 11px;
+  color: var(--ink-3);
+  padding: 6px 10px;
+  font-style: italic;
+}
+
+/* Worktrees section */
+.kb-rail-label-count {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.kb-rail-worktrees {
+  flex: 0 0 auto;
+}
+.kb-rail-worktree-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kb-rail-worktree-error {
+  color: oklch(0.7 0.18 25);
+  font-size: 11px;
+  padding: 2px 6px 6px;
+}
+.kb-worktree-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 6px;
+  padding: 7px 8px;
+  background: var(--bg-2);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.kb-worktree-row.is-busy { opacity: 0.6; }
+.kb-worktree-row.is-main { background: var(--bg-3, var(--bg-2)); }
+.kb-worktree-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.kb-worktree-branch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink);
+  font-weight: 500;
+}
+.kb-worktree-glyph {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.kb-worktree-branch-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ff-mono);
+}
+.kb-worktree-tag {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--hairline);
+  color: var(--ink-3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.kb-worktree-path {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-worktree-dirty {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.kb-worktree-dirty.is-clean { color: var(--ink-3); }
+.kb-worktree-dirty.is-dirty { color: oklch(0.78 0.16 70); }
+.kb-worktree-menu-btn {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 5px;
+  color: var(--ink-3);
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  align-self: center;
+}
+.kb-worktree-menu-btn:hover { color: var(--ink); border-color: var(--ink-2); }
+.kb-worktree-menu-btn:disabled { opacity: 0.5; cursor: progress; }
+.kb-worktree-menu {
+  position: absolute;
+  top: 100%;
+  right: 6px;
+  margin-top: 4px;
+  z-index: 10;
+  min-width: 200px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px var(--shadow, oklch(0 0 0 / 0.4));
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.kb-worktree-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  text-align: left;
+  cursor: pointer;
+}
+.kb-worktree-menu-item:hover { background: var(--hairline-soft); }
+.kb-worktree-menu-item.is-destructive { color: oklch(0.7 0.18 25); }
+.kb-worktree-menu-item.is-destructive:hover {
+  background: oklch(0.7 0.18 25 / 0.12);
+}
+.kb-worktree-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--hairline);
+}
+
+/* Folder + view rows */
+.kb-rail-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--ink-1);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.kb-rail-item:hover {
+  background: var(--bg-1);
+  color: var(--ink);
+}
+.kb-rail-item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.kb-rail-item.mock {
+  opacity: 0.55;
+  cursor: default;
+}
+.kb-rail-item.mock:hover {
+  background: transparent;
+  color: var(--ink-2);
+}
+.kb-rail-item .kb-glyph {
+  width: 14px;
+  color: var(--ink-3);
+  font-size: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.kb-rail-item.active .kb-glyph {
+  color: var(--accent);
+}
+.kb-rail-item .kb-rail-row-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.kb-rail-item .kb-rail-row-name {
+  font-size: 12.5px;
+  color: var(--ink-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kb-rail-item.active .kb-rail-row-name {
+  color: var(--accent);
+}
+.kb-rail-item .kb-rail-row-sub {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-rail-item .kb-rail-row-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.kb-rail-item.active .kb-rail-row-count {
+  color: var(--accent);
+}
+.kb-rail-item .kb-rail-row-pulse {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--running);
+  font-variant-numeric: tabular-nums;
+}
+.kb-rail-item .kb-rail-row-pulse .kb-pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--running);
+  animation: kb-pulse 1.4s infinite;
+}
+
+/* Live agents mini-cards */
+.kb-swarm-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 7px;
+  margin: 0 -2px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.kb-swarm-card:hover {
+  background: var(--bg-1);
+}
+.kb-swarm-card[aria-pressed='true'] {
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.kb-swarm-bar {
+  width: 2px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: var(--running);
+  box-shadow: 0 0 8px var(--running);
+}
+.kb-swarm-bar.kb-state-awaiting {
+  background: var(--awaiting);
+  box-shadow: 0 0 8px var(--awaiting);
+}
+.kb-swarm-bar.kb-state-review {
+  background: var(--review);
+  box-shadow: 0 0 8px var(--review);
+}
+.kb-swarm-meta {
+  flex: 1;
+  min-width: 0;
+}
+.kb-swarm-num {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+}
+.kb-swarm-title {
+  font-size: 12px;
+  color: var(--ink-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kb-swarm-tool {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kb-rail-foot {
+  position: relative;
+  margin-top: auto;
+  padding: 12px;
+  border-top: 1px solid var(--hairline-soft);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.kb-rail-account {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.kb-rail-account:hover,
+.kb-rail-account[aria-expanded='true'] {
+  background: var(--bg-2);
+  border-color: var(--hairline-soft);
+}
+.kb-rail-account-caret {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--ink-4);
+  transform: rotate(180deg);
+  transition: transform 120ms ease;
+  flex-shrink: 0;
+}
+.kb-rail-account[aria-expanded='true'] .kb-rail-account-caret {
+  transform: rotate(0deg);
+  color: var(--ink-2);
+}
+.kb-rail-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 11px;
+  color: oklch(0.18 0.02 60);
+  flex-shrink: 0;
+}
+.kb-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.kb-who-name {
+  font-size: 12px;
+  color: var(--ink-1);
+}
+.kb-who-status {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.kb-who-status .kb-pulse {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--review);
+}
+.kb-rail-cmdk {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.kb-rail-cmdk:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+.kb-rail-account-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 8px;
+  right: 8px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px -12px oklch(0.05 0.01 60 / 0.7),
+    0 4px 12px -2px oklch(0.05 0.01 60 / 0.4);
+  animation: kb-rail-account-pop 120ms ease-out;
+}
+@keyframes kb-rail-account-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.kb-rail-account-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--ink-1);
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.kb-rail-account-item:hover,
+.kb-rail-account-item:focus-visible {
+  background: var(--bg-3);
+  outline: none;
+}
+.kb-rail-account-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+.kb-rail-account-sep {
+  height: 1px;
+  margin: 4px 4px;
+  background: var(--hairline-soft);
+}
+
+/* ---------- Activity section ---------- */
+.kb-rail-activity {
+  flex: 0 0 auto;
+}
+.kb-rail-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kb-rail-activity-error {
+  color: oklch(0.7 0.18 25);
+  font-size: 11px;
+  padding: 2px 6px 6px;
+}
+.kb-rail-activity-row {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  color: var(--ink-2);
+  text-align: left;
+  font-size: 11.5px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 120ms ease;
+}
+.kb-rail-activity-row:hover {
+  background: var(--hairline-soft);
+  color: var(--ink);
+}
+.kb-rail-activity-icon {
+  display: inline-flex;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.kb-rail-activity-row.tone-error .kb-rail-activity-icon { color: oklch(0.7 0.18 25); }
+.kb-rail-activity-row.tone-awaiting .kb-rail-activity-icon { color: var(--awaiting, oklch(0.75 0.14 80)); }
+.kb-rail-activity-row.tone-done .kb-rail-activity-icon { color: oklch(0.72 0.16 145); }
+.kb-rail-activity-row.tone-running .kb-rail-activity-icon { color: var(--accent); }
+.kb-rail-activity-meta {
+  min-width: 0;
+}
+.kb-rail-activity-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.kb-rail-activity-num {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.kb-rail-activity-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-rail-activity-age {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* ---------- Chats section ---------- */
+.kb-rail-chats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+.kb-rail-chats-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 6px 6px;
+}
+.kb-rail-chats-head .kb-rail-label {
+  padding: 0;
+}
+.kb-rail-chats-new {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  border: 1px solid var(--hairline);
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+.kb-rail-chats-new:hover {
+  color: var(--ink);
+  border-color: var(--ink-2);
+  background: var(--bg-1);
+}
+.kb-rail-chats-search {
+  margin: 0 6px 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  color: var(--ink-1);
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-family: var(--ff-sans);
+  outline: none;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.kb-rail-chats-search:focus {
+  border-color: var(--accent-line);
+  background: color-mix(in oklch, var(--bg-1) 90%, var(--accent-soft));
+}
+.kb-rail-chats-search::placeholder {
+  color: var(--ink-3);
+}
+.kb-rail-chats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 2px;
+}
+.kb-rail-chats-empty {
+  font-size: 11px;
+  color: var(--ink-3);
+  padding: 6px 8px;
+}
+.kb-rail-chat-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  width: 100%;
+  min-width: 0;
+}
+.kb-rail-chat-row:hover {
+  background: var(--bg-1);
+  border-color: var(--hairline-soft);
+}
+.kb-rail-chat-title {
+  font-size: 12px;
+  color: var(--ink-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.kb-rail-chat-time {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+}
+.kb-rail-chats-more {
+  margin-top: 4px;
+  background: transparent;
+  border: 0;
+  color: var(--ink-3);
+  font-family: var(--ff-sans);
+  font-size: 10.5px;
+  text-align: left;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.kb-rail-chats-more:hover {
+  color: var(--ink-1);
+  background: var(--bg-1);
+}

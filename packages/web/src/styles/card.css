@@ -1,0 +1,1389 @@
+/* =========================================================================
+   kanbots — Card 2.0 + Column refactor
+   Mirrors design_handoff_kanbots/source/styles.css §Center / §Column / §Card.
+   ========================================================================= */
+
+.kb-board-toolbar {
+  min-height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--hairline);
+  background: linear-gradient(
+    to bottom,
+    var(--bg),
+    var(--bg) 50%,
+    color-mix(in oklch, var(--bg) 92%, transparent)
+  );
+  flex-wrap: wrap;
+}
+.kb-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+.kb-crumbs .kb-crumb-active {
+  color: var(--ink);
+  font-weight: 500;
+}
+.kb-crumbs .kb-sep {
+  color: var(--ink-4);
+}
+.kb-toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.kb-toolbar-actions .kb-btn.primary {
+  flex-shrink: 0;
+}
+
+.kb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 7px;
+  background: var(--bg-2);
+  color: var(--ink-1);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition: 120ms ease;
+  cursor: pointer;
+}
+.kb-btn:hover {
+  background: var(--bg-3);
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+.kb-btn.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.18) inset,
+    0 0 0 1px var(--accent-line),
+    0 6px 18px var(--accent-soft);
+}
+.kb-btn.primary:hover {
+  filter: brightness(1.06);
+}
+.kb-btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-2);
+}
+.kb-btn.ghost:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+.kb-btn .kb-kbd {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  padding: 1px 5px;
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  margin-left: 4px;
+  background: transparent;
+  line-height: 1;
+}
+/* On a primary (accent-fill) button the default ink-3 / hairline kbd
+   becomes a low-contrast yellowish chip against the orange. Tint the kbd
+   to use the accent ink (dark) over a slightly inset translucent surface
+   so it reads as a key-cap, not a mystery badge. */
+.kb-btn.primary .kb-kbd {
+  color: var(--accent-ink);
+  background: oklch(1 0 0 / 0.18);
+  border-color: oklch(0 0 0 / 0.18);
+}
+
+/* Workspace cost meter — lives in the board toolbar between the search
+   pill and the Autopilot button. Mirrors the kb-btn shape but renders
+   the rolled-up "$X.XX today" figure as content, and lights up in the
+   clay accent once spend has accumulated. */
+.kb-cost-meter {
+  display: inline-flex;
+  /* center-aligned with consistent line-height — baseline + mixed font
+     sizes drifted the suffix off the dollar amount. */
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  color: var(--ink-1);
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  cursor: default;
+  transition: 120ms ease;
+  line-height: 1;
+}
+.kb-cost-meter.is-clickable {
+  cursor: pointer;
+}
+.kb-cost-meter.is-clickable:hover {
+  background: var(--bg-3);
+  border-color: var(--ink-3);
+  color: var(--ink);
+}
+.kb-cost-meter.is-empty,
+.kb-cost-meter.is-zero {
+  color: var(--ink-3);
+}
+.kb-cost-meter:not(.is-empty):not(.is-zero) .kb-cost-meter-amount {
+  color: var(--accent);
+  font-weight: 600;
+}
+.kb-cost-meter-amount {
+  font-weight: 500;
+  line-height: 1;
+}
+.kb-cost-meter-suffix {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  /* tiny optical lift so the lowercase x-height sits on the dollar-sign
+     midline rather than dropping to its baseline. */
+  position: relative;
+  top: 0.5px;
+}
+
+.kb-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  border-radius: 7px;
+  width: 280px;
+  min-width: 0;
+  flex-shrink: 1;
+  color: var(--ink-3);
+  font-size: 12px;
+  cursor: text;
+  overflow: hidden;
+}
+.kb-search > span:not(.kb-search-kbd) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  .kb-search {
+    width: 200px;
+  }
+}
+@media (max-width: 820px) {
+  .kb-search {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+  .kb-search > span:not(.kb-search-kbd),
+  .kb-search-kbd {
+    display: none;
+  }
+}
+.kb-search:hover {
+  border-color: var(--ink-4);
+}
+.kb-search-kbd {
+  margin-left: auto;
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+
+.kb-filter-row {
+  height: 38px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--hairline-soft);
+  background: var(--bg);
+  font-size: 12px;
+  overflow-x: auto;
+}
+.kb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-1);
+  color: var(--ink-2);
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.kb-pill.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+.kb-pill.on.kb-pill-running {
+  background: oklch(0.745 0.155 45 / 0.1);
+  color: var(--running);
+  border-color: oklch(0.745 0.155 45 / 0.45);
+}
+.kb-pill .kb-pill-x {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+.kb-stats-line {
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-family: var(--ff-mono);
+}
+
+/* Board sort selector — sits in the filter row before the stats line.
+   margin-left:auto pushes it (and stats) to the right edge. */
+.kb-board-sort {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.kb-board-sort-label {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+.kb-board-sort-select {
+  appearance: none;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  color: var(--ink-1);
+  font: 500 11px var(--ff-sans);
+  padding: 2px 22px 2px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%),
+    linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position:
+    calc(100% - 12px) 50%,
+    calc(100% - 8px) 50%;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+}
+.kb-board-sort-select:hover {
+  border-color: var(--hairline-soft);
+  color: var(--ink);
+}
+.kb-board-sort-select:focus {
+  outline: none;
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* Cost usage row — sits below the filter row, mirrors claude-code's
+   "Target: tokens / budget (pct%)" indicator with a progress bar. */
+.kb-usage-row {
+  height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--hairline-soft);
+  background: var(--bg);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+}
+.kb-usage-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-3);
+}
+.kb-usage-label {
+  color: var(--ink-2);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+.kb-usage-bar {
+  position: relative;
+  width: 96px;
+  height: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.kb-usage-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+  border-radius: 999px 0 0 999px;
+  transition: width 240ms ease;
+}
+.kb-usage-meter.tone-warn .kb-usage-bar-fill {
+  background: var(--awaiting);
+}
+.kb-usage-meter.tone-danger .kb-usage-bar-fill {
+  background: var(--failed);
+}
+.kb-usage-pct {
+  color: var(--ink-2);
+  min-width: 4ch;
+  text-align: right;
+}
+.kb-usage-meter.tone-warn .kb-usage-pct {
+  color: var(--awaiting);
+}
+.kb-usage-meter.tone-danger .kb-usage-pct {
+  color: var(--failed);
+}
+.kb-usage-reset {
+  color: var(--ink-3);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* ---------- Board grid ---------- */
+.kb-board {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 14px 18px 18px;
+  overflow-x: auto;
+  min-height: 0;
+}
+
+/* ---------- Column ---------- */
+.kb-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: transparent;
+}
+.kb-col-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 10px;
+  border-bottom: 1px solid var(--hairline-soft);
+  margin-bottom: 10px;
+}
+.kb-col-head .kb-col-glyph {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--ink-3);
+}
+.kb-col-head[data-status='inProgress'] .kb-col-glyph {
+  background: var(--running);
+  box-shadow: 0 0 8px var(--running);
+}
+.kb-col-head[data-status='review'] .kb-col-glyph {
+  background: var(--review);
+  box-shadow: 0 0 8px var(--review);
+}
+.kb-col-head[data-status='todo'] .kb-col-glyph {
+  background: var(--queued);
+}
+.kb-col-head[data-status='done'] .kb-col-glyph {
+  background: var(--ink-3);
+}
+.kb-col-head[data-status='backlog'] .kb-col-glyph {
+  background: var(--ink-4);
+}
+.kb-col-head[data-status='inbox'] .kb-col-glyph {
+  background: var(--ink-4);
+}
+.kb-col-head .kb-col-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-1);
+}
+.kb-col-head .kb-col-count {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: 999px;
+}
+.kb-col-head .kb-col-add {
+  margin-left: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.kb-col:hover .kb-col-add,
+.kb-col-add:focus-visible {
+  opacity: 1;
+}
+.kb-col-head .kb-col-add:hover {
+  color: var(--ink);
+  background: var(--bg-2);
+}
+.kb-col-head .kb-col-suggest {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-1);
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: 120ms ease;
+}
+.kb-col-head .kb-col-add ~ .kb-col-suggest {
+  margin-left: 0;
+}
+.kb-col-head .kb-col-suggest:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--bg-3, var(--bg-2));
+  border-color: var(--ink-4);
+}
+.kb-col-head .kb-col-suggest:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+.kb-col-head .kb-col-suggest svg {
+  flex-shrink: 0;
+}
+.kb-col-head .kb-col-suggest[aria-busy='true'] svg {
+  animation: kb-suggest-spin 1.4s linear infinite;
+}
+@keyframes kb-suggest-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Suggest skeleton card ---------- */
+.kb-card.kb-card-skeleton {
+  cursor: progress;
+  pointer-events: none;
+  position: relative;
+  overflow: hidden;
+}
+.kb-card.kb-card-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklch, var(--ink) 6%, transparent) 50%,
+    transparent 100%
+  );
+  animation: kb-skel-shimmer 1.4s ease-in-out infinite;
+}
+.kb-skel {
+  display: inline-block;
+  background: color-mix(in oklch, var(--ink) 9%, transparent);
+  border-radius: 4px;
+  height: 10px;
+}
+.kb-skel-num {
+  width: 28px;
+}
+.kb-skel-tag {
+  width: 36px;
+  height: 12px;
+  border-radius: 999px;
+}
+.kb-skel-line {
+  display: block;
+  width: 100%;
+  height: 12px;
+}
+.kb-skel-title {
+  height: 14px;
+  width: 90%;
+}
+.kb-skel-line-short {
+  width: 60%;
+}
+.kb-skel-pill {
+  width: 48px;
+  height: 14px;
+  border-radius: 999px;
+}
+.kb-skel-pill-sm {
+  width: 32px;
+}
+@keyframes kb-skel-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.kb-col-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-bottom: 12px;
+  padding-right: 2px;
+}
+.kb-col-empty {
+  padding: 12px 6px;
+  color: var(--ink-4);
+  font-size: 11.5px;
+}
+.kb-col[data-over='true'] .kb-col-list {
+  outline: 2px dashed var(--accent-line);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+/* ---------- Card ---------- */
+.kb-card {
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 12px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  position: relative;
+  transition: 120ms ease;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  font-family: var(--ff-sans);
+  touch-action: none;
+}
+.kb-card:hover {
+  background: var(--bg-2);
+  border-color: var(--ink-4);
+}
+.kb-card.kb-card-selected {
+  background: color-mix(in oklch, var(--bg-2) 88%, var(--accent-soft));
+  border-color: var(--accent-line);
+  /* Soft accent ring instead of a hard 2px solid outline — keeps the
+     selected state legible without shouting at the eye. */
+  box-shadow:
+    0 0 0 1px var(--accent-line),
+    0 8px 24px oklch(0 0 0 / 0.3);
+}
+.kb-card.kb-card-source {
+  opacity: 0.4;
+}
+.kb-card-preview {
+  pointer-events: none;
+  cursor: grabbing;
+  box-shadow: 0 12px 32px oklch(0 0 0 / 0.4);
+  transform: rotate(1deg);
+}
+
+.kb-card.kb-state-running::before,
+.kb-card.kb-state-awaiting::before,
+.kb-card.kb-state-review::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 2px;
+}
+.kb-card.kb-state-running::before {
+  background: var(--running);
+  box-shadow:
+    0 0 10px var(--running),
+    0 0 4px var(--running);
+}
+.kb-card.kb-state-awaiting::before {
+  background: var(--awaiting);
+  box-shadow:
+    0 0 10px var(--awaiting),
+    0 0 4px var(--awaiting);
+}
+.kb-card.kb-state-review::before {
+  background: var(--review);
+}
+
+.kb-card.kb-state-running {
+  background: linear-gradient(
+    135deg,
+    var(--bg-1),
+    color-mix(in oklch, var(--bg-1) 92%, var(--accent-soft))
+  );
+}
+.kb-card.kb-state-awaiting {
+  background: linear-gradient(
+    135deg,
+    var(--bg-1),
+    color-mix(in oklch, var(--bg-1) 90%, oklch(0.78 0.14 75 / 0.18))
+  );
+}
+
+.kb-card-row1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kb-tag {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  border: 1px solid var(--hairline);
+}
+.kb-tag.kb-tag-IMPL {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.kb-tag.kb-tag-BUG,
+.kb-tag.kb-tag-FIX {
+  color: var(--failed);
+  border-color: oklch(0.7 0.18 25 / 0.4);
+  background: oklch(0.7 0.18 25 / 0.12);
+}
+.kb-tag.kb-tag-FEAT {
+  color: var(--queued);
+  border-color: oklch(0.74 0.1 240 / 0.4);
+  background: oklch(0.74 0.1 240 / 0.12);
+}
+.kb-tag.kb-tag-PR {
+  color: var(--review);
+  border-color: oklch(0.78 0.13 155 / 0.4);
+  background: oklch(0.78 0.13 155 / 0.12);
+}
+.kb-tag.kb-tag-CHORE,
+.kb-tag.kb-tag-INFRA,
+.kb-tag.kb-tag-DOCS {
+  color: var(--ink-2);
+}
+.kb-tag.kb-tag-AUTOPILOT {
+  color: oklch(0.82 0.16 290);
+  border-color: oklch(0.82 0.16 290 / 0.45);
+  background: oklch(0.82 0.16 290 / 0.14);
+  letter-spacing: 0.05em;
+}
+.kb-card-num {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.kb-card-pri {
+  font-family: var(--ff-mono);
+  font-size: 9.5px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.kb-card-pri.kb-pri-p0 {
+  color: var(--failed);
+}
+.kb-card-pri.kb-pri-p1 {
+  color: var(--awaiting);
+}
+
+.kb-status-pill {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px 2px 6px;
+  border-radius: 999px;
+  background: oklch(0.745 0.155 45 / 0.12);
+  color: var(--running);
+  border: 1px solid oklch(0.745 0.155 45 / 0.3);
+}
+.kb-status-pill .kb-pulse {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: kb-pulse 1.4s infinite;
+}
+.kb-status-pill.kb-state-awaiting {
+  background: oklch(0.78 0.14 75 / 0.12);
+  color: var(--awaiting);
+  border-color: oklch(0.78 0.14 75 / 0.35);
+}
+.kb-status-pill.kb-state-awaiting .kb-pulse {
+  animation: none;
+}
+.kb-status-pill.kb-state-review {
+  background: oklch(0.78 0.13 155 / 0.12);
+  color: var(--review);
+  border-color: oklch(0.78 0.13 155 / 0.3);
+}
+.kb-status-pill.kb-state-review .kb-pulse {
+  animation: none;
+}
+.kb-status-pill.kb-state-queued {
+  background: oklch(0.74 0.1 240 / 0.12);
+  color: var(--queued);
+  border-color: oklch(0.74 0.1 240 / 0.3);
+}
+.kb-status-pill.kb-state-queued .kb-pulse {
+  animation: none;
+}
+.kb-status-pill.kb-state-failed {
+  background: oklch(0.7 0.18 25 / 0.12);
+  color: var(--failed);
+  border-color: oklch(0.7 0.18 25 / 0.3);
+}
+.kb-status-pill.kb-state-failed .kb-pulse {
+  animation: none;
+}
+
+.kb-card-title {
+  font-size: 13.5px;
+  line-height: 1.32;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+
+.kb-live-ticker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--bg-inset);
+  border: 1px solid var(--hairline-soft);
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  overflow: hidden;
+}
+.kb-live-ticker .kb-pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--running);
+  flex-shrink: 0;
+  animation: kb-pulse 1.2s infinite;
+}
+.kb-live-ticker .kb-tool {
+  color: var(--accent);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.kb-live-ticker .kb-arg {
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.kb-card-decision {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: oklch(0.78 0.14 75 / 0.1);
+  border: 1px solid oklch(0.78 0.14 75 / 0.35);
+}
+.kb-card-decision .kb-q-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--awaiting);
+  color: oklch(0.2 0.04 70);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.kb-card-decision .kb-q-text {
+  font-family: var(--ff-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.kb-card-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kb-card-progress .kb-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--bg-inset);
+  overflow: hidden;
+}
+.kb-card-progress .kb-bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--running),
+    color-mix(in oklch, var(--running) 50%, var(--accent) 50%)
+  );
+  border-radius: 999px;
+}
+.kb-card-progress .kb-pct {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.kb-card-meta .kb-branch-pill {
+  font-family: var(--ff-mono);
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-card-meta .kb-stats {
+  display: inline-flex;
+  gap: 6px;
+  font-family: var(--ff-mono);
+  font-variant-numeric: tabular-nums;
+}
+.kb-card-meta .kb-stats .add {
+  color: var(--add);
+}
+.kb-card-meta .kb-stats .del {
+  color: var(--del);
+}
+.kb-card-meta .kb-checks {
+  display: inline-flex;
+  gap: 3px;
+}
+.kb-check {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  border: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--ink-3);
+}
+.kb-check.pass {
+  background: oklch(0.78 0.13 155 / 0.15);
+  color: var(--review);
+  border-color: oklch(0.78 0.13 155 / 0.35);
+}
+.kb-check.fail {
+  background: oklch(0.7 0.18 25 / 0.15);
+  color: var(--failed);
+  border-color: oklch(0.7 0.18 25 / 0.35);
+}
+.kb-check.run {
+  background: oklch(0.78 0.14 75 / 0.15);
+  color: var(--awaiting);
+  border-color: oklch(0.78 0.14 75 / 0.35);
+}
+.kb-card-meta .kb-spacer {
+  margin-left: auto;
+}
+.kb-card-age {
+  margin-left: auto;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+.kb-assignees {
+  display: flex;
+}
+.kb-assignees .kb-av {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+  color: oklch(0.2 0.02 60);
+  border: 1.5px solid var(--bg-1);
+  margin-left: -5px;
+}
+.kb-assignees .kb-av:first-child {
+  margin-left: 0;
+}
+
+/* Review-card inline actions */
+.kb-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kb-card-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.kb-card-actions .kb-btn {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
+}
+
+/* Decision-option buttons on a card. Mirrors the tray's `.kb-tray-opts .o`
+   vocabulary — neutral surface + thin border instead of the orange accent
+   fill the generic `.kb-btn primary` would give. The decision needs to
+   read as "make a choice", not "press the primary CTA". */
+.kb-card-decision-opts {
+  gap: 4px;
+}
+.kb-card-decision-opts .o {
+  appearance: none;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-family: var(--ff-sans);
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  color: var(--ink-1);
+  cursor: pointer;
+  text-align: left;
+}
+.kb-card-decision-opts .o:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--awaiting);
+  color: var(--awaiting);
+}
+.kb-card-decision-opts .o:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.kb-card-decision-opts .o.dismiss {
+  color: var(--ink-3);
+  border-style: dashed;
+}
+.kb-card-decision-opts .o.dismiss:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--failed);
+  color: var(--failed);
+}
+
+/* Ship-from-review panel */
+.kb-ship-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+  background: var(--bg-inset);
+  font-size: 11px;
+}
+.kb-ship-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kb-ship-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  min-width: 42px;
+}
+.kb-ship-branch {
+  font-family: var(--ff-mono, monospace);
+  font-size: 11px;
+  color: var(--ink);
+}
+.kb-ship-ahead {
+  font-size: 10px;
+  color: var(--accent);
+}
+.kb-ship-warn {
+  font-size: 10px;
+  color: var(--warning, #b45309);
+}
+.kb-ship-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 2px;
+}
+.kb-ship-panel select.kb-input {
+  height: 22px;
+  font-size: 11px;
+  padding: 0 4px;
+  flex: 1;
+}
+
+/* Sentry origin badge on cards */
+.kb-sentry-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(249, 115, 22, 0.15);
+  color: #c2410c;
+  text-transform: uppercase;
+}
+.kb-sentry-badge.kb-sentry-analyzed {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+}
+.kb-sentry-badge.kb-sentry-applied,
+.kb-sentry-badge.kb-sentry-upstream_resolved {
+  background: rgba(21, 128, 61, 0.15);
+  color: #15803d;
+}
+
+/* Multi-select bulk action ring on cards. Visually distinct from the
+   single-select kb-card-selected ring so the two states can coexist. */
+.kb-card.is-selected {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: -2px;
+  background: color-mix(in oklch, var(--bg-2) 70%, var(--accent-soft));
+}
+.kb-card.kb-card-selected.is-selected {
+  outline: 2px solid var(--accent);
+}
+
+/* Saved board views dropdown — sits in the filter row next to Sort. */
+.kb-board-views {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.kb-board-views-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  min-width: 220px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  box-shadow: var(--shadow-2);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kb-board-views-item {
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-1);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.kb-board-views-item:hover {
+  background: var(--bg-2);
+}
+.kb-board-views-item.on {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.kb-board-views-sep {
+  height: 1px;
+  background: var(--hairline-soft);
+  margin: 4px 2px;
+}
+.kb-board-views-empty {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.kb-board-views-save-row {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+}
+.kb-board-views-save-row .kb-input {
+  flex: 1;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+.kb-board-views-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kb-board-views-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--bg-2);
+}
+.kb-board-views-row.is-dragging {
+  opacity: 0.4;
+}
+.kb-board-views-row-handle {
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  cursor: grab;
+}
+.kb-board-views-row-name {
+  background: transparent;
+  border: none;
+  color: var(--ink-1);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  flex: 1;
+}
+.kb-board-views-row-name:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+/* Bulk action bar — sticky bottom strip that animates in when the
+   user multi-selects. Mirrors the kb-btn / kb-pill aesthetic without
+   adding a new dependency. */
+.kb-bulk-action-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  box-shadow: var(--shadow-2);
+  animation: kb-bulk-slide-up 160ms ease;
+}
+@keyframes kb-bulk-slide-up {
+  from {
+    transform: translate(-50%, 20px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+.kb-bulk-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.kb-bulk-spacer {
+  width: 1px;
+  height: 18px;
+  background: var(--hairline-soft);
+  margin: 0 4px;
+}
+.kb-bulk-drop {
+  position: relative;
+}
+.kb-bulk-drop-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  min-width: 180px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  box-shadow: var(--shadow-2);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kb-bulk-drop-menu-labels {
+  min-width: 280px;
+  padding: 10px;
+  gap: 8px;
+}
+.kb-bulk-drop-item {
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-1);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.kb-bulk-drop-item:hover {
+  background: var(--bg-2);
+}
+.kb-bulk-drop-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+.kb-bulk-drop-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Card-template settings list — used by CardTemplatesSettingsModal. */
+.kb-card-templates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.kb-card-template-row {
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--bg-2);
+  padding: 10px 12px;
+}
+.kb-card-template-row.is-dragging {
+  opacity: 0.5;
+}
+.kb-card-template-row.is-editing {
+  background: var(--bg-1);
+  border-color: var(--accent-line);
+}
+.kb-card-template-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.kb-card-template-handle {
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  cursor: grab;
+  font-size: 12px;
+}
+.kb-card-template-summary-text {
+  flex: 1;
+  min-width: 0;
+}
+.kb-card-template-name {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--ink);
+}
+.kb-card-template-preview {
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-card-template-tags {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.kb-card-template-tag,
+.kb-card-template-provider {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  color: var(--ink-2);
+}
+.kb-card-template-provider {
+  background: var(--accent-soft);
+  color: var(--ink-1);
+}
+.kb-card-template-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.kb-card-template-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+}

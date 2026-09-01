@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56" fill="none" role="img" aria-label="kanbots wordmark">
+  <title>kanbots</title>
+  <!-- mark inside a rounded square tile -->
+  <rect x="4" y="4" width="48" height="48" rx="11" fill="#ff8a4c" fill-opacity="0.14" stroke="#ff8a4c" stroke-opacity="0.5"/>
+  <g transform="translate(15 15) scale(1.083)">
+    <rect x="3" y="3" width="7" height="9" rx="1.5" stroke="#ff8a4c" stroke-width="1.6" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#ff8a4c" stroke-width="1.6" />
+    <rect x="13" y="3" width="8" height="6" rx="1.5" stroke="#ff8a4c" stroke-width="1.6" />
+    <rect x="13" y="11" width="8" height="10" rx="1.5" fill="#ff8a4c" opacity="0.9" />
+  </g>
+  <!-- wordmark in Inter Tight semibold; uses tspan for crisp baseline -->
+  <text x="64" y="37" font-family="'Inter Tight', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="26" font-weight="600" letter-spacing="-0.5" fill="#f5efe8">kanbots</text>
+</svg>

@@ -1,0 +1,140 @@
+/* =========================================================================
+   kanbots — command palette (⌘K)
+   Mirrors design_handoff_kanbots/source/styles.css §Command Palette.
+   ========================================================================= */
+
+.kb-palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: oklch(0 0 0 / 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18vh;
+  z-index: 90;
+  font-family: var(--ff-sans);
+  color: var(--ink);
+}
+.kb-palette {
+  width: 640px;
+  max-width: calc(100% - 80px);
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+}
+.kb-palette-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--hairline-soft);
+  flex-shrink: 0;
+}
+.kb-palette-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.kb-palette-input input::placeholder {
+  color: var(--ink-3);
+}
+.kb-palette-input .kbd-hint {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  padding: 2px 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+}
+.kb-palette-body {
+  overflow-y: auto;
+}
+.kb-palette-section {
+  padding: 8px 0;
+}
+.kb-palette-section + .kb-palette-section {
+  border-top: 1px solid var(--hairline-soft);
+}
+.kb-palette-section-h {
+  padding: 4px 16px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.kb-palette-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--ff-sans);
+  color: var(--ink-1);
+}
+.kb-palette-row:hover,
+.kb-palette-row.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.kb-palette-row .ico {
+  width: 14px;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.kb-palette-row.active .ico,
+.kb-palette-row:hover .ico {
+  color: var(--accent);
+}
+.kb-palette-row .label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-palette-row .label.serif {
+  font-family: var(--ff-serif);
+  font-style: italic;
+  font-size: 14.5px;
+  color: var(--ink-1);
+  letter-spacing: -0.01em;
+}
+.kb-palette-row .hint {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+.kb-palette-row .num {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  flex-shrink: 0;
+  width: 56px;
+}
+.kb-palette-empty {
+  padding: 18px 16px;
+  color: var(--ink-3);
+  font-size: 12px;
+  text-align: center;
+}

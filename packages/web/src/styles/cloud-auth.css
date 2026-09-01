@@ -1,0 +1,357 @@
+/* =========================================================================
+   kanbots cloud — sign-in / settings / first-run polish
+   ========================================================================= */
+
+.kb-cloud-modal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  box-shadow:
+    0 32px 80px oklch(0 0 0 / 0.6),
+    0 0 0 1px oklch(1 0 0 / 0.04) inset;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-cloud-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--hairline);
+}
+.kb-cloud-modal-head-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-1);
+  letter-spacing: -0.005em;
+}
+.kb-cloud-modal-head .grow {
+  flex: 1;
+}
+
+.kb-cloud-modal-body {
+  padding: 28px 28px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
+  text-align: center;
+}
+
+.kb-cloud-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.kb-cloud-hero-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.kb-cloud-hero-icon::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 18px;
+  background: radial-gradient(
+    circle at center,
+    color-mix(in oklch, var(--accent) 35%, transparent),
+    transparent 70%
+  );
+  opacity: 0.5;
+  z-index: -1;
+  filter: blur(12px);
+}
+
+.kb-cloud-hero-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.kb-cloud-hero-tagline {
+  font-size: 13.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 360px;
+}
+
+.kb-cloud-features {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 10px;
+}
+.kb-cloud-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.kb-cloud-feature-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+.kb-cloud-cta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kb-cloud-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-line);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--accent) 88%, transparent),
+    var(--accent)
+  );
+  color: var(--accent-ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: var(--ff-sans);
+  cursor: pointer;
+  transition:
+    transform 60ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.1) inset,
+    0 8px 22px oklch(0 0 0 / 0.35);
+}
+.kb-cloud-cta:hover {
+  filter: brightness(1.06);
+}
+.kb-cloud-cta:active {
+  transform: translateY(0.5px);
+}
+.kb-cloud-cta[disabled] {
+  filter: saturate(0.7) brightness(0.85);
+  cursor: not-allowed;
+}
+
+.kb-cloud-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ink-1);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+.kb-cloud-secondary:hover {
+  background: var(--bg-1);
+  border-color: var(--hairline);
+  color: var(--ink);
+}
+
+.kb-cloud-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in oklch, var(--failed) 35%, var(--hairline));
+  background: color-mix(in oklch, var(--failed) 8%, var(--bg-1));
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: var(--ink-1);
+  text-align: left;
+  line-height: 1.4;
+}
+.kb-cloud-error-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: var(--failed);
+}
+
+.kb-cloud-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-3);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.kb-cloud-divider::before,
+.kb-cloud-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--hairline);
+}
+
+.kb-cloud-fineprint {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  line-height: 1.5;
+  margin: 0;
+}
+.kb-cloud-fineprint a {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.kb-cloud-fineprint a:hover {
+  color: var(--ink-1);
+}
+
+/* Awaiting state — device-flow code display */
+.kb-cloud-await {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 14px;
+  border: 1px solid var(--accent-line);
+  background: color-mix(in oklch, var(--accent) 5%, var(--bg-1));
+  border-radius: 12px;
+}
+.kb-cloud-await-label {
+  font-size: 11.5px;
+  color: var(--ink-2);
+  text-align: center;
+  line-height: 1.5;
+  margin: 0;
+}
+.kb-cloud-await-label a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.kb-cloud-code {
+  font-family: var(--ff-mono);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-align: center;
+  padding: 12px 14px;
+  background: var(--bg-inset);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  color: var(--ink);
+  user-select: all;
+  cursor: text;
+}
+.kb-cloud-await-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.kb-cloud-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in oklch, var(--accent-ink) 30%, transparent);
+  border-top-color: var(--accent-ink);
+  animation: kb-cloud-spin 700ms linear infinite;
+}
+@keyframes kb-cloud-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Signed-in state */
+.kb-cloud-signedin {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+.kb-cloud-signedin-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in oklch, var(--review) 35%, var(--hairline));
+  background: color-mix(in oklch, var(--review) 8%, var(--bg-1));
+  border-radius: 10px;
+}
+.kb-cloud-signedin-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--review);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--review) 25%, transparent);
+}
+.kb-cloud-signedin-label {
+  font-size: 13px;
+  color: var(--ink-1);
+  font-weight: 500;
+}
+.kb-cloud-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 12px;
+  font-size: 12px;
+  align-items: baseline;
+}
+.kb-cloud-meta-key {
+  color: var(--ink-3);
+}
+.kb-cloud-meta-val {
+  color: var(--ink-1);
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  word-break: break-all;
+}
+
+.kb-cloud-modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--hairline);
+  background: var(--bg-1);
+  flex-shrink: 0;
+}
+.kb-cloud-modal-foot .grow {
+  flex: 1;
+}

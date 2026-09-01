@@ -1,0 +1,46 @@
+{
+  "name": "@kanbots/local-store",
+  "version": "0.1.0",
+  "description": "SQLite storage layer (schema, migrations, repos) for kanbots",
+  "license": "MIT",
+  "author": "Leonardo Cunha",
+  "homepage": "https://github.com/leodavinci1/kanbots#readme",
+  "bugs": "https://github.com/leodavinci1/kanbots/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leodavinci1/kanbots.git",
+    "directory": "packages/local-store"
+  },
+  "keywords": ["kanbots", "sqlite", "better-sqlite3"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "@kanbots/core": "workspace:*",
+    "better-sqlite3": "^12.4.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
+  }
+}

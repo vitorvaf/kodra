@@ -1,0 +1,871 @@
+/* =========================================================================
+   kanbots — inspector dock
+   Mirrors design_handoff_kanbots/source/styles.css §Right Inspector and the
+   `Inspector` function in design_handoff_kanbots/source/inspector.jsx.
+   ========================================================================= */
+
+.kb-inspector {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  font-family: var(--ff-sans);
+  color: var(--ink);
+}
+.kb-insp-bar {
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.kb-insp-num {
+  font-family: var(--ff-mono);
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.kb-insp-sep {
+  color: var(--ink-3);
+}
+.kb-insp-branch {
+  font-size: 12px;
+  color: var(--ink-1);
+  font-family: var(--ff-mono);
+}
+.kb-insp-tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.kb-insp-tab {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+.kb-insp-tab:hover {
+  color: var(--ink);
+}
+.kb-insp-tab.active {
+  background: var(--bg-2);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.kb-insp-tab.kb-expand {
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kb-insp-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 18px 60px;
+}
+.kb-insp-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ink-3);
+  font-size: 12px;
+  text-align: center;
+  padding: 32px;
+}
+
+.kb-insp-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.kb-insp-title-num {
+  font-family: var(--ff-mono);
+  color: var(--ink-3);
+  font-size: 13px;
+  padding-top: 4px;
+}
+.kb-insp-title {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.018em;
+  color: var(--ink);
+  margin: 0;
+  text-wrap: balance;
+}
+
+.kb-insp-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+  align-items: center;
+}
+.kb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  color: var(--ink-1);
+}
+.kb-chip .k {
+  color: var(--ink-3);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.kb-chip.mono {
+  font-family: var(--ff-mono);
+}
+
+.kb-section-h {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  color: var(--ink-3);
+  margin: 22px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.kb-section-h .kb-section-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.kb-body-block {
+  font-size: 12.5px;
+  color: var(--ink-1);
+  line-height: 1.55;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 8px;
+  padding: 12px;
+  text-wrap: pretty;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Run summary */
+.kb-run-card {
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.kb-run-card-aside {
+  border-radius: 7px;
+  margin: 0;
+}
+.kb-run-checks {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--hairline-soft);
+  background: var(--bg);
+  flex-wrap: wrap;
+}
+.kb-run-checks-run {
+  margin-left: auto;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+.kb-run-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--hairline-soft);
+  background: linear-gradient(
+    to right,
+    color-mix(in oklch, var(--bg-1) 80%, var(--accent-soft)),
+    var(--bg-1)
+  );
+}
+.kb-run-head .kb-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--running);
+  box-shadow: 0 0 10px var(--running);
+  animation: kb-pulse 1.2s infinite;
+}
+.kb-run-head[data-status='awaiting_input'] .kb-pulse {
+  background: var(--awaiting);
+  box-shadow: 0 0 10px var(--awaiting);
+  animation: none;
+}
+.kb-run-head[data-status='complete'] .kb-pulse {
+  background: var(--review);
+  animation: none;
+}
+.kb-run-head[data-status='failed'] .kb-pulse {
+  background: var(--failed);
+  animation: none;
+}
+.kb-run-head[data-status='stopped'] .kb-pulse {
+  background: var(--ink-3);
+  animation: none;
+}
+.kb-run-head .kb-run-label {
+  font-weight: 600;
+  font-size: 13px;
+}
+.kb-run-head .kb-run-id {
+  font-family: var(--ff-mono);
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.kb-run-head .kb-run-elapsed {
+  margin-left: auto;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-run-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.kb-run-stat {
+  padding: 10px 12px;
+}
+.kb-run-stat + .kb-run-stat {
+  border-left: 1px solid var(--hairline-soft);
+}
+.kb-run-stat .k {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  margin-bottom: 3px;
+}
+.kb-run-stat .v {
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.kb-run-stat .v small {
+  color: var(--ink-3);
+  font-size: 10.5px;
+  margin-left: 3px;
+}
+
+/* Ticker */
+.kb-ticker {
+  background: var(--bg-inset);
+  border-top: 1px solid var(--hairline-soft);
+  padding: 10px 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.kb-tev {
+  padding: 4px 14px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.kb-tev.text {
+  background: var(--bg-1);
+  color: var(--ink-1);
+  padding: 8px 14px;
+  border-left: 2px solid var(--accent-line);
+  margin: 4px 14px;
+  border-radius: 0 6px 6px 0;
+  white-space: pre-wrap;
+}
+.kb-tev.tool {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+}
+.kb-tev.tool .arrow {
+  color: var(--ink-4);
+  width: 12px;
+  flex-shrink: 0;
+}
+.kb-tev.tool .name {
+  color: var(--accent);
+  font-weight: 600;
+}
+.kb-tev.tool .arg {
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-tev.result {
+  display: flex;
+  gap: 8px;
+  padding-left: 26px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.kb-tev.result .arrow {
+  color: var(--ink-4);
+  width: 12px;
+  flex-shrink: 0;
+}
+.kb-tev.error {
+  display: flex;
+  gap: 8px;
+  padding: 6px 14px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--failed);
+  background: oklch(0.7 0.18 25 / 0.08);
+}
+.kb-tev.live {
+  position: relative;
+}
+.kb-tev.live::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 12px;
+  vertical-align: -2px;
+  margin-left: 4px;
+  background: var(--accent);
+  animation: kb-blink 1s steps(2) infinite;
+}
+
+/* Decision card */
+.kb-decision {
+  margin-top: 12px;
+  border: 1px solid oklch(0.78 0.14 75 / 0.4);
+  background: oklch(0.78 0.14 75 / 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.kb-decision-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid oklch(0.78 0.14 75 / 0.25);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: var(--awaiting);
+}
+.kb-decision-head .ico {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--awaiting);
+  color: oklch(0.2 0.04 70);
+  font-weight: 800;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.kb-decision-q {
+  padding: 12px 14px;
+  font-family: var(--ff-serif);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--ink);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.kb-decision-opts {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px 12px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+.kb-decision-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  min-height: 30px;
+  border-radius: 7px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  font-size: 12.5px;
+  color: var(--ink);
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--ff-sans);
+  line-height: 1;
+}
+.kb-decision-opt:hover:not(:disabled) {
+  background: var(--bg-2);
+  border-color: var(--awaiting);
+}
+.kb-decision-opt:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.kb-decision-opt.chosen {
+  background: var(--awaiting);
+  color: oklch(0.2 0.04 70);
+  border-color: var(--awaiting);
+}
+.kb-decision-opt.dismiss {
+  color: var(--ink-3);
+  border-style: dashed;
+}
+.kb-decision-opt.dismiss:hover:not(:disabled) {
+  background: var(--bg-2);
+  border-color: var(--failed);
+  color: var(--failed);
+}
+.kb-decision-opt .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--ink-3);
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.kb-decision-resolved-note {
+  padding: 0 14px 12px;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* Reply composer */
+.kb-composer {
+  margin-top: 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--bg-1);
+  overflow: hidden;
+}
+.kb-composer-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 12px 14px;
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  color: var(--ink);
+  min-height: 64px;
+}
+.kb-composer-input::placeholder {
+  color: var(--ink-3);
+}
+.kb-composer-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--hairline-soft);
+  background: var(--bg);
+}
+.kb-composer-tools .slash {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border: 1px solid var(--hairline);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  background: var(--bg-1);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.kb-composer-tools .slash:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+.kb-composer-tools .send {
+  margin-left: auto;
+}
+.kb-composer-error {
+  padding: 6px 14px;
+  color: var(--failed);
+  font-size: 11.5px;
+  background: oklch(0.7 0.18 25 / 0.08);
+  border-top: 1px solid oklch(0.7 0.18 25 / 0.25);
+}
+
+/* Diff (inspector tab) */
+.kb-diff-block {
+  margin-top: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-1);
+}
+.kb-diff-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--hairline-soft);
+  font-size: 12px;
+}
+.kb-diff-head .branch {
+  font-family: var(--ff-mono);
+  color: var(--ink);
+  font-weight: 500;
+}
+.kb-diff-head .arrow {
+  color: var(--ink-3);
+}
+.kb-diff-head .stat {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  margin-left: auto;
+}
+.kb-diff-head .stat .add {
+  color: var(--add);
+}
+.kb-diff-head .stat .del {
+  color: var(--del);
+}
+.kb-diff-file + .kb-diff-file {
+  border-top: 1px solid var(--hairline-soft);
+}
+.kb-diff-fhead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg);
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.kb-diff-fhead .stat-tag {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  background: var(--bg-2);
+}
+.kb-diff-fhead .stat-tag.added,
+.kb-diff-fhead .stat-tag.untracked {
+  background: oklch(0.78 0.13 155 / 0.18);
+  color: var(--add);
+}
+.kb-diff-fhead .stat-tag.modified {
+  background: oklch(0.78 0.14 75 / 0.18);
+  color: var(--awaiting);
+}
+.kb-diff-fhead .stat-tag.deleted {
+  background: oklch(0.7 0.18 25 / 0.18);
+  color: var(--del);
+}
+.kb-diff-fhead .path {
+  color: var(--ink-1);
+}
+.kb-diff-hunk {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  line-height: 1.55;
+  padding: 6px 0;
+  background: var(--bg-1);
+  max-height: 480px;
+  overflow: auto;
+}
+.kb-diff-meta {
+  color: var(--ink-3);
+  padding: 2px 12px;
+  background: var(--bg-inset);
+}
+.kb-diff-line {
+  padding: 0 12px;
+  white-space: pre;
+  min-height: 17px;
+  display: block;
+}
+.kb-diff-line.add {
+  background: oklch(0.78 0.13 155 / 0.1);
+  color: var(--add);
+}
+.kb-diff-line.del {
+  background: oklch(0.7 0.18 25 / 0.1);
+  color: var(--del);
+}
+.kb-diff-line.hunk {
+  color: var(--accent);
+  background: oklch(0.745 0.155 45 / 0.05);
+}
+.kb-diff-empty {
+  padding: 18px;
+  color: var(--ink-3);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Preview frame */
+.kb-preview-frame {
+  margin-top: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--bg-1);
+  overflow: hidden;
+}
+.kb-preview-frame .pf-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--hairline-soft);
+  background: var(--bg-2);
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+}
+.kb-preview-frame .pf-dots {
+  display: flex;
+  gap: 4px;
+}
+.kb-preview-frame .pf-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-4);
+}
+.kb-preview-frame .pf-url {
+  flex: 1;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline-soft);
+  color: var(--ink-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Editable URL bar + page actions. The form is the flex:1 child so it
+   absorbs leftover toolbar space; action buttons sit flush to the right
+   of the input as a compact action group. */
+.kb-preview-frame .pf-url-form {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.kb-preview-frame .pf-url-input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline-soft);
+  color: var(--ink-1);
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.01em;
+  outline: none;
+}
+.kb-preview-frame .pf-url-input:focus {
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.kb-preview-frame .pf-url-action {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.kb-preview-frame .pf-url-action:hover {
+  color: var(--ink);
+  background: var(--bg-3);
+}
+.kb-preview-frame .pf-canvas {
+  height: 360px;
+  background:
+    repeating-linear-gradient(45deg, transparent 0 8px, oklch(1 0 0 / 0.02) 8px 9px),
+    linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ink-3);
+}
+.kb-preview-frame .pf-canvas .lbl {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+}
+
+/* Device-mode toggle inside the preview toolbar. Compact segmented control
+   that re-uses the same colour vocabulary as the modal-head .kb-diff-mode
+   but lives on the .pf-bar surface (slightly lighter background). */
+/* Pause/resume button sits next to the .pf-dots traffic-light glyphs.
+   Glyph-only — same colour weight as the surrounding toolbar text. */
+.kb-preview-frame .pf-play {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--hairline-soft);
+  color: var(--ink-1);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.kb-preview-frame .pf-play:hover:not(:disabled) {
+  border-color: var(--hairline);
+  background: var(--bg-1);
+  color: var(--ink);
+}
+.kb-preview-frame .pf-play:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Icon-only toggle button for in-iframe tools (devtools / inspect). Same
+   22×22 footprint as .pf-play so the toolbar rhythm is preserved; square
+   with a 5px corner radius so the active accent fill reads clearly. */
+.kb-preview-frame .pf-tool {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--hairline-soft);
+  color: var(--ink-2);
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex: 0 0 auto;
+}
+.kb-preview-frame .pf-tool:hover {
+  border-color: var(--hairline);
+  background: var(--bg-1);
+  color: var(--ink);
+}
+.kb-preview-frame .pf-tool.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+.kb-preview-frame .pf-tool:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kb-preview-frame .pf-device {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 2px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  font-family: var(--ff-sans);
+}
+.kb-preview-frame .pf-device-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--ink-2);
+  font: 500 10.5px var(--ff-sans);
+  letter-spacing: 0.01em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.kb-preview-frame .pf-device-btn:hover { color: var(--ink-1); }
+.kb-preview-frame .pf-device-btn.is-active {
+  background: var(--bg-3);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+
+/* Mobile shell: centre a 390×844 iframe with a thin device-frame ring.
+   The canvas itself scrolls when the device exceeds its height. */
+.kb-preview-frame .pf-canvas-mobile {
+  overflow: auto;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 16px 0;
+}
+.kb-preview-frame .pf-mobile-shell {
+  width: 390px;
+  height: 844px;
+  border-radius: 28px;
+  background: var(--bg);
+  box-shadow:
+    0 0 0 2px var(--hairline),
+    0 0 0 8px var(--bg-1),
+    0 24px 48px oklch(0 0 0 / 0.5);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Responsive shell: native CSS resize gives a drag-corner without
+   bringing in any library. min-w small enough to feel tablet-ish, max-w
+   bounded by the canvas. */
+.kb-preview-frame .pf-canvas-responsive {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 8px;
+}
+.kb-preview-frame .pf-responsive-shell {
+  width: 768px;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 240px;
+  min-height: 200px;
+  resize: both;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: white;
+}

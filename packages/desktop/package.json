@@ -1,0 +1,140 @@
+{
+  "name": "@kanbots/desktop",
+  "version": "1.1.0",
+  "private": true,
+  "description": "kanbots desktop app (Electron)",
+  "main": "./dist/main.cjs",
+  "scripts": {
+    "build:deps": "pnpm --filter \"@kanbots/desktop^...\" --workspace-concurrency=1 build",
+    "build:main": "tsup",
+    "build:web": "pnpm --filter @kanbots/web build",
+    "copy:web": "node scripts/copy-web.cjs",
+    "ensure:native": "node scripts/ensure-native.cjs",
+    "build": "pnpm build:deps && pnpm build:main && pnpm copy:web",
+    "dev": "pnpm ensure:native && dotenv -c -e ../../.env.local -- concurrently -k -n web,main,electron -c blue,yellow,magenta \"pnpm --filter @kanbots/web dev\" \"tsup --watch\" \"wait-on http://127.0.0.1:5173 ./dist/main.cjs && KANBOTS_RENDERER_URL=http://127.0.0.1:5173 electronmon ./dist/main.cjs\"",
+    "launch": "pnpm ensure:native && pnpm build && electron ./dist/main.cjs",
+    "package": "pnpm ensure:native && pnpm build && electron-builder",
+    "package:linux": "pnpm ensure:native && pnpm build && electron-builder --linux",
+    "package:mac": "pnpm ensure:native && pnpm build && electron-builder --mac",
+    "package:win": "pnpm ensure:native && pnpm build && electron-builder --win",
+    "package:dir": "pnpm ensure:native && pnpm build && electron-builder --dir",
+    "release:linux": "pnpm ensure:native && pnpm build && electron-builder --linux --publish never",
+    "release:mac": "pnpm ensure:native && pnpm build && electron-builder --mac --publish never",
+    "release:win": "pnpm ensure:native && pnpm build && electron-builder --win --publish never",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@octokit/core": "^6.1.6",
+    "@octokit/plugin-paginate-rest": "^11.6.0",
+    "@octokit/request-error": "^6.1.8",
+    "better-sqlite3": "^12.4.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@kanbots/api": "workspace:*",
+    "@kanbots/cloud-client": "workspace:*",
+    "@kanbots/core": "workspace:*",
+    "@kanbots/dispatcher": "workspace:*",
+    "@kanbots/local-store": "workspace:*",
+    "@kanbots/mcp": "workspace:*",
+    "@kanbots/web": "workspace:*",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.5",
+    "concurrently": "^9.1.2",
+    "dotenv-cli": "^8.0.0",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "electronmon": "^2.0.4",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3",
+    "wait-on": "^8.0.1"
+  },
+  "electronmon": {
+    "patterns": [
+      "dist/**/*.cjs"
+    ],
+    "logLevel": "quiet"
+  },
+  "build": {
+    "appId": "io.kanbots.desktop",
+    "productName": "kanbots",
+    "executableName": "kanbots",
+    "beforePack": "./scripts/before-pack.cjs",
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*",
+      "**/node_modules/bindings/**/*",
+      "**/node_modules/file-uri-to-path/**/*"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "leodavinci1",
+        "repo": "kanbots",
+        "releaseType": "draft"
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.xz"
+      ],
+      "category": "Development",
+      "artifactName": "kanbots-${version}-linux-x64.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "artifactName": "kanbots-${version}-mac-${arch}.${ext}",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "writeUpdateInfo": false
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "kanbots-${version}-win-x64.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "shortcutName": "kanbots"
+    },
+    "npmRebuild": false,
+    "nodeGypRebuild": false
+  }
+}

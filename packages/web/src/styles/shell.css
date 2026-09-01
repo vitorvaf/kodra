@@ -1,0 +1,306 @@
+/* =========================================================================
+   kanbots — app shell
+   Window chrome, three-zone grid, placeholder rail/inspector.
+   Sourced from design_handoff_kanbots/source/styles.css §Stage / §Window /
+   §Shell / §Rail / §Inspector (header strip only).
+   ========================================================================= */
+
+.kb-stage {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(1200px 800px at 20% -10%, oklch(0.22 0.04 45 / 0.35), transparent 60%),
+    radial-gradient(900px 700px at 90% 110%, oklch(0.22 0.04 240 / 0.25), transparent 60%),
+    oklch(0.1 0.005 60);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: auto;
+}
+
+.kb-window {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px oklch(1 0 0 / 0.06),
+    0 30px 80px oklch(0 0 0 / 0.55);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* When running in a browser dev tab (no native chrome), expose the rounded
+   "macOS window" look with margin around the surface. The desktop build
+   sets data-host="desktop" to flatten this and use the OS window edges. */
+.kb-stage[data-host='browser'] {
+  padding: 24px;
+}
+@media (max-width: 900px) {
+  .kb-stage[data-host='browser'] {
+    padding: 0;
+  }
+  .kb-stage[data-host='browser'] .kb-window {
+    border-radius: 0;
+  }
+}
+.kb-stage[data-host='browser'] .kb-window {
+  border-radius: 12px;
+  max-width: 1760px;
+  max-height: 1100px;
+}
+
+/* ---------- macOS-style title bar ---------- */
+.kb-titlebar {
+  height: 36px;
+  background: linear-gradient(to bottom, var(--bg-1), var(--bg));
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+}
+
+.kb-tlights {
+  display: flex;
+  gap: 8px;
+}
+.kb-tlight {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.kb-tlight:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.kb-tlight:focus-visible {
+  outline: 2px solid var(--accent, #4c8bf5);
+  outline-offset: 2px;
+}
+.kb-tlight.r {
+  background: #ff5f57;
+  box-shadow: inset 0 0 0 0.5px oklch(0 0 0 / 0.2);
+}
+.kb-tlight.y {
+  background: #febc2e;
+  box-shadow: inset 0 0 0 0.5px oklch(0 0 0 / 0.2);
+}
+.kb-tlight.g {
+  background: #28c840;
+  box-shadow: inset 0 0 0 0.5px oklch(0 0 0 / 0.2);
+}
+
+.kb-tbar-title {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-2);
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.kb-tbar-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.kb-tbar-title .kb-tdot {
+  flex-shrink: 0;
+}
+.kb-tbar-title .kb-tdot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.kb-tbar-title .kb-sep {
+  color: var(--ink-3);
+}
+.kb-tbar-title .kb-folder {
+  color: var(--ink-1);
+}
+.kb-tbar-title .kb-branch {
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+}
+
+.kb-tbar-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+.kb-tbar-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.kb-tbar-btn:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+.kb-tbar-btn[aria-pressed='true'] {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+
+/* ---------- 3-zone grid ---------- */
+.kb-shell {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 240px 1fr 480px;
+  min-height: 0;
+}
+.kb-shell[data-no-rail='true'] {
+  grid-template-columns: 1fr 480px;
+}
+.kb-shell[data-no-inspector='true'] {
+  grid-template-columns: 240px 1fr;
+}
+.kb-shell[data-no-rail='true'][data-no-inspector='true'] {
+  grid-template-columns: 1fr;
+}
+
+.kb-zone-rail {
+  background: var(--bg);
+  border-right: 1px solid var(--hairline);
+  overflow-y: auto;
+  min-height: 0;
+}
+.kb-zone-center {
+  background: var(--bg);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.kb-zone-inspector {
+  background: var(--bg);
+  border-left: 1px solid var(--hairline);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ---------- Placeholders (replaced by Phase 3 / Phase 4) ---------- */
+.kb-placeholder {
+  padding: 16px 14px;
+  color: var(--ink-3);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.kb-placeholder-h {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.kb-placeholder-line {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline-soft);
+}
+.kb-placeholder-line.short {
+  width: 60%;
+}
+.kb-placeholder-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ink-3);
+  font-size: 12px;
+  text-align: center;
+  padding: 32px;
+}
+
+/* The center zone hosts the legacy <Board>/<IssueDetail> for Phase 1.
+   Phase 2 replaces those with the new toolbar + cards.
+   Until then, neutralize the legacy fixed-100vh panel rules so they
+   live inside the center zone instead of escaping it. */
+.kb-zone-center .app-board {
+  height: 100%;
+  background: transparent;
+}
+.kb-zone-center .issue-detail {
+  background: transparent;
+}
+
+/* ---------- Floating chat FAB (anchored to .kb-window) ---------- */
+.kb-chat-fab {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px 0 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: oklch(0.18 0 0);
+  border: 1px solid var(--accent-line);
+  box-shadow:
+    0 8px 24px oklch(0 0 0 / 0.45),
+    0 0 0 1px oklch(1 0 0 / 0.04) inset;
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+.kb-chat-fab:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow:
+    0 12px 30px oklch(0 0 0 / 0.5),
+    0 0 0 1px oklch(1 0 0 / 0.06) inset;
+}
+.kb-chat-fab:active {
+  transform: translateY(0);
+}
+.kb-chat-fab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.kb-chat-fab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.kb-chat-fab-label {
+  line-height: 1;
+}

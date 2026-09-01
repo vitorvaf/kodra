@@ -1,0 +1,162 @@
+/* =========================================================================
+   kanbots — Decision queue tray (bottom-right)
+   Mirrors design_handoff_kanbots/source/styles.css §Decision Queue Tray.
+   ========================================================================= */
+
+.kb-tray {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 340px;
+  max-height: 360px;
+  overflow: hidden;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+  z-index: 40;
+  font-family: var(--ff-sans);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+.kb-tray-head {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--hairline-soft);
+  background: linear-gradient(to right, oklch(0.78 0.14 75 / 0.1), transparent);
+  flex-shrink: 0;
+}
+.kb-tray-head .px {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--awaiting);
+}
+.kb-tray-head .t {
+  font-size: 12px;
+  font-weight: 600;
+}
+.kb-tray-head .ct {
+  margin-left: auto;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--awaiting);
+}
+.kb-tray-head .close {
+  margin-left: 6px;
+  background: transparent;
+  border: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 14px;
+  line-height: 1;
+}
+.kb-tray-head .close:hover {
+  color: var(--ink);
+}
+.kb-tray-body {
+  overflow-y: auto;
+}
+.kb-tray-item {
+  /* Outer wrapper: a plain <div> (was a <button>; nested buttons inside
+     for the per-decision options are invalid HTML, so the row was
+     restructured into a div containing a "jump" button + an options
+     sibling). Keeps the spacing/border rhythm of the previous button. */
+  padding: 10px 14px;
+  font-family: var(--ff-sans);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kb-tray-item + .kb-tray-item {
+  border-top: 1px solid var(--hairline-soft);
+}
+.kb-tray-item:hover {
+  background: var(--bg-2);
+}
+
+/* The clickable metadata block — was the outer button's role. */
+.kb-tray-jump {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kb-tray-jump:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.kb-tray-num {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.kb-tray-title {
+  font-size: 11.5px;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kb-tray-q {
+  font-family: var(--ff-serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+.kb-tray-opts {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.kb-tray-opts .o {
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  color: var(--ink-1);
+  cursor: pointer;
+  font-family: var(--ff-sans);
+}
+.kb-tray-opts .o:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--awaiting);
+  color: var(--awaiting);
+}
+.kb-tray-opts .o:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.kb-tray-opts .o.dismiss {
+  color: var(--ink-3);
+  border-style: dashed;
+}
+.kb-tray-opts .o.dismiss:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--failed);
+  color: var(--failed);
+}
+.kb-tray-error {
+  padding: 6px 14px;
+  color: var(--failed);
+  font-size: 11px;
+}

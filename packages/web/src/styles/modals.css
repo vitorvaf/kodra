@@ -1,0 +1,3585 @@
+/* =========================================================================
+   kanbots — modal chrome (Task Detail + Task Create)
+   Mirrors design_handoff_kanbots/source/styles.css §Modals.
+   ========================================================================= */
+
+.kb-modal-scrim {
+  position: fixed;
+  inset: 0;
+  background: oklch(0 0 0 / 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  animation: kb-scrim-in 0.15s ease-out;
+}
+
+.kb-modal {
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  box-shadow:
+    0 32px 80px oklch(0 0 0 / 0.6),
+    0 0 0 1px oklch(1 0 0 / 0.04) inset;
+  width: 100%;
+  max-width: 1100px;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: kb-modal-in 0.18s cubic-bezier(0.2, 0.7, 0.3, 1);
+  font-family: var(--ff-sans);
+  color: var(--ink);
+}
+.kb-modal.sm {
+  max-width: 880px;
+}
+
+.kb-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--hairline);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--bg) 88%, var(--bg-1)),
+    var(--bg)
+  );
+  flex-shrink: 0;
+}
+.kb-modal-head .crumb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.kb-modal-head .crumb-chip b {
+  color: var(--ink-1);
+  font-weight: 500;
+}
+.kb-modal-head .num {
+  font-family: var(--ff-mono);
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+.kb-modal-head h2 {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kb-modal-head .grow {
+  flex: 1;
+  min-width: 8px;
+}
+.kb-modal-head .x-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.kb-modal-head .x-btn:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+  border-color: var(--hairline);
+}
+
+.kb-modal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+.kb-modal-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+.kb-modal-aside {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--bg-1);
+  border-left: 1px solid var(--hairline);
+  overflow-y: auto;
+}
+
+.kb-modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--hairline);
+  background: var(--bg-1);
+  flex-shrink: 0;
+}
+.kb-modal-foot .hint {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.kb-modal-foot .grow {
+  flex: 1;
+}
+
+/* Reply input wrapper — anchors the slash-command typeahead menu to the
+   input. flex:1 lets the input fill the row between the "Reply to agent"
+   hint on the left and the badge/send button on the right. */
+.kb-reply-input-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+}
+.kb-reply-input-wrap > input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Slash-command typeahead. Floats above the reply input, anchored to the
+   wrapper. Capped at 8 items via inline slice in the component. */
+.kb-slash-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.kb-slash-item {
+  appearance: none;
+  background: transparent;
+  border: none;
+  text-align: left;
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 10px;
+  cursor: pointer;
+  color: var(--ink-1);
+  font: 500 12px var(--ff-sans);
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.kb-slash-item:last-child {
+  border-bottom: none;
+}
+.kb-slash-item.is-active {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.kb-slash-name {
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  color: var(--accent);
+}
+.kb-slash-desc {
+  color: var(--ink-3);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kb-slash-src {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--hairline-soft);
+}
+.kb-slash-src-kanbots {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+.kb-slash-src-user,
+.kb-slash-src-skill {
+  color: var(--ink-2);
+}
+
+/* Pending inline-review-comments badge. Sits between the reply input and
+   the Send button. Click-target-sized but reads as a status pill. */
+.kb-reply-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-line);
+  font: 500 11px var(--ff-sans);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* ---- Persona picker ---- */
+.kb-persona-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.kb-persona-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 4px;
+  padding: 14px 12px 12px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  font-family: var(--ff-sans);
+  transition: 120ms ease;
+}
+.kb-persona-card:hover {
+  background: var(--bg-2);
+  border-color: var(--ink-4);
+  transform: translateY(-1px);
+}
+.kb-persona-card:focus-visible {
+  outline: 2px solid var(--accent, var(--ink-2));
+  outline-offset: 2px;
+}
+.kb-persona-card.selected {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--bg-1) 80%, var(--accent-soft));
+  box-shadow: 0 0 0 1px var(--accent-line) inset;
+}
+.kb-persona-emoji {
+  font-size: 22px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.kb-persona-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.kb-persona-tagline {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  line-height: 1.35;
+}
+.kb-persona-card-add {
+  border-style: dashed;
+  background: transparent;
+}
+.kb-persona-card-add .kb-persona-emoji {
+  color: var(--ink-3);
+  font-weight: 300;
+  font-size: 26px;
+}
+.kb-persona-del {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--ink-3);
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.kb-persona-card:hover .kb-persona-del,
+.kb-persona-del:focus {
+  opacity: 1;
+}
+.kb-persona-del:hover {
+  color: var(--failed);
+  background: var(--bg-2);
+}
+.kb-persona-create {
+  margin-top: 18px;
+  padding: 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+.kb-persona-create-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+/* ---- Task Detail hero ---- */
+.kb-tdm-hero {
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid var(--hairline);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--bg) 86%, var(--accent-soft)),
+    var(--bg)
+  );
+  position: relative;
+}
+.kb-tdm-hero.running::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--running);
+  box-shadow: 0 0 18px var(--running);
+}
+.kb-tdm-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.kb-tdm-num {
+  font-family: var(--ff-mono);
+  color: var(--ink-3);
+  font-size: 14px;
+  padding-top: 4px;
+}
+.kb-tdm-h1 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.22;
+  margin: 0;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.kb-tdm-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+/* ---- Task Detail tabs ---- */
+.kb-tdm-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 26px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.kb-tdm-tab {
+  height: 38px;
+  padding: 0 14px;
+  background: transparent;
+  border: none;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-family: var(--ff-sans);
+}
+.kb-tdm-tab:hover {
+  color: var(--ink);
+}
+.kb-tdm-tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+.kb-tdm-tab .ct {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline-soft);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--ink-3);
+}
+.kb-tdm-tab.active .ct {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.kb-tdm-content {
+  padding: 22px 26px 32px;
+}
+.kb-tdm-section {
+  margin-bottom: 24px;
+}
+.kb-tdm-section h3 {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  color: var(--ink-3);
+  margin: 0 0 10px;
+}
+
+.kb-desc-md {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-1);
+  background: var(--bg-1);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 9px;
+  padding: 14px 16px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Tool-call cards in Overview / Thread tab */
+.kb-tcall {
+  background: var(--bg-1);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 7px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.kb-tcall-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 11px;
+  border-bottom: 1px solid var(--hairline-soft);
+  background: var(--bg);
+}
+.kb-tcall-head .name {
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.kb-tcall-head .arg {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-tcall-head .dur {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.kb-tcall-body {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  padding: 8px 11px;
+  color: var(--ink-2);
+  line-height: 1.55;
+  background: var(--bg-inset);
+  white-space: pre-wrap;
+}
+
+/* Aside blocks */
+.kb-mas-block {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.kb-mas-h {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  color: var(--ink-3);
+  margin-bottom: 10px;
+}
+.kb-mas-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-1);
+  padding: 4px 0;
+}
+.kb-mas-row .k {
+  color: var(--ink-3);
+  width: 78px;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.kb-mas-row .v {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-mas-row .v.mono {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+}
+
+/* Check pill (Phase 11 wires real status) */
+.kb-check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  font-size: 11px;
+  font-family: var(--ff-mono);
+}
+.kb-check-pill .ico {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 800;
+}
+.kb-check-pill.pass .ico {
+  background: var(--review);
+  color: oklch(0.18 0 0);
+}
+.kb-check-pill.fail .ico {
+  background: var(--failed);
+  color: oklch(0.95 0 0);
+}
+.kb-check-pill.run .ico {
+  background: var(--awaiting);
+  color: oklch(0.18 0 0);
+}
+.kb-check-pill .lbl {
+  color: var(--ink-1);
+}
+.kb-check-pill .meta {
+  color: var(--ink-3);
+}
+
+/* Run timeline */
+.kb-run-timeline {
+  display: flex;
+  flex-direction: column;
+}
+.kb-run-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.kb-run-row:last-child {
+  border-bottom: none;
+}
+.kb-run-row .kb-marker {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+.kb-run-row .kb-marker::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: -14px;
+  width: 1px;
+  background: var(--hairline-soft);
+}
+.kb-run-row:last-child .kb-marker::after {
+  display: none;
+}
+.kb-run-row .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  background: var(--ink-4);
+  z-index: 1;
+}
+.kb-run-row.kb-status-running .dot {
+  background: var(--running);
+  box-shadow: 0 0 10px var(--running);
+}
+.kb-run-row.kb-status-complete .dot {
+  background: var(--review);
+}
+.kb-run-row.kb-status-failed .dot {
+  background: var(--failed);
+}
+.kb-run-row.kb-status-awaiting_input .dot {
+  background: var(--awaiting);
+}
+.kb-run-row.kb-status-stopped .dot {
+  background: var(--ink-3);
+}
+.kb-run-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.kb-run-meta-line .id {
+  font-family: var(--ff-mono);
+  color: var(--ink-3);
+}
+.kb-run-summary {
+  font-size: 12.5px;
+  color: var(--ink);
+  margin: 3px 0;
+}
+.kb-run-stats-inline {
+  display: flex;
+  gap: 10px;
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.kb-run-stats-inline .add {
+  color: var(--add);
+}
+.kb-run-stats-inline .del {
+  color: var(--del);
+}
+
+/* Modal footer reply input */
+.kb-modal-foot input {
+  flex: 1;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+}
+.kb-modal-foot input:focus {
+  border-color: var(--accent-line);
+  background: color-mix(in oklch, var(--bg-1) 90%, var(--accent-soft));
+}
+
+/* Agent tool-use card — mirrors claude-code's "● Verb(arg)" terminal block. */
+.kb-tool-card {
+  background: var(--bg-1);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.kb-tool-card.is-error {
+  border-color: oklch(0.7 0.18 25 / 0.5);
+}
+.kb-tool-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 12px;
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.kb-tool-glyph {
+  color: var(--accent);
+  font-size: 10px;
+  line-height: 1;
+  align-self: center;
+}
+.kb-tool-card.is-error .kb-tool-glyph {
+  color: var(--failed);
+}
+.kb-tool-verb {
+  color: var(--ink-1);
+  font-weight: 600;
+}
+.kb-tool-paren {
+  color: var(--ink-3);
+}
+.kb-tool-arg {
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60ch;
+}
+.kb-tool-spacer {
+  flex: 1;
+}
+.kb-tool-time {
+  color: var(--ink-3);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+.kb-tool-head.is-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+.kb-tool-head.is-toggle:hover {
+  background: var(--bg-2);
+}
+.kb-tool-head.is-toggle:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: -2px;
+}
+.kb-tool-chev {
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1;
+  width: 1.2ch;
+  text-align: center;
+  margin-right: 6px;
+}
+.kb-tool-head.is-toggle:hover .kb-tool-chev {
+  color: var(--ink-1);
+}
+
+/* Body slot — inline diff for Edit/Write, command echo for Bash, etc. */
+.kb-tool-diff {
+  border-top: 1px solid var(--hairline-soft);
+  background: var(--bg-inset);
+  padding: 6px 0;
+  max-height: 480px;
+  overflow: auto;
+}
+.kb-tool-cmd {
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--hairline-soft);
+  background: var(--bg-inset);
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ink-1);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.kb-tool-todos {
+  margin: 0;
+  padding: 8px 14px;
+  border-top: 1px solid var(--hairline-soft);
+  background: var(--bg-inset);
+  list-style: none;
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.kb-tool-todo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ink-2);
+}
+.kb-tool-todo.s-completed {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+.kb-tool-todo.s-in_progress {
+  color: var(--accent);
+}
+.kb-tool-todo-mark {
+  color: var(--ink-3);
+  width: 1ch;
+}
+.kb-tool-todo.s-completed .kb-tool-todo-mark {
+  color: var(--review);
+}
+.kb-tool-todo.s-in_progress .kb-tool-todo-mark {
+  color: var(--accent);
+}
+
+/* Result preview shown beneath the body. */
+.kb-tool-result {
+  border-top: 1px solid var(--hairline-soft);
+  background: var(--bg-inset);
+}
+.kb-tool-result.is-error {
+  background: oklch(0.7 0.18 25 / 0.06);
+}
+.kb-tool-result-pre {
+  margin: 0;
+  padding: 8px 12px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow: auto;
+}
+.kb-tool-result.is-error .kb-tool-result-pre {
+  color: var(--failed);
+}
+.kb-tool-result-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 4px 12px 8px;
+  background: transparent;
+  border: 0;
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+.kb-tool-result-toggle:hover {
+  color: var(--ink-1);
+}
+
+/* Inline diff (Edit/Write tool body). */
+.kb-idiff {
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.kb-idiff-line {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px;
+  white-space: pre;
+}
+.kb-idiff-num {
+  color: var(--ink-4);
+  user-select: none;
+  flex-shrink: 0;
+}
+.kb-idiff-sign {
+  width: 1ch;
+  flex-shrink: 0;
+  color: var(--ink-3);
+}
+.kb-idiff-text {
+  white-space: pre;
+  overflow-x: auto;
+}
+.kb-idiff-line.add {
+  background: oklch(0.78 0.13 155 / 0.1);
+}
+.kb-idiff-line.add .kb-idiff-sign,
+.kb-idiff-line.add .kb-idiff-text {
+  color: var(--add);
+}
+.kb-idiff-line.del {
+  background: oklch(0.7 0.18 25 / 0.1);
+}
+.kb-idiff-line.del .kb-idiff-sign,
+.kb-idiff-line.del .kb-idiff-text {
+  color: var(--del);
+}
+.kb-idiff-line.hunk {
+  color: var(--accent);
+  background: oklch(0.745 0.155 45 / 0.05);
+}
+.kb-idiff-line.hunk .kb-idiff-text {
+  color: var(--accent);
+}
+
+/* Side-by-side variant. Each .kb-idiff-split-row is a 1fr|1fr grid; the
+   half-cells reuse the existing .kb-idiff-line styling so colours, gutters
+   and hunk markers stay consistent with unified mode. */
+.kb-idiff.split .kb-idiff-split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-left: 1px solid transparent; /* keeps row height stable */
+}
+.kb-idiff.split .kb-idiff-split-row > .kb-idiff-line {
+  min-width: 0; /* lets the inner overflow scroll */
+  border-right: 1px solid var(--hairline-soft);
+}
+.kb-idiff.split .kb-idiff-split-row > .kb-idiff-line:last-child {
+  border-right: none;
+}
+.kb-idiff.split .kb-idiff-line.empty {
+  background: var(--bg-inset);
+  min-height: 1.55em; /* matches line-height; preserves alignment */
+}
+.kb-idiff.split .kb-idiff-line.hunk {
+  /* hunk markers span the whole grid */
+  grid-column: 1 / -1;
+}
+
+/* Inline review comments.
+   - .kb-idiff-comment-trigger: the "+" pip that appears on hover at the end
+     of a line. Stays invisible at rest so the diff stays dense; lights up
+     on row hover so reviewers see they can react there.
+   - .kb-idiff-comment-popover: anchored to the line via .kb-idiff-comment-slot,
+     positioned absolutely so it doesn't reflow neighbouring rows.
+   - .kb-idiff-comment-card: existing comments render below their line in
+     a tight stack with body + meta footer (relative time + delete pip).
+   - .kb-idiff-comment-consumed: greyed-out variant for comments that have
+     already been spliced into a message to the agent. */
+.kb-idiff-comment-slot {
+  position: relative;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.kb-idiff-comment-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  background: var(--bg-1);
+  color: var(--ink-3);
+  border-radius: 4px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 80ms ease-out, color 80ms ease-out, border-color 80ms ease-out;
+}
+.kb-idiff-line:hover .kb-idiff-comment-trigger,
+.kb-idiff-comment-trigger:focus-visible {
+  opacity: 1;
+}
+.kb-idiff-comment-trigger:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.kb-idiff-comment-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 5;
+  min-width: 320px;
+  max-width: 480px;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Override the parent .kb-idiff-line's pre whitespace so the textarea wraps. */
+  white-space: normal;
+  font-family: var(--ff-sans);
+  font-size: 12.5px;
+}
+.kb-idiff-comment-text {
+  width: 100%;
+  resize: vertical;
+  min-height: 56px;
+  padding: 6px 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  background: var(--bg-1);
+  color: var(--ink-1);
+  font-family: var(--ff-sans);
+  font-size: 12.5px;
+  line-height: 1.45;
+  box-sizing: border-box;
+}
+.kb-idiff-comment-text:focus {
+  outline: none;
+  border-color: var(--accent-line);
+}
+.kb-idiff-comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.kb-idiff-comment-hint {
+  color: var(--ink-4);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  margin-right: auto;
+}
+.kb-idiff-comment-err {
+  color: var(--del);
+  font-size: 11.5px;
+  flex-basis: 100%;
+}
+.kb-idiff-comment-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 12px 6px;
+  /* Inherit the diff's monospace gutter feel but render comment bodies in
+     the sans font so longer prose stays readable. */
+  font-family: var(--ff-sans);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.kb-idiff-comment-half {
+  /* Half-cell holder for split-mode comments. Empty halves render as a
+     spacer so the paired comments stay column-aligned. */
+  min-height: 0;
+}
+.kb-idiff-comment-card {
+  border: 1px solid var(--hairline);
+  border-left: 2px solid var(--accent-line);
+  background: var(--bg-1);
+  border-radius: 4px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kb-idiff-comment-body {
+  color: var(--ink-1);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.kb-idiff-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-4);
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+}
+.kb-idiff-comment-time {
+  margin-right: auto;
+}
+.kb-idiff-comment-sent {
+  color: var(--add);
+}
+.kb-idiff-comment-del {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  padding: 0 4px;
+  cursor: pointer;
+  font-family: var(--ff-mono);
+  font-size: 14px;
+  line-height: 1;
+}
+.kb-idiff-comment-del:hover {
+  color: var(--del);
+}
+.kb-idiff-comment-consumed {
+  border-left-color: var(--hairline);
+  opacity: 0.7;
+}
+.kb-idiff-comment-consumed .kb-idiff-comment-body {
+  color: var(--ink-3);
+}
+
+/* Diff-view toggle in the modal head. Compact segmented control. */
+.kb-diff-mode {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 0;
+}
+.kb-diff-mode-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--ink-2);
+  font: 500 11px var(--ff-sans);
+  letter-spacing: 0.01em;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.kb-diff-mode-btn:hover {
+  color: var(--ink-1);
+}
+.kb-diff-mode-btn.is-active {
+  background: var(--bg-3);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+
+/* Standalone diff toggle (e.g. "Ignore ws"). Sits next to .kb-diff-mode and
+   shares its size/typography, but reads as on/off rather than as a choice. */
+.kb-diff-toggle {
+  appearance: none;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  color: var(--ink-2);
+  font: 500 11px var(--ff-sans);
+  letter-spacing: 0.01em;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 6px;
+}
+.kb-diff-toggle:hover {
+  color: var(--ink-1);
+}
+.kb-diff-toggle.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--ink);
+}
+
+/* Transient diff actions (Expand all / Collapse all). Shares typography with
+   .kb-diff-toggle but reads as a verb — no on/off state. */
+.kb-diff-action {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--hairline-soft);
+  color: var(--ink-2);
+  font: 500 11px var(--ff-sans);
+  letter-spacing: 0.01em;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 6px;
+}
+.kb-diff-action:hover {
+  color: var(--ink-1);
+  border-color: var(--hairline);
+  background: var(--bg-1);
+}
+
+/* Live spinner (mirrors claude-code's <SpinnerWithVerb>). */
+.kb-agent-spinner {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 12px;
+  font-family: var(--ff-mono);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: color-mix(in oklch, var(--bg-1) 80%, var(--accent-soft));
+  border: 1px dashed var(--accent-line);
+  border-radius: 8px;
+}
+.kb-spin-glyph {
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 1.25em;
+  flex-shrink: 0;
+  text-align: center;
+}
+.kb-spin-verb {
+  color: var(--accent);
+  font-weight: 500;
+}
+.kb-spin-meta {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+
+/* =========================================================================
+   Archive modal — searchable list of archived tasks.
+   ========================================================================= */
+.kb-archive-modal {
+  max-width: 840px;
+}
+.kb-archive-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--hairline-soft);
+  flex-shrink: 0;
+  color: var(--ink-3);
+}
+.kb-archive-search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.kb-archive-search input::placeholder {
+  color: var(--ink-3);
+}
+.kb-archive-count {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.kb-archive-body {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg);
+}
+.kb-archive-error {
+  margin: 14px 18px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: oklch(0.7 0.18 25 / 0.08);
+  color: var(--failed);
+  font-size: 12px;
+}
+.kb-archive-empty {
+  padding: 56px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: var(--ink-3);
+  gap: 6px;
+}
+.kb-archive-empty-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+.kb-archive-empty-h {
+  color: var(--ink-1);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.kb-archive-empty-sub {
+  color: var(--ink-3);
+  font-size: 12px;
+  max-width: 320px;
+}
+.kb-archive-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.kb-archive-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--hairline-soft);
+  transition: background 0.08s ease-out;
+}
+.kb-archive-row:hover {
+  background: var(--bg-1);
+}
+.kb-archive-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+}
+.kb-archive-row-main:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.kb-archive-row-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.kb-archive-num {
+  font-family: var(--ff-mono);
+  color: var(--ink-3);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.kb-archive-title {
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.kb-archive-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.kb-archive-time {
+  font-family: var(--ff-mono);
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.kb-archive-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* =========================================================================
+   Repo-scripts modal additions. Inherits .kb-sentry-modal / -body / -row
+   classes for layout; the rules below add the script-specific bits
+   (per-row Run button + the output pane shown after a script completes).
+   ========================================================================= */
+.kb-scripts-row .kb-scripts-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.kb-scripts-output {
+  margin-top: 4px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--bg-inset);
+  overflow: hidden;
+}
+.kb-scripts-output-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--hairline-soft);
+  font: 500 11px var(--ff-sans);
+  color: var(--ink-2);
+  text-transform: capitalize;
+}
+.kb-scripts-output-status {
+  font-family: var(--ff-mono);
+  letter-spacing: 0;
+}
+.kb-scripts-output-status.ok { color: var(--add); }
+.kb-scripts-output-status.err { color: var(--del); }
+.kb-scripts-output-pane {
+  margin: 0;
+  padding: 8px 10px;
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  max-height: 220px;
+  overflow: auto;
+  color: var(--ink-1);
+}
+.kb-scripts-output-pane.is-err { color: var(--del); }
+
+/* =========================================================================
+   Sentry settings modal.
+   ========================================================================= */
+.kb-sentry-modal {
+  max-width: 560px;
+}
+.kb-sentry-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.kb-sentry-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kb-sentry-row.kb-sentry-toggle {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+.kb-sentry-row.kb-sentry-toggle small {
+  display: block;
+  color: var(--ink-3);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.kb-sentry-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.kb-sentry-row input[type='text'],
+.kb-sentry-row input[type='password'],
+.kb-sentry-row select {
+  background: var(--surface-2, rgba(0, 0, 0, 0.05));
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+}
+.kb-sentry-row input:focus,
+.kb-sentry-row select:focus {
+  border-color: var(--accent, #3b82f6);
+}
+.kb-sentry-hint {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: -4px;
+}
+.kb-sentry-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-2);
+  padding: 8px 0;
+  border-top: 1px solid var(--hairline-soft);
+}
+.kb-sentry-fail {
+  color: var(--danger, #dc2626);
+}
+.kb-sentry-actions {
+  display: flex;
+  gap: 8px;
+}
+.kb-sentry-ok {
+  font-size: 12px;
+  color: var(--ok, #15803d);
+}
+.kb-sentry-error {
+  font-size: 12px;
+  color: var(--danger, #dc2626);
+  background: rgba(220, 38, 38, 0.08);
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+.kb-sentry-warn {
+  font-size: 12px;
+  color: var(--ink-2);
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.25);
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+.kb-sentry-warn code {
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* Sentry analysis section in TaskDetailModal overview */
+.kb-sentry-section {
+  border: 1px solid var(--hairline-soft);
+  border-left: 3px solid #f97316;
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: rgba(249, 115, 22, 0.04);
+}
+.kb-sentry-section-status {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  margin-left: 6px;
+  background: rgba(249, 115, 22, 0.15);
+  color: #c2410c;
+}
+.kb-sentry-section-status[data-status='analyzed'] {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+}
+.kb-sentry-section-status[data-status='applied'] {
+  background: rgba(21, 128, 61, 0.15);
+  color: #15803d;
+}
+.kb-sentry-section-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 10px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.kb-sentry-section-meta code {
+  font-family: var(--mono, monospace);
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 4px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.kb-sentry-section-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.kb-sentry-section-row a {
+  color: var(--accent, #3b82f6);
+  text-decoration: none;
+}
+.kb-sentry-suggestion {
+  background: var(--bg-2, rgba(0, 0, 0, 0.03));
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.kb-sentry-suggestion-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.kb-sentry-verdict {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.kb-sentry-verdict-task {
+  background: rgba(21, 128, 61, 0.15);
+  color: #15803d;
+}
+.kb-sentry-verdict-skip {
+  background: rgba(107, 114, 128, 0.15);
+  color: #4b5563;
+}
+.kb-sentry-confidence {
+  font-size: 11px;
+  color: var(--ink-3);
+  text-transform: capitalize;
+}
+.kb-sentry-reasoning {
+  font-size: 12.5px;
+  color: var(--ink-1);
+  margin: 0;
+  line-height: 1.5;
+}
+.kb-sentry-suggestion-fields {
+  font-size: 12px;
+  color: var(--ink-1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kb-sentry-suggestion-fields details summary {
+  cursor: pointer;
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.kb-sentry-body-preview {
+  white-space: pre-wrap;
+  font-family: var(--mono, monospace);
+  font-size: 11.5px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 8px;
+  border-radius: 4px;
+  margin: 6px 0 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.kb-sentry-suggestion-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* === Providers settings ============================================ */
+.kb-modal-providers {
+  /* Single-pane modal — let the body fill and scroll; modal already
+     constrains overall height in .kb-modal. */
+}
+.kb-providers-body {
+  display: block;
+  overflow-y: auto;
+  padding: 16px 18px;
+  flex: 1;
+  min-height: 0;
+}
+.kb-providers-body > * + * {
+  margin-top: 14px;
+}
+.kb-providers-defaults {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+}
+.kb-providers-defaults-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  margin-bottom: 2px;
+}
+.kb-providers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.kb-provider-section {
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.kb-provider-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.kb-provider-header strong {
+  font-weight: 600;
+}
+.kb-provider-badge {
+  font-size: 10.5px;
+  font-weight: 500;
+  background: color-mix(in oklch, var(--ok, #9c6) 25%, transparent);
+  color: var(--ok-ink, #cfc);
+  padding: 1px 7px;
+  border-radius: 999px;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  border: 1px solid color-mix(in oklch, var(--ok, #9c6) 40%, transparent);
+}
+.kb-provider-desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+.kb-provider-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================================
+   Chat window — single-conversation general-purpose chat. Lives in its own
+   Electron window; opened from the bottom-right FAB on the main app. Each
+   click of the FAB spawns a fresh window with a new conversation, so this
+   view intentionally has no sidebar / list of past chats.
+   ========================================================================= */
+.kb-chat-window {
+  background: var(--bg);
+}
+/* Native-frame variant: chat fills the OS window directly (no kb-stage
+   wrapper, no inset shadow). Replaces the macOS-virtual-window look. */
+.kb-chat-window-native {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.kb-chat-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--bg) 92%, var(--accent-soft)),
+    var(--bg) 240px
+  );
+}
+
+.kb-chat-bootstrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ink-3);
+  padding: 32px;
+}
+.kb-chat-bootstrap-title {
+  color: var(--ink-1);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.kb-chat-bootstrap-error {
+  color: var(--failed);
+  font-size: 12px;
+  text-align: center;
+  max-width: 520px;
+}
+
+.kb-chat-room {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Header: conversation title + run status. Mirrors kb-modal-head spacing. */
+.kb-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--hairline);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--bg) 88%, var(--bg-1)),
+    var(--bg)
+  );
+  flex-shrink: 0;
+}
+.kb-chat-header-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.kb-chat-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kb-chat-title-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 3px 8px;
+  margin: -3px -8px;
+  cursor: text;
+  font-family: inherit;
+  text-align: left;
+  max-width: 100%;
+  min-width: 0;
+}
+.kb-chat-title-btn:hover {
+  background: var(--bg-1);
+  border-color: var(--hairline);
+}
+.kb-chat-title-btn:hover .kb-chat-title-pencil {
+  opacity: 1;
+}
+.kb-chat-title-pencil {
+  display: inline-flex;
+  color: var(--ink-3);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  flex-shrink: 0;
+}
+.kb-chat-title-input {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  background: var(--bg);
+  border: 1px solid var(--accent-line);
+  border-radius: 6px;
+  padding: 3px 8px;
+  outline: none;
+  font-family: inherit;
+  min-width: 200px;
+  max-width: 100%;
+}
+.kb-chat-title-input:focus {
+  background: color-mix(in oklch, var(--bg) 92%, var(--accent-soft));
+}
+.kb-chat-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  padding: 3px 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.kb-chat-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.kb-chat-status-dot.idle {
+  background: var(--ink-4);
+  box-shadow: none;
+}
+.kb-chat-status.s-running .kb-chat-status-dot {
+  background: var(--running);
+  box-shadow: 0 0 10px var(--running);
+}
+.kb-chat-status.s-starting .kb-chat-status-dot {
+  background: var(--awaiting);
+  box-shadow: 0 0 8px var(--awaiting);
+}
+.kb-chat-status.s-awaiting_input .kb-chat-status-dot {
+  background: var(--awaiting);
+}
+.kb-chat-status.s-complete .kb-chat-status-dot {
+  background: var(--review);
+  box-shadow: none;
+}
+.kb-chat-status.s-failed .kb-chat-status-dot {
+  background: var(--failed);
+  box-shadow: none;
+}
+.kb-chat-status.s-stopped .kb-chat-status-dot {
+  background: var(--ink-3);
+  box-shadow: none;
+}
+
+/* Scroller: message thread. */
+.kb-chat-scroller {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 26px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.kb-chat-empty {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  color: var(--ink-3);
+  padding: 24px;
+}
+.kb-chat-empty-emoji {
+  font-size: 30px;
+  line-height: 1;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+.kb-chat-empty-title {
+  color: var(--ink-1);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.kb-chat-empty-sub {
+  color: var(--ink-3);
+  font-size: 12.5px;
+  max-width: 360px;
+  line-height: 1.5;
+}
+
+/* Message bubbles. */
+.kb-chat-msg {
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 11px 14px;
+  max-width: 86%;
+  align-self: flex-start;
+}
+.kb-chat-msg-user {
+  background: var(--bg-1);
+  border-color: var(--hairline);
+  align-self: flex-end;
+}
+.kb-chat-msg-agent {
+  background: color-mix(in oklch, var(--bg-1) 80%, var(--accent-soft));
+  border-color: var(--accent-line);
+}
+.kb-chat-msg-meta {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-bottom: 6px;
+}
+.kb-chat-msg-author {
+  color: var(--ink-1);
+  font-weight: 600;
+}
+.kb-chat-msg-agent .kb-chat-msg-author {
+  color: var(--accent);
+}
+.kb-chat-msg-time {
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+}
+.kb-chat-msg-body {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-1);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.kb-chat-sysmsg {
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 4px 0;
+}
+
+/* Tool-call wrapper — the chat scroller is `align-items: stretch` so a
+   bare `.kb-tool-card` would span the full transcript width and read as
+   disconnected horizontal bars. The wrapper indents the card under the
+   agent message lane and gives it a vertical accent rail, matching the
+   "claude is doing this" semantic. */
+.kb-chat-toolwrap {
+  align-self: flex-start;
+  display: flex;
+  gap: 8px;
+  width: min(86%, 640px);
+  padding-left: 8px;
+}
+.kb-chat-toolwrap-rail {
+  flex-shrink: 0;
+  width: 2px;
+  align-self: stretch;
+  background: var(--accent-line);
+  border-radius: 2px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+.kb-chat-toolwrap-body {
+  flex: 1;
+  min-width: 0;
+}
+.kb-chat-toolwrap-body .kb-tool-card {
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+}
+.kb-chat-toolwrap-body .kb-tool-head {
+  font-size: 12.5px;
+  padding: 9px 12px;
+}
+
+/* Footer: composer. */
+.kb-chat-foot {
+  border-top: 1px solid var(--hairline);
+  padding: 14px 22px 12px;
+  background: var(--bg-1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.kb-chat-foot-session {
+  display: flex;
+  align-items: center;
+  /* Container for the session-dropdown trigger above the composer input.
+     Kept its own scope so future widgets (model, search) can sit next to
+     the session pill without each having to reach into kb-chat-foot. */
+}
+
+.kb-chat-foot-advanced {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+.kb-chat-foot-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.kb-chat-foot-field-grow {
+  flex: 1;
+}
+.kb-chat-foot-field-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.kb-chat-foot-field .kb-chat-model-picker {
+  min-width: 200px;
+}
+.kb-chat-foot-syspr {
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  color: var(--ink-1);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-family: var(--ff-sans);
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 44px;
+  outline: none;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.kb-chat-foot-syspr:focus {
+  border-color: var(--accent-line);
+}
+.kb-chat-foot-syspr::placeholder {
+  color: var(--ink-3);
+}
+
+.kb-chat-foot-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.kb-chat-foot-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  color: var(--ink-1);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-family: var(--ff-sans);
+  font-size: 13.5px;
+  line-height: 1.55;
+  resize: vertical;
+  min-height: 64px;
+  outline: none;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.kb-chat-foot-input:focus {
+  border-color: var(--accent-line);
+  background: color-mix(in oklch, var(--bg) 92%, var(--accent-soft));
+}
+.kb-chat-foot-input::placeholder {
+  color: var(--ink-3);
+}
+.kb-chat-send-btn {
+  align-self: stretch;
+  min-width: 88px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.kb-chat-foot-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+.kb-chat-foot-opts-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 0;
+  padding: 2px 4px;
+  font-family: var(--ff-sans);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.kb-chat-foot-opts-toggle:hover {
+  color: var(--ink-1);
+}
+.kb-chat-foot-opts-chev {
+  display: inline-block;
+  transition: transform 120ms ease;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ink-3);
+}
+.kb-chat-foot-opts-chev.open {
+  transform: rotate(90deg);
+}
+.kb-chat-foot-hint {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+.kb-chat-foot-error {
+  color: var(--failed);
+  font-size: 11.5px;
+}
+.kb-chat-error {
+  padding: 8px 22px;
+  color: var(--failed);
+  background: var(--bg-1);
+  border-top: 1px solid var(--hairline);
+  font-size: 11.5px;
+}
+
+/* === Empty-state overlay (no provider configured) ================== */
+.kb-providers-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+  /* Block all interaction with the kanban behind it. */
+  pointer-events: auto;
+}
+.kb-providers-overlay-card {
+  background: var(--kb-warn-bg, #2a1a00);
+  border: 2px solid var(--kb-warn-border, #f80);
+  color: var(--kb-warn-fg, #fb0);
+  border-radius: 10px;
+  padding: 28px 32px;
+  max-width: 520px;
+  text-align: center;
+  box-shadow: 0 12px 60px rgba(255, 140, 0, 0.25);
+}
+.kb-providers-overlay-icon {
+  color: var(--kb-warn-border, #f80);
+  margin-bottom: 8px;
+}
+.kb-providers-overlay-title {
+  font-size: 20px;
+  margin: 0 0 8px;
+  color: #fff;
+}
+.kb-providers-overlay-body {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+.kb-providers-overlay-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* FileChangeViewer (kb-modal-fcv): VS Code-style read-only file viewer
+   with two modes — Current (file content) and Changes (PR-style diff
+   cards per worktree, each labelled with the originating task + agent
+   run). */
+.kb-modal-fcv { max-width: 1040px; }
+.kb-fcv-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.kb-fcv-file {
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+.kb-fcv-file-dir { color: var(--ink-3); }
+.kb-fcv-file-name { color: var(--ink); font-weight: 500; }
+.kb-fcv-readonly {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: var(--ff-sans);
+}
+
+.kb-fcv-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg-1);
+}
+.kb-fcv-tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-family: var(--ff-sans);
+  padding: 8px 12px 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: -1px;
+}
+.kb-fcv-tab:hover { color: var(--ink); }
+.kb-fcv-tab.is-active {
+  color: var(--ink);
+  border-bottom-color: var(--accent, var(--ink));
+}
+.kb-fcv-tab-count {
+  font-size: 10.5px;
+  background: var(--bg-3);
+  color: var(--ink-2);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-fcv-body {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.kb-fcv-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kb-fcv-trunc {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-style: italic;
+  padding: 0 2px;
+}
+.kb-fcv-code {
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 8px 0;
+  font-family: var(--ff-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+.kb-fcv-code-line { display: flex; align-items: baseline; }
+.kb-fcv-code-num {
+  flex: 0 0 auto;
+  padding: 0 12px 0 10px;
+  color: var(--ink-4, var(--ink-3));
+  white-space: pre;
+  text-align: right;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+.kb-fcv-code-text {
+  flex: 1;
+  white-space: pre;
+  color: var(--ink);
+  padding-right: 14px;
+}
+
+.kb-fcv-worktree {
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--bg-2);
+  overflow: hidden;
+  transition: border-color 0.12s ease;
+}
+.kb-fcv-worktree.is-open { border-color: var(--hairline); }
+.kb-fcv-worktree-head {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.kb-fcv-worktree.is-closed .kb-fcv-worktree-head { border-bottom-color: transparent; }
+.kb-fcv-worktree-head:hover { background: var(--bg-3); }
+.kb-fcv-chevron {
+  color: var(--ink-3);
+  font-size: 10px;
+  width: 12px;
+  text-align: center;
+}
+.kb-fcv-status {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: var(--ff-mono);
+  border: 1px solid var(--hairline);
+  background: var(--bg);
+  color: var(--ink-2);
+}
+.kb-fcv-status-m { color: oklch(0.78 0.13 70); border-color: oklch(0.78 0.13 70 / 0.4); }
+.kb-fcv-status-a { color: oklch(0.72 0.16 145); border-color: oklch(0.72 0.16 145 / 0.4); }
+.kb-fcv-status-d { color: oklch(0.7 0.18 25); border-color: oklch(0.7 0.18 25 / 0.4); }
+.kb-fcv-status-r { color: oklch(0.72 0.14 245); border-color: oklch(0.72 0.14 245 / 0.4); }
+.kb-fcv-status-u { color: oklch(0.7 0.18 25); border-color: oklch(0.7 0.18 25 / 0.4); }
+
+.kb-fcv-worktree-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+}
+.kb-fcv-task {
+  font-family: var(--ff-sans);
+  font-size: 12.5px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.kb-fcv-task-title { color: var(--ink-2); font-weight: normal; }
+.kb-fcv-agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.kb-fcv-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-family: var(--ff-mono);
+  color: var(--ink-2);
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.kb-fcv-chip-model { color: var(--ink-1); }
+.kb-fcv-chip-status { text-transform: lowercase; }
+.kb-fcv-chip-status.is-running,
+.kb-fcv-chip-status.is-queued,
+.kb-fcv-chip-status.is-pending {
+  color: oklch(0.78 0.13 70);
+  border-color: oklch(0.78 0.13 70 / 0.4);
+}
+.kb-fcv-chip-status.is-succeeded {
+  color: oklch(0.72 0.16 145);
+  border-color: oklch(0.72 0.16 145 / 0.4);
+}
+.kb-fcv-chip-status.is-failed,
+.kb-fcv-chip-status.is-timed_out {
+  color: oklch(0.7 0.18 25);
+  border-color: oklch(0.7 0.18 25 / 0.4);
+}
+.kb-fcv-chip-status.is-stopped {
+  color: var(--ink-3);
+  border-color: var(--hairline);
+}
+.kb-fcv-muted { color: var(--ink-3); }
+
+.kb-fcv-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.kb-fcv-stat-add { color: oklch(0.72 0.16 145); }
+.kb-fcv-stat-del { color: oklch(0.7 0.18 25); }
+
+.kb-fcv-worktree-glyph { color: var(--ink-3); }
+.kb-fcv-worktree-sub { color: var(--ink-3); font-weight: normal; }
+.kb-fcv-worktree-status {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  font-family: var(--ff-sans);
+  white-space: nowrap;
+}
+.kb-fcv-diff-wrap {
+  padding: 10px 14px;
+  overflow-x: auto;
+  background: var(--bg);
+}
+.kb-fcv-empty {
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--ink-3);
+  font-style: italic;
+}
+.kb-fcv-err { color: oklch(0.7 0.18 25); }
+.kb-fcv-ok  { color: oklch(0.72 0.16 145); }
+.kb-fcv-hint { font-size: 10.5px; color: var(--ink-3); }
+
+.kb-fcv-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--hairline-soft);
+  background: var(--bg-2);
+}
+.kb-fcv-reply.kb-fcv-reply-disabled {
+  font-style: italic;
+}
+.kb-fcv-reply-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+.kb-fcv-reply-hint-inline {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10.5px;
+  color: oklch(0.78 0.13 70);
+}
+.kb-fcv-reply-text {
+  font-family: var(--ff-mono);
+  font-size: 12.5px;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 8px 10px;
+  resize: vertical;
+  min-height: 64px;
+}
+.kb-fcv-reply-text:focus {
+  outline: none;
+  border-color: var(--accent-line, var(--ink-2));
+}
+.kb-fcv-reply-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* "Start a new agent on this file" inline form. Shown when the file
+   is untouched (Current tab) and when a change isn't tied to an agent
+   run (Changes tab, main-worktree case). */
+.kb-fcv-start {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px 14px;
+  border: 1px dashed var(--hairline);
+  border-radius: 8px;
+  background: var(--bg-2);
+}
+.kb-fcv-start.kb-fcv-start-disabled {
+  border-style: dashed;
+  background: transparent;
+  padding: 10px 14px;
+  font-style: italic;
+}
+.kb-fcv-worktree .kb-fcv-start {
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--hairline-soft);
+  background: var(--bg-2);
+}
+.kb-fcv-start-ok {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.kb-fcv-start-ok-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* =========================================================================
+   Workspace-repos modal. Inherits .kb-sentry-modal / -body / -row classes
+   for layout chrome; the rules below own the per-repo card and the inline
+   "+ Add repo" affordance.
+   ========================================================================= */
+.kb-repos-modal {
+  max-width: 720px;
+}
+.kb-repos-body {
+  gap: 14px;
+}
+.kb-repos-empty {
+  color: var(--ink-3);
+}
+.kb-repos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.kb-repos-card {
+  border: 1px solid var(--hairline-soft);
+  border-radius: 8px;
+  background: var(--bg-1);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.kb-repos-card.is-primary {
+  border-color: var(--accent-line, var(--hairline));
+  background: color-mix(in oklch, var(--bg-1) 92%, var(--accent-soft, transparent));
+}
+.kb-repos-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.kb-repos-card-head .grow {
+  flex: 1;
+  min-width: 8px;
+}
+.kb-repos-card-name,
+.kb-repos-card-name-input {
+  font: 500 13.5px var(--ff-sans);
+  color: var(--ink-1);
+  letter-spacing: -0.005em;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: text;
+  text-align: left;
+  min-width: 0;
+}
+.kb-repos-card-name:hover {
+  border-color: var(--hairline-soft);
+  background: var(--bg-2);
+}
+.kb-repos-card-name-input {
+  border-color: var(--hairline);
+  background: var(--bg-2);
+  outline: none;
+  cursor: text;
+  color: var(--ink);
+}
+.kb-repos-card-name-input:focus {
+  border-color: var(--accent, #3b82f6);
+}
+.kb-repos-card-badge {
+  font: 600 10px var(--ff-sans);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--accent, #3b82f6);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+.kb-repos-card-remove {
+  color: var(--del, #c43);
+}
+.kb-repos-card-path {
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  word-break: break-all;
+}
+.kb-repos-card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kb-repos-card-field input[type='text'] {
+  background: var(--surface-2, rgba(0, 0, 0, 0.05));
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  color: var(--ink);
+  outline: none;
+}
+.kb-repos-card-field input[type='text']:focus {
+  border-color: var(--accent, #3b82f6);
+}
+.kb-repos-add-toggle {
+  align-self: flex-start;
+}
+.kb-repos-add {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px dashed var(--hairline);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--bg-1);
+}
+.kb-repos-add-pickrow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.kb-repos-add-path {
+  flex: 1;
+  background: var(--surface-2, rgba(0, 0, 0, 0.05));
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  color: var(--ink);
+  outline: none;
+  min-width: 0;
+}
+.kb-repos-add-path:focus {
+  border-color: var(--accent, #3b82f6);
+}
+.kb-repos-add-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.kb-repos-add-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* =========================================================================
+   Chat sessions: dropdown above the composer for switching between parallel
+   agent threads inside a single chat conversation. Sits in both the chat
+   window (kb-chat-foot) and the task-detail modal (kb-modal-foot), so the
+   styles are scoped by the `.kb-chat-session-dd` root to keep both surfaces
+   visually consistent without leaking back into other dropdowns.
+   ========================================================================= */
+.kb-chat-session-dd {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+}
+.kb-chat-session-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 8px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--ink-1);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+  max-width: 360px;
+}
+.kb-chat-session-trigger:hover {
+  background: var(--bg-1);
+  border-color: var(--ink-4);
+}
+.kb-chat-session-trigger[aria-expanded='true'] {
+  background: var(--bg-1);
+  border-color: var(--accent-line);
+}
+.kb-chat-session-trigger-label {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.kb-chat-session-trigger-agent {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  padding: 1px 6px;
+  background: var(--bg-2);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.kb-chat-session-chev {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--ink-3);
+  transition: transform 120ms ease;
+  display: inline-block;
+}
+.kb-chat-session-chev.open {
+  transform: rotate(90deg);
+}
+.kb-chat-session-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.kb-chat-session-dot-idle {
+  background: var(--ink-3);
+}
+.kb-chat-session-dot-running {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.kb-chat-session-dot-awaiting {
+  background: var(--awaiting);
+}
+.kb-chat-session-dot-completed {
+  background: var(--review);
+}
+.kb-chat-session-dot-failed {
+  background: var(--failed);
+}
+
+/* Floating menu — anchored above the trigger so it doesn't collide with
+   the input row below. Pop-up width grows with content but stays bounded
+   so long session titles get truncated rather than blowing out the foot. */
+.kb-chat-session-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  min-width: 320px;
+  max-width: 440px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  padding: 6px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kb-chat-session-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 4px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 4px;
+}
+.kb-chat-session-menu-title {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.kb-chat-session-new {
+  background: transparent;
+  border: 1px dashed var(--ink-4);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.kb-chat-session-new:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+.kb-chat-session-empty {
+  padding: 10px;
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+}
+.kb-chat-session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.kb-chat-session-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 2px;
+}
+.kb-chat-session-row:hover {
+  background: var(--bg-1);
+}
+.kb-chat-session-row.is-active {
+  background: var(--accent-soft);
+}
+.kb-chat-session-row-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--ink-1);
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+.kb-chat-session-row-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kb-chat-session-row-agent {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  text-transform: lowercase;
+  padding: 1px 5px;
+  background: var(--bg-2);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.kb-chat-session-row-time {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+.kb-chat-session-row-actions {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding-right: 6px;
+}
+.kb-chat-session-row:hover .kb-chat-session-row-actions,
+.kb-chat-session-row.is-active .kb-chat-session-row-actions {
+  display: inline-flex;
+}
+.kb-chat-session-row-act {
+  background: transparent;
+  border: none;
+  color: var(--ink-3);
+  font-size: 10.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+.kb-chat-session-row-act:hover {
+  background: var(--bg-2);
+  color: var(--ink-1);
+}
+.kb-chat-session-row-act.danger:hover {
+  background: color-mix(in oklch, var(--failed) 14%, transparent);
+  color: var(--failed);
+}
+.kb-chat-session-rename {
+  flex: 1;
+  background: var(--bg-1);
+  border: 1px solid var(--accent-line);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12.5px;
+  color: var(--ink-1);
+  outline: none;
+}
+
+/* Creator popover — opens beside the menu when "+ New" is clicked. Same
+   visual language as the menu (panel + hairlines) so the affordance feels
+   coherent. Anchored above the trigger so it doesn't push the composer
+   off-screen on short modals. */
+.kb-chat-session-creator {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  min-width: 320px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+  padding: 12px;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.kb-chat-session-creator-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.kb-chat-session-creator-title {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.kb-chat-session-creator-close {
+  background: transparent;
+  border: none;
+  color: var(--ink-3);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+.kb-chat-session-creator-close:hover {
+  background: var(--bg-1);
+  color: var(--ink-1);
+}
+.kb-chat-session-creator-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kb-chat-session-creator-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.kb-chat-session-creator-input {
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 12.5px;
+  color: var(--ink-1);
+  outline: none;
+  transition: border-color 120ms ease;
+}
+.kb-chat-session-creator-input:focus {
+  border-color: var(--accent-line);
+}
+.kb-chat-session-creator-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* =========================================================================
+   Markdown editor — toolbar + textarea + preview pane
+   ========================================================================= */
+
+.kb-md-editor {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--bg-1);
+  overflow: hidden;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.kb-md-editor:focus-within {
+  border-color: var(--accent-line);
+  background: color-mix(in oklch, var(--bg-1) 90%, var(--accent-soft));
+}
+.kb-md-editor.is-flat {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.kb-md-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--hairline-soft);
+  background: var(--bg-2);
+}
+.kb-md-toolbar .grow {
+  flex: 1;
+}
+.kb-md-sep {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: var(--hairline-soft);
+  margin: 0 4px;
+}
+
+.kb-md-tb-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-2);
+  width: 26px;
+  height: 22px;
+  border-radius: 4px;
+  font: 500 11.5px var(--ff-sans);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+  padding: 0;
+}
+.kb-md-tb-btn:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--bg-3);
+}
+.kb-md-tb-btn:active:not(:disabled) {
+  background: color-mix(in oklch, var(--bg-3) 70%, var(--accent-soft));
+}
+.kb-md-tb-btn:disabled {
+  color: var(--ink-4);
+  cursor: not-allowed;
+}
+.kb-md-tb-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent-line);
+}
+
+.kb-md-preview-toggle {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--hairline-soft);
+  color: var(--ink-2);
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 4px;
+  font: 500 11px var(--ff-sans);
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+}
+.kb-md-preview-toggle:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--bg-3);
+}
+.kb-md-preview-toggle.on {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.kb-md-preview-toggle:disabled {
+  color: var(--ink-4);
+  cursor: not-allowed;
+}
+
+.kb-md-textarea {
+  appearance: none;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: vertical;
+  padding: 10px 12px;
+  color: var(--ink);
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  min-height: 120px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.kb-md-textarea::placeholder {
+  color: var(--ink-4);
+}
+.kb-md-textarea:disabled {
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.kb-md-preview {
+  padding: 10px 12px;
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  color: var(--ink-1);
+  line-height: 1.55;
+  background: var(--bg-1);
+  min-height: 120px;
+}
+.kb-md-editor.is-flat .kb-md-preview {
+  background: transparent;
+  padding: 0;
+}
+.kb-md-preview-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.kb-md-preview-empty {
+  color: var(--ink-3);
+  font-style: italic;
+  font-size: 12.5px;
+}
+.kb-md-preview-body > :first-child {
+  margin-top: 0;
+}
+.kb-md-preview-body > :last-child {
+  margin-bottom: 0;
+}
+.kb-md-preview-body h1,
+.kb-md-preview-body h2,
+.kb-md-preview-body h3,
+.kb-md-preview-body h4,
+.kb-md-preview-body h5,
+.kb-md-preview-body h6 {
+  font-family: var(--ff-sans);
+  color: var(--ink);
+  margin: 14px 0 6px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.kb-md-preview-body h1 {
+  font-size: 18px;
+}
+.kb-md-preview-body h2 {
+  font-size: 15.5px;
+}
+.kb-md-preview-body h3 {
+  font-size: 13.5px;
+}
+.kb-md-preview-body h4 {
+  font-size: 12.5px;
+  color: var(--ink-1);
+}
+.kb-md-preview-body p {
+  margin: 0 0 10px;
+}
+.kb-md-preview-body code {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  background: var(--bg-inset);
+  color: var(--ink);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--hairline-soft);
+}
+.kb-md-preview-body pre {
+  background: var(--bg-inset);
+  border: 1px solid var(--hairline-soft);
+  padding: 10px 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 8px 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.kb-md-preview-body pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--ink);
+  font-size: 12px;
+}
+.kb-md-preview-body ul,
+.kb-md-preview-body ol {
+  padding-left: 22px;
+  margin: 6px 0 10px;
+}
+.kb-md-preview-body li {
+  margin: 3px 0;
+}
+.kb-md-preview-body blockquote {
+  border-left: 3px solid var(--accent-line);
+  padding: 2px 0 2px 12px;
+  margin: 8px 0;
+  color: var(--ink-2);
+}
+.kb-md-preview-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--accent-line);
+}
+.kb-md-preview-body a:hover {
+  text-decoration-color: var(--accent);
+}
+.kb-md-preview-body hr {
+  border: none;
+  border-top: 1px solid var(--hairline);
+  margin: 14px 0;
+}
+.kb-md-preview-body img {
+  max-width: 100%;
+  border-radius: 6px;
+  display: block;
+  margin: 8px 0;
+}
+.kb-md-preview-body strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.kb-md-preview-body em {
+  font-style: italic;
+}
+.kb-md-preview-body table {
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 6px 0;
+}
+.kb-md-preview-body th,
+.kb-md-preview-body td {
+  border: 1px solid var(--hairline-soft);
+  padding: 4px 8px;
+}
+
+.kb-md-footer {
+  padding: 4px 10px 6px;
+  border-top: 1px solid var(--hairline-soft);
+  background: var(--bg-2);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.kb-md-editor.is-flat .kb-md-footer {
+  background: transparent;
+  border-top: none;
+  padding: 4px 0 0;
+}
+
+/* Sub-issue parent breadcrumb shown above the title hero. Renders as
+   a compact pill button so the user can jump back to the parent issue
+   without leaving the modal stack. */
+.kb-sub-issues-parent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.kb-sub-issues-parent-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+  max-width: 360px;
+  overflow: hidden;
+}
+.kb-sub-issues-parent-link:hover {
+  background: var(--bg-3, var(--bg-2));
+  border-color: var(--hairline);
+  color: var(--ink-1);
+}
+.kb-sub-issues-parent-link:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.kb-sub-issues-parent-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.kb-sub-issues-parent-num {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.kb-sub-issues-parent-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-1);
+}
+
+/* Sub-issues section inside the Overview tab. The layout follows the
+   same column rhythm as the description / spec sections so the eye
+   doesn't have to relearn anything. */
+.kb-sub-issues-empty {
+  font-size: 12px;
+  color: var(--ink-3);
+  padding: 8px 0;
+}
+.kb-sub-issues-error {
+  font-size: 12px;
+  color: var(--failed);
+  padding: 6px 10px;
+  border: 1px solid var(--failed);
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--failed) 8%, var(--bg-1));
+  margin-bottom: 10px;
+}
+.kb-sub-issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.kb-sub-issue-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 7px;
+  font-size: 12.5px;
+}
+.kb-sub-issue-pill {
+  font-family: var(--ff-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--bg-1);
+  color: var(--ink-3);
+  border: 1px solid var(--hairline-soft);
+  flex-shrink: 0;
+}
+.kb-sub-issue-status-backlog { color: var(--ink-3); }
+.kb-sub-issue-status-todo    { color: var(--ink-2); }
+.kb-sub-issue-status-running { color: var(--running, var(--accent)); border-color: var(--running, var(--accent)); }
+.kb-sub-issue-status-review  { color: var(--review); border-color: var(--review); }
+.kb-sub-issue-status-done    { color: var(--done, var(--review)); border-color: var(--done, var(--review)); }
+.kb-sub-issue-status-inbox   { color: var(--ink-3); }
+.kb-sub-issue-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+}
+.kb-sub-issue-open:disabled {
+  cursor: default;
+}
+.kb-sub-issue-num {
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+.kb-sub-issue-title {
+  flex: 1;
+  color: var(--ink-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-sub-issue-open:hover .kb-sub-issue-title {
+  color: var(--accent);
+}
+.kb-sub-issue-closed {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-style: italic;
+}
+.kb-sub-issue-unlink {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-3);
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.kb-sub-issue-unlink:hover {
+  background: color-mix(in oklch, var(--failed) 15%, var(--bg-1));
+  border-color: var(--failed);
+  color: var(--failed);
+}
+.kb-sub-issue-add {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  background: var(--bg-2);
+  border: 1px dashed var(--hairline);
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.kb-sub-issue-add:hover {
+  background: var(--bg-3, var(--bg-2));
+  color: var(--ink-1);
+  border-color: var(--accent);
+}
+
+/* Inline picker shown when "+ Add sub-issue" is clicked. Lives in the
+   same section so it shares the section's left/right padding. */
+.kb-sub-issue-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 8px;
+  margin-top: 4px;
+}
+.kb-sub-issue-picker-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.kb-sub-issue-input {
+  flex: 1;
+}
+.kb-sub-issue-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.kb-sub-issue-match {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  color: inherit;
+}
+.kb-sub-issue-match:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Compact "↳N" badge shown on a board card when the issue has direct
+   sub-issues. Sits in the card meta row alongside checks / assignees
+   and avoids drawing a tree on the card itself. */
+.kb-card-children-badge {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  padding: 1px 6px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+  background: var(--bg-2);
+  flex-shrink: 0;
+}
+
+/* =========================================================================
+ * PR comments section — appended to the Thread tab when the issue has a
+ * linked PR. Mirrors `kb-tdm-section` look but with a soft top divider so
+ * it reads as a follow-up to the agent thread rather than a new tab.
+ * ========================================================================= */
+.kb-pr-comments {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline-soft);
+}
+.kb-pr-comments-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 500 11px var(--ff-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+}
+.kb-pr-comment {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  padding: 8px 0;
+}
+.kb-pr-comment-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+.kb-pr-comment-meta {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-bottom: 2px;
+}
+.kb-pr-comment-body {
+  font-size: 13px;
+  color: var(--ink-1);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.kb-pr-comment-file {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  margin: 6px 0;
+}

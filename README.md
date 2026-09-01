@@ -19,7 +19,11 @@ parallel slots, and check their own work while you sleep.
   unlabeled cards. Drag to move; in GitHub mode the move is mirrored
   as `status:*` label edits.
 - **Local-first issues** by default — stored in SQLite. Switch to
-  GitHub mode to drive real issues on a repo.
+  GitHub mode to drive real issues on a repo. Local issues can carry
+  custom alphanumeric ids (`FEAT-42`) and group into folders.
+- **Agent memory** — spawned agents can carry a persistent,
+  workspace-scoped memory server over MCP, so context survives across
+  runs. Configure what gets recalled in Memory settings.
 - **12 agent CLIs supported** — Claude Code, Codex, Gemini, Antigravity,
   Cursor, Copilot, Amp, OpenCode, Droid, CCR, Qwen, plus any ACP-compatible
   CLI. Each run is isolated in a per-run worktree; a pre-push hook
@@ -27,6 +31,12 @@ parallel slots, and check their own work while you sleep.
 - **Live agent thread** — every `tool_use`/`tool_result` streams in.
   Decision prompts pop into the UI; click an option, the run
   continues.
+- **Live checks & fork runs** — check badges update on cards in real
+  time while runs execute, and a follow-up run can fork into an
+  existing worktree to iterate on its state.
+- **Subscription awareness** — plan usage for Claude, Codex,
+  Antigravity and Copilot is surfaced in the UI, so you can spread
+  work across the plans you already pay for.
 - **Branch preview** — start the worktree's dev server in one click
   and open a live URL.
 - **Promote** — land an agent's worktree as a real commit, or open a
@@ -65,8 +75,8 @@ Install the ones you want on your `PATH`. You only need at least one.
 ### Run from source (fork; primary path)
 
 ```sh
-git clone https://github.com/vitorvaf/kanbots.git
-cd kanbots
+git clone https://github.com/vitorvaf/kodra.git
+cd kodra
 pnpm install
 pnpm desktop          # build everything, open Electron
 # or, for hot-reload:
@@ -78,6 +88,9 @@ the supported agent CLIs on your `PATH` (see [Supported
 agents](#supported-agents) above — `claude`, `codex`, `gemini`, `agy`,
 `cursor-agent`, etc.). Add `gh` + `gh auth login` if you'll be
 driving GitHub issues.
+
+Running under WSL? Hardware acceleration is disabled automatically to
+avoid GPU compositing artifacts — set `KODRA_FORCE_GPU=1` to override.
 
 ### Upstream Kanbots distribution (npx)
 
@@ -124,7 +137,7 @@ into `/Applications`, then run
 ### Planned Kodra packaged builds
 
 Packaged fork builds are not yet available. They will land on the
-[fork releases page](https://github.com/vitorvaf/kanbots/releases).
+[fork releases page](https://github.com/vitorvaf/kodra/releases).
 
 ### First run
 
@@ -147,6 +160,7 @@ database and configuration continue to work. Both directories are added to
 ├── worktrees/       # one subdir per agent run
 ├── attachments/     # files dragged into chats / cards
 ├── mcp-runtime/     # transient MCP configs handed to claude / codex
+├── specs/           # approved /spec outputs, one per issue
 └── promote/         # staging area when promoting a worktree to a commit
 ```
 
@@ -176,6 +190,7 @@ See [docs/issues.md](docs/issues.md) for auth setup and the
    - **Branch preview** — start its dev server.
    - **Promote commit** — land it on your real branch.
    - **Open draft PR** — GitHub mode only.
+   - **Fork run** — dispatch a follow-up agent run into this worktree.
    - **Discard** — remove worktree + branch.
 
 A pre-push hook is installed in every worktree so agents can't push
@@ -196,8 +211,11 @@ Autopilot turns dispatch from a one-shot click into a loop.
 
 - **`feature-dev`** — Multi-persona, parallel slots (up to 4). Round-robin
   through your persona roster on the parent issue; agents split into
-  subtasks as they go. Stops on completion, stop button, or session
-  cost budget.
+  subtasks as they go. Ideation runs through the session's own provider
+  CLI (any of the 11 — each uses its own login), not just claude.
+  Stops on completion, stop button, or session cost budget, and fails
+  fast with a root-cause reason after 5 consecutive failed
+  ideate/dispatch iterations instead of retrying forever.
 - **`qa`** — Runs configurable check commands
   (`typecheck` / `tests` / `lint` / `build` / `e2e`), optionally
   starts a dev server and watches it, and dispatches fix runs against
@@ -219,6 +237,7 @@ Details: [docs/agents.md#autopilot](docs/agents.md#autopilot).
 | [MCP server](docs/mcp-server.md) | Wiring `kanbots-mcp-server` into Cursor or Claude Desktop |
 | [Configuration](docs/configuration.md) | `.kanbots/config.json`, env vars, check command overrides |
 | [Architecture](docs/architecture.md) | Packages, IPC bridge, database, dependency graph |
+| [Architecture decisions](docs/adr/README.md) | ADRs — agent memory integration, RTK output compression |
 | [Rebranding notes](docs/rebranding.md) | Compatibility identifiers and migration debt |
 
 ## Packages

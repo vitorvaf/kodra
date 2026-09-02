@@ -448,6 +448,27 @@
   margin: 0 0 10px;
 }
 
+.kb-tdm-session-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.kb-tdm-session-chip {
+  max-width: 100%;
+  min-width: 0;
+}
+.kb-tdm-session-id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-tdm-session-hint {
+  margin-top: 6px;
+  color: var(--ink-3);
+  font-size: 11px;
+}
+
 .kb-desc-md {
   font-size: 13.5px;
   line-height: 1.6;

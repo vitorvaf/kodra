@@ -100,6 +100,37 @@ function fmtTokens(n: number | null | undefined): string {
   return String(n);
 }
 
+/** Build the terminal command for resuming a provider-backed agent session. */
+export function buildResumeCommand(
+  provider: string | null,
+  sessionId: string,
+  worktreePath: string | null,
+): string {
+  switch (provider) {
+    case 'claude-code':
+      return `claude --resume ${sessionId}`;
+    case 'codex-cli':
+      return `codex resume ${sessionId}`;
+    case 'agy-cli':
+      return `agy --conversation ${sessionId}`;
+    case 'opencode-cli':
+      return worktreePath
+        ? `opencode --dir ${worktreePath} --session ${sessionId}`
+        : `opencode --session ${sessionId}`;
+    default:
+      return sessionId;
+  }
+}
+
+function hasTerminalResumeCommand(provider: string | null): boolean {
+  return (
+    provider === 'claude-code' ||
+    provider === 'codex-cli' ||
+    provider === 'agy-cli' ||
+    provider === 'opencode-cli'
+  );
+}
+
 export interface TaskDetailModalProps {
   issueNumber: IssueRef;
   onClose: () => void;
@@ -1300,6 +1331,7 @@ function OverviewTab({
   return (
     <>
       {issue.sentryMeta ? <SentryAnalysisSection issue={issue} /> : null}
+      <AgentSessionSection run={displayRun} />
 
       <div className="kb-tdm-section">
         <h3>Description</h3>
@@ -1360,6 +1392,52 @@ function OverviewTab({
         </div>
       ) : null}
     </>
+  );
+}
+
+function AgentSessionSection({ run }: { run: AgentRun | null }) {
+  const [copyOk, setCopyOk] = useState(false);
+
+  if (!run?.sessionId) return null;
+
+  const resumeCommand = buildResumeCommand(run.provider, run.sessionId, run.worktreePath);
+  const hasResumeCommand = hasTerminalResumeCommand(run.provider);
+  const providerLabel = run.provider
+    ? (PROVIDER_LABELS[run.provider as keyof typeof PROVIDER_LABELS] ?? run.provider)
+    : 'Unknown provider';
+
+  async function copySession(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(resumeCommand);
+      setCopyOk(true);
+      window.setTimeout(() => setCopyOk(false), 1200);
+    } catch {
+      // Ignore — clipboard may be unavailable in restricted contexts.
+    }
+  }
+
+  return (
+    <div className="kb-tdm-section">
+      <h3>Agent session</h3>
+      <div className="kb-tdm-session-row">
+        <span className="kb-chip mono">{providerLabel}</span>
+        <span className="kb-chip mono kb-tdm-session-chip" title={run.sessionId}>
+          <span className="kb-tdm-session-id">{run.sessionId}</span>
+        </span>
+        <button
+          type="button"
+          className="kb-btn ghost"
+          onClick={() => void copySession()}
+          title={copyOk ? 'Copied!' : hasResumeCommand ? 'Copy resume command' : 'Copy session ID'}
+          aria-label={hasResumeCommand ? 'Copy resume command' : 'Copy session ID'}
+        >
+          {copyOk ? 'Copied' : hasResumeCommand ? 'Copy command' : 'Copy ID'}
+        </button>
+      </div>
+      <div className="kb-tdm-session-hint">
+        {hasResumeCommand ? 'Resume this session in your terminal' : 'Provider-specific session ID'}
+      </div>
+    </div>
   );
 }
 

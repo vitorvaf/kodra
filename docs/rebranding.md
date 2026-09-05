@@ -70,12 +70,14 @@ workspaces, integrations, or package consumers.
 
 ## Migration debt
 
-- Screenshots in `docs/assets/` have not yet been recaptured; some still show
-  the old Kanbots UI. Automated recapture was ruled out (native workspace
-  picker dialog, per-user data in real boards). To recapture manually: run
-  `pnpm desktop`, open the target workspace, frame approximately the same
-  crops (board-overview is 1200x796; the others are 765-1128px wide) and
-  overwrite the PNGs in `docs/assets/`.
+- Most screenshots in `docs/assets/` were recaptured on 2026-09-05 from a live
+  build (CDP-driven; `board-overview.png` is now 2040x1200 — the Kodra board
+  needs ~1800px of column width). Still showing the old Kanbots UI:
+  `run-detail-awaiting-decision.png` (a live awaiting-decision state could not
+  be reproduced; referenced by docs/agents.md and docs/getting-started.md) and
+  `persona-picker.png` (the Inbox suggest button that opens the persona picker
+  did not render in the capture workspace). To recapture manually: run
+  `pnpm desktop`, open a workspace, and overwrite the PNGs in `docs/assets/`.
 - The `kanbots` npm package remains upstream-owned. Kodra does not currently
   have a separate npm package or install URL. **TODO: decide whether to
   publish a Kodra package and document its name.**

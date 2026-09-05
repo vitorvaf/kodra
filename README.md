@@ -34,6 +34,10 @@ parallel slots, and check their own work while you sleep.
 - **Live checks & fork runs** — check badges update on cards in real
   time while runs execute, and a follow-up run can fork into an
   existing worktree to iterate on its state.
+- **Session resume** — every run surfaces its agent session id and a
+  ready-to-paste terminal resume command in the task detail modal.
+- **Auto-update** — packaged builds update themselves in-app; releases
+  are cut by a tag-driven multi-OS pipeline.
 - **Subscription awareness** — plan usage for Claude, Codex,
   Antigravity and Copilot is surfaced in the UI, so you can spread
   work across the plans you already pay for.
@@ -43,9 +47,9 @@ parallel slots, and check their own work while you sleep.
   draft PR (GitHub mode).
 - **Sentry import** — auto-pull error groups onto the board for
   triage; one click hands the issue to an agent.
-- **MCP server** — `kanbots-mcp-server` exposes the board over Model
+- **MCP server** — `kodra-mcp-server` exposes the board over Model
   Context Protocol so Cursor, Claude Desktop, or anything MCP-aware
-  can drive it.
+  can drive it (`kanbots-mcp-server` remains as a legacy alias).
 
 ## Supported agents
 
@@ -134,9 +138,14 @@ into `/Applications`, then run
 **Windows** — `.exe` installer. SmartScreen warns on first launch —
 *More info → Run anyway*. Like macOS, the build is unsigned.
 
-### Planned Kodra packaged builds
+### Kodra packaged builds
 
-Packaged fork builds are not yet available. They will land on the
+Packaged builds are cut by a tag-driven pipeline: the `release-cut`
+workflow bumps the version and pushes a `v*` tag, and `release-build`
+builds macOS (dmg/zip, arm64 + x64), Linux (AppImage/tar.xz) and
+Windows (NSIS installer) in parallel and publishes the GitHub release.
+Packaged installs self-update from those releases. The first release
+has not been cut yet — when it lands, binaries appear on the
 [fork releases page](https://github.com/vitorvaf/kodra/releases).
 
 ### First run
@@ -196,12 +205,11 @@ See [docs/issues.md](docs/issues.md) for auth setup and the
 A pre-push hook is installed in every worktree so agents can't push
 to remote on their own. Promotion is always an explicit user step.
 
-![Run detail with awaiting-decision prompt](docs/assets/run-detail-awaiting-decision.png)
+![Task detail modal](docs/assets/task-detail-overview.png)
 
-*Issue detail: live agent thread, decision prompt with numbered
-options, run stats (model, elapsed, tokens, cost), check buttons,
-worktree/branch info, and a Reply box that accepts slash commands
-(`/spec`, `/review`, `/split`).*
+*Issue detail: description, Thread/Diff/Preview/Runs tabs, branch
+info, and the agent-session block with a ready-to-paste terminal
+resume command.*
 
 Details: [docs/agents.md](docs/agents.md).
 
@@ -234,11 +242,12 @@ Details: [docs/agents.md#autopilot](docs/agents.md#autopilot).
 | [Agents](docs/agents.md) | All 12 agent CLI runs, decision prompts, containment, costs, autopilot, personas |
 | [Providers](docs/providers.md) | AI providers modal — picking the agent CLI, API key storage |
 | [Issues](docs/issues.md) | Local mode, GitHub mode, auth, Sentry import |
-| [MCP server](docs/mcp-server.md) | Wiring `kanbots-mcp-server` into Cursor or Claude Desktop |
-| [Configuration](docs/configuration.md) | `.kanbots/config.json`, env vars, check command overrides |
+| [MCP server](docs/mcp-server.md) | Wiring `kodra-mcp-server` into Cursor or Claude Desktop |
+| [Configuration](docs/configuration.md) | `.kodra/config.json`, env vars, check command overrides |
 | [Architecture](docs/architecture.md) | Packages, IPC bridge, database, dependency graph |
 | [Architecture decisions](docs/adr/README.md) | ADRs — agent memory integration, RTK output compression |
 | [Rebranding notes](docs/rebranding.md) | Compatibility identifiers and migration debt |
+| [Releasing](docs/releasing.md) | Cutting releases — version bump, tags, multi-OS builds, auto-update |
 
 ## Packages
 

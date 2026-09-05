@@ -246,6 +246,10 @@ export function installFakeBridge(opts: InstallOptions = {}): FakeBridge {
   const bridge: FakeBridge = {
     ...lifecycleDefaults,
     ...opts.lifecycle,
+    updaterGetState: () =>
+      Promise.resolve({ status: 'idle' as const, currentVersion: '0.0.0' }),
+    updaterCheck: () => Promise.resolve(),
+    updaterInstall: () => Promise.resolve(),
     invoke: <C extends ChannelName>(
       channel: C,
       args: ChannelArgs<C>,

@@ -43,6 +43,8 @@ import type {
   CloudStatusPayload,
   RecentCloudWorkspace,
   RecentWorkspace,
+  UpdaterState,
+  UpdaterStatus,
 } from './desktop-bridge.js';
 
 export type {
@@ -70,6 +72,9 @@ export interface KanbotsBridge {
   minimizeWindow(): Promise<void>;
   toggleMaximizeWindow(): Promise<void>;
   closeWindow(): Promise<void>;
+  updaterGetState(): Promise<UpdaterState>;
+  updaterCheck(): Promise<void>;
+  updaterInstall(): Promise<void>;
   claudeAuthStatus(): Promise<{ authed: boolean }>;
   claudeLoginStart(): Promise<{ ok: true } | { ok: false; error: string }>;
   claudeLoginCancel(): Promise<void>;
@@ -301,4 +306,6 @@ export type {
   CloudStatusPayload,
   RecentCloudWorkspace,
   RecentWorkspace,
+  UpdaterState,
+  UpdaterStatus,
 };

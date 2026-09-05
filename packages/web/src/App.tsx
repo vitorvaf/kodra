@@ -35,6 +35,7 @@ import { MemorySettingsModal } from './components/modals/MemorySettingsModal.js'
 import { WorkspaceReposSettingsModal } from './components/modals/WorkspaceReposSettingsModal.js';
 import { Stats } from './components/Stats.js';
 import { Tray } from './components/tray/Tray.js';
+import { UpdaterToast } from './components/updater/UpdaterToast.js';
 import { Palette } from './components/palette/Palette.js';
 import { TweaksPanel } from './components/tweaks/TweaksPanel.js';
 import type {
@@ -292,6 +293,7 @@ function ShellHost({
         />
       ) : null}
       {tweaks.showTray ? <Tray onJump={(n) => setSelectedNumber(n)} /> : null}
+      <UpdaterToast />
       <Palette
         open={paletteOpen}
         selectedNumber={selectedNumber}

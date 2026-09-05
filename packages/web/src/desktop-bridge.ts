@@ -56,6 +56,30 @@ export interface BootstrapPayload {
   cloudPromptDismissed: boolean;
 }
 
+// Mirrors the updater bridge constants from packages/api without importing
+// runtime API code into the renderer bundle.
+export const UPDATER_CHANGED_CHANNEL = 'updater:changed' as const;
+export const UPDATER_GET_STATE_CHANNEL = 'updater:get-state' as const;
+export const UPDATER_CHECK_CHANNEL = 'updater:check' as const;
+export const UPDATER_INSTALL_CHANNEL = 'updater:install' as const;
+
+export type UpdaterStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error';
+
+export interface UpdaterState {
+  status: UpdaterStatus;
+  currentVersion: string;
+  availableVersion?: string | undefined;
+  progress?: number | undefined;
+  error?: string | undefined;
+}
+
 export interface CloudStatusPayload {
   authed: boolean;
   baseUrl: string | null;

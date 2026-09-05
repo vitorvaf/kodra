@@ -28,9 +28,13 @@ import type {
   KanbotsBridge,
   RecentCloudWorkspace,
   RecentWorkspace,
+  UpdaterState,
 } from './types.js';
 
 const INVOKE_PREFIX = 'kanbots:invoke:';
+const UPDATER_GET_STATE_CHANNEL = 'updater:get-state';
+const UPDATER_CHECK_CHANNEL = 'updater:check';
+const UPDATER_INSTALL_CHANNEL = 'updater:install';
 
 const api: KanbotsBridge = {
   bootstrap: () => ipcRenderer.invoke('kanbots:bootstrap') as Promise<BootstrapPayload>,
@@ -52,6 +56,14 @@ const api: KanbotsBridge = {
   toggleMaximizeWindow: () =>
     ipcRenderer.invoke('kanbots:window-toggle-maximize') as Promise<void>,
   closeWindow: () => ipcRenderer.invoke('kanbots:window-close') as Promise<void>,
+  updaterGetState: () =>
+    ipcRenderer.invoke(`${INVOKE_PREFIX}${UPDATER_GET_STATE_CHANNEL}`, undefined) as Promise<
+      UpdaterState
+    >,
+  updaterCheck: () =>
+    ipcRenderer.invoke(`${INVOKE_PREFIX}${UPDATER_CHECK_CHANNEL}`, undefined) as Promise<void>,
+  updaterInstall: () =>
+    ipcRenderer.invoke(`${INVOKE_PREFIX}${UPDATER_INSTALL_CHANNEL}`, undefined) as Promise<void>,
   claudeAuthStatus: () =>
     ipcRenderer.invoke('kanbots:claude-auth-status') as Promise<{ authed: boolean }>,
   claudeLoginStart: () =>

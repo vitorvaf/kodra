@@ -1,51 +1,40 @@
 # Releasing Kodra desktop
 
 The desktop app ships as binary downloads on the
-[Kodra fork releases page](https://github.com/vitorvaf/kanbots/releases).
-Builds for the `vitorvaf/kanbots` fork are produced by the
-[`release.yml`](../.github/workflows/release.yml) workflow on three OS
-runners and uploaded to a draft release.
-The publish target is the `vitorvaf` fork repository; the repository name
-remains `kanbots` for now.
+[Kodra releases page](https://github.com/vitorvaf/kodra/releases).
+Builds are produced by two workflows: [`release-cut.yml`](../.github/workflows/release-cut.yml)
+(bumps `packages/desktop` version, commits, pushes tag `v*`) and
+[`release-build.yml`](../.github/workflows/release-build.yml)
+(three-OS matrix build triggered by the tag). Releases are published
+immediately — **not** drafts — because electron-updater only sees
+published releases.
 
 ## Cutting a release
 
-Releases are triggered by pushing a tag that matches `v*`.
+Preferred: run **release-cut** from the Actions tab (choose
+`patch` / `minor` / `major`). It bumps `packages/desktop/package.json`,
+commits `chore(release): v<version>`, tags `v<version>`, and pushes.
+
+Manual alternative (same result):
 
 ```sh
-# 1. Bump the desktop version (root and packages/desktop are independent —
-#    only packages/desktop drives the artifact name, but keep them in sync
-#    if you maintain a single version line).
 cd packages/desktop
-npm version 0.1.0 --no-git-tag-version
+npm version patch -m "chore(release): v%s"
 cd ../..
-git add packages/desktop/package.json
-git commit -m "chore(desktop): release v0.1.0"
-
-# 2. Tag and push.
-git tag v0.1.0
-git push origin main --tags
+git push --follow-tags origin main
 ```
 
-The workflow:
+The tag then triggers `release-build.yml`, which:
 
 1. Boots `ubuntu-latest`, `macos-latest`, and `windows-latest` runners in
    parallel.
-2. Installs deps with pnpm + caches.
-3. Bumps `packages/desktop/package.json` to match the tag (no commit) so
-   electron-builder names artifacts consistently.
-4. Runs `electron-builder --publish always --<platform>` on each runner.
-5. Uploads artifacts to a **draft** release named after the tag. All three
-   runners append to the same draft release.
-
-When all three jobs succeed, go to the
-[fork releases page](https://github.com/vitorvaf/kanbots/releases), open
-the draft, write the changelog, and click **Publish**. Until you publish
-it, the artifacts aren't reachable from
-`releases/latest/download/<file>`.
-
-You can also run the workflow manually from the Actions tab via
-**Run workflow** and pass a version string (without the `v`).
+2. Installs deps with pnpm (corepack, pinned by `packageManager`).
+3. Runs `pnpm --filter @kanbots/desktop run build` then
+   `electron-builder --<platform> --publish always`.
+4. Publishes artifacts + `latest*.yml` update metadata to a **published**
+   release named after the tag (all three runners append to the same
+   release). On failure, each runner uploads its `release/*` directory as
+   a workflow artifact (retained 14 days) for debugging.
 
 ## Artifact naming
 
@@ -121,11 +110,31 @@ When we sign:
 
 ## Auto-update
 
-The `publish: github` block in `packages/desktop/package.json` makes
-electron-builder emit `latest-mac.yml`, `latest-linux.yml`, and
-`latest.yml` alongside the binaries. To enable auto-update we'd wire up
-`electron-updater` in `packages/desktop/src/main.ts`. Not done yet — the
-v1 flow is "user downloads new release manually."
+Implemented via `electron-updater` (see `packages/desktop/src/updater.ts`):
+
+- On packaged builds only (`app.isPackaged`), the app checks for updates
+  30s after launch and every 6h after that. Updates download in the
+  background (`autoDownload`) and install silently on quit
+  (`autoInstallOnAppQuit`).
+- The renderer surfaces state over IPC (`updater:changed` event,
+  `updaterGetState` / `updaterCheck` / `updaterInstall` methods): a quiet
+  progress pill while downloading, and a toast offering **Restart now**
+  once the update is downloaded. Everything else stays invisible.
+- Feed: embedded `app-update.yml` (GitHub provider, `vitorvaf/kodra`).
+  Override with `KODRA_UPDATE_FEED_URL` (or legacy `KANBOTS_UPDATE_FEED_URL`)
+  pointing at a generic static host (e.g. a public bucket mirroring
+  `latest*.yml` + artifacts) — see the note below.
+- Platform notes: Windows NSIS and Linux AppImage update fully
+  automatically (differential downloads via blockmap). macOS can only
+  *detect* updates while builds are unsigned — Squirrel.Mac requires a
+  signed bundle to install; signing is the prerequisite for silent mac
+  updates. `tar.xz` is a portable target with no self-update.
+
+> **Private-repo caveat**: the repo is private, and electron-updater's
+> GitHub provider needs an unauthenticated feed. Until the repo is made
+> public (or a `KODRA_UPDATE_FEED_URL` static mirror is set up), the
+> updater will report errors on clients — silently by design — while the
+> installer downloads keep working for anyone with repo access.
 
 ## What if the workflow fails?
 

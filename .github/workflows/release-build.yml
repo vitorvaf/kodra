@@ -1,0 +1,62 @@
+name: release-build
+
+# Builds installers for all platforms and publishes a (non-draft) GitHub
+# Release. electron-updater only sees PUBLISHED releases — never set draft.
+# Triggers on tag push v* (from release-cut.yml or a manual tag).
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
+concurrency:
+  group: release-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            targets: --mac
+          - os: windows-latest
+            targets: --win
+          - os: ubuntu-latest
+            targets: --linux
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm via corepack (pinned by packageManager field)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build desktop bundle
+        run: pnpm --filter @kanbots/desktop run build
+
+      - name: Package and publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm --filter @kanbots/desktop exec electron-builder ${{ matrix.targets }} --publish always
+
+      - name: Upload packaging output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-output-${{ matrix.os }}
+          path: packages/desktop/release/
+          retention-days: 14
+          if-no-files-found: ignore

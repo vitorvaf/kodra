@@ -26,6 +26,23 @@ import type {
   UserMe,
 } from '@kanbots/cloud-client';
 
+export type UpdaterStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error';
+
+export interface UpdaterState {
+  status: UpdaterStatus;
+  currentVersion: string;
+  availableVersion?: string | undefined;
+  progress?: number | undefined;
+  error?: string | undefined;
+}
+
 export interface ActiveWorkspaceInfo {
   repoPath: string;
   config: WorkspaceConfig;
@@ -122,6 +139,9 @@ export interface KanbotsBridge {
   minimizeWindow(): Promise<void>;
   toggleMaximizeWindow(): Promise<void>;
   closeWindow(): Promise<void>;
+  updaterGetState(): Promise<UpdaterState>;
+  updaterCheck(): Promise<void>;
+  updaterInstall(): Promise<void>;
   claudeAuthStatus(): Promise<{ authed: boolean }>;
   claudeLoginStart(): Promise<{ ok: true } | { ok: false; error: string }>;
   claudeLoginCancel(): Promise<void>;

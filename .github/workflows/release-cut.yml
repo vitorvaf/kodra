@@ -1,0 +1,45 @@
+name: release-cut
+
+# Cuts a release: bumps packages/desktop version, commits and pushes tag v*.
+# The tag then triggers release-build.yml (multi-platform build + publish).
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-cut
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bump version, commit and tag
+        id: version
+        working-directory: packages/desktop
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          TAG=$(npm version "${{ inputs.bump }}" -m "chore(release): v%s")
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Push commit and tag
+        run: git push --follow-tags origin "${{ github.ref_name }}"

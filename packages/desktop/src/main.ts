@@ -164,7 +164,7 @@ import {
   createSubscriptionRegistry,
   type OwnedSubscriptionRegistry,
 } from './ipc/subscriptions.js';
-import { DEVICE_CHAT_CHANNELS, registerHandlers } from './ipc/register.js';
+import { CHANNEL_PREFIX, DEVICE_CHAT_CHANNELS, registerHandlers } from './ipc/register.js';
 import {
   closeProvidersStoreForShutdown,
   registerProvidersIpc,
@@ -192,6 +192,15 @@ import type {
 } from './types.js';
 import type { AgentRun, AgentRunStatus } from '@kanbots/local-store';
 import { agentMemoryMcpEntry, withAgentMemory } from './memory/mcp-composition.js';
+import {
+  checkForUpdates,
+  getUpdaterState,
+  initUpdater,
+  installUpdate,
+  UPDATER_CHECK_CHANNEL,
+  UPDATER_GET_STATE_CHANNEL,
+  UPDATER_INSTALL_CHANNEL,
+} from './updater.js';
 
 interface ActiveWorkspace {
   repoPath: string;
@@ -1278,6 +1287,17 @@ function registerIpc(): void {
     });
   }) as typeof ipcMain.handle;
 
+  // Auto-updater is app-scoped and must remain available without a cloud
+  // session. Its state getter is synchronous so the renderer can hydrate
+  // immediately before subscribing to updater:changed.
+  ipcMain.handle(`${CHANNEL_PREFIX}${UPDATER_GET_STATE_CHANNEL}`, () => getUpdaterState());
+  ipcMain.handle(`${CHANNEL_PREFIX}${UPDATER_CHECK_CHANNEL}`, (): void => {
+    void checkForUpdates();
+  });
+  ipcMain.handle(`${CHANNEL_PREFIX}${UPDATER_INSTALL_CHANNEL}`, (): void => {
+    installUpdate();
+  });
+
   // Provider config (Claude Code / Codex CLI defaults) is per-user, so its
   // handlers live at app scope, not workspace scope — survives cloud and
   // local workspace transitions. Wrapped by the cloud-auth gate above.
@@ -2352,6 +2372,7 @@ function tomlString(s: string): string {
 void app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
   registerIpc();
+  initUpdater(() => mainWindow);
   await createWindow();
 
   app.on('activate', async () => {

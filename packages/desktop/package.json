@@ -28,6 +28,7 @@
     "@octokit/plugin-paginate-rest": "^11.6.0",
     "@octokit/request-error": "^6.1.8",
     "better-sqlite3": "^12.4.1",
+    "electron-updater": "^6.8.9",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -43,7 +44,7 @@
     "concurrently": "^9.1.2",
     "dotenv-cli": "^8.0.0",
     "electron": "^33.2.1",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.15.3",
     "electronmon": "^2.0.4",
     "tsup": "^8.3.5",
     "typescript": "^5.7.3",
@@ -77,8 +78,8 @@
     "publish": {
       "provider": "github",
       "owner": "vitorvaf",
-      "repo": "kanbots",
-      "releaseType": "draft"
+      "repo": "kodra",
+      "releaseType": "release"
     },
     "linux": {
       "target": [
@@ -110,9 +111,6 @@
       "identity": null,
       "hardenedRuntime": false,
       "gatekeeperAssess": false
-    },
-    "dmg": {
-      "writeUpdateInfo": false
     },
     "win": {
       "target": [

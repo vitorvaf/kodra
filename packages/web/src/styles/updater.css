@@ -1,0 +1,225 @@
+/* =========================================================================
+   Kodra — auto-updater notices (bottom-right corner chrome)
+   Mirrors the decision tray's card anatomy (tray.css) at a smaller scale:
+   bg-1 card, hairline border, 12px radius, shadow-pop, mono micro-type.
+   State semantics per tokens.css: mint (--running) marks the completed
+   background work; the downloading pill stays neutral ink on purpose —
+   it whispers, the toast speaks.
+   ========================================================================= */
+
+.kb-updater {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 45; /* above tray (40), below tweaks (60) — corner-chrome stack */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none; /* container never blocks; children opt back in */
+}
+.kb-updater > * {
+  pointer-events: auto;
+}
+
+/* -- downloading pill ------------------------------------------------- */
+
+.kb-upd-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-2);
+  color: var(--ink-3);
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  animation: kb-upd-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.kb-upd-track {
+  position: relative;
+  width: 56px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.kb-upd-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--ink-3);
+  transition: width 200ms ease-out;
+}
+.kb-upd-pill.is-indeterminate .kb-upd-fill {
+  width: 100%;
+  background: linear-gradient(90deg, transparent, var(--ink-3), transparent);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: kb-upd-sweep 1.1s ease-in-out infinite alternate;
+  transition: none;
+}
+
+/* -- downloaded toast --------------------------------------------------- */
+
+.kb-upd-toast {
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: var(--bg-1);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+  animation: kb-upd-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.kb-upd-toast.is-closing {
+  animation: kb-upd-out 170ms ease-in forwards;
+}
+
+.kb-upd-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--hairline-soft);
+  /* Same tinted head strip as the tray, re-hued to the updater's
+     mint semantic (tray.css uses oklch amber for awaiting). */
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--running) 10%, transparent),
+    transparent
+  );
+}
+.kb-upd-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--running);
+  flex-shrink: 0;
+}
+.kb-upd-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.kb-upd-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 14px;
+  line-height: 1;
+}
+.kb-upd-close:hover {
+  color: var(--ink);
+}
+
+.kb-upd-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.kb-upd-line {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.kb-upd-ver {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  color: var(--ink-1);
+  background: var(--bg-2);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 5px;
+  padding: 1px 6px;
+  align-self: center;
+}
+
+/* Compact sibling of the cloud modal's .kb-cloud-cta (cloud-auth.css):
+   same accent gradient + accent-ink pairing, scaled to toast size. */
+.kb-upd-install {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-line);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--accent) 88%, transparent),
+    var(--accent)
+  );
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--ff-sans);
+  cursor: pointer;
+  transition: filter 120ms ease;
+}
+.kb-upd-install:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.kb-upd-install:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+.kb-upd-install:disabled {
+  filter: saturate(0.7) brightness(0.85);
+  cursor: not-allowed;
+}
+
+/* Keyboard — same focus treatment as .kb-tray-jump */
+.kb-upd-install:focus-visible,
+.kb-upd-close:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* -- motion ------------------------------------------------------------- */
+
+@keyframes kb-upd-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes kb-upd-out {
+  to {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes kb-upd-sweep {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
+}
+
+/* prefers-reduced-motion is handled globally in tokens.css. */

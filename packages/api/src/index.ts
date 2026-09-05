@@ -77,7 +77,14 @@ export {
   type SubscriptionRegistry,
 } from './handlers/index.js';
 export { hasProviderCredentials, resolveProviderWithCreds } from './handlers/provider-credentials.js';
-export { CHECKS_CHANGED_CHANNEL, DECISIONS_CHANGED_CHANNEL } from './bridge.js';
+export {
+  CHECKS_CHANGED_CHANNEL,
+  DECISIONS_CHANGED_CHANNEL,
+  UPDATER_CHANGED_CHANNEL,
+  UPDATER_GET_STATE_CHANNEL,
+  UPDATER_CHECK_CHANNEL,
+  UPDATER_INSTALL_CHANNEL,
+} from './bridge.js';
 export { notifyChecksChanged, subscribeChecksChanged } from './checks-changed.js';
 export type {
   AgentCheck,
@@ -191,6 +198,8 @@ export type {
   ThreadPayload,
   ThreadRunSummary,
   UpdateIssuePatch,
+  UpdaterState,
+  UpdaterStatus,
   UploadAttachmentResult,
   Workspace,
   WorkspaceAcpCommandBridgePayload,

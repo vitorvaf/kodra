@@ -1,23 +1,32 @@
 # Getting started with Kodra OSS Desktop
 
-> This is the **OSS desktop edition** — local-first, runs entirely on
-> your machine, no account required. Packaged Kodra fork builds are not yet
-> available; run from source as described below.
+> This is the **OSS desktop edition** — local-first, runs entirely on your
+> machine, no account required.
 
-This walks you through building the desktop app from source, getting an
-agent CLI installed, opening your first workspace, and
-dispatching an agent run.
+This walks you through installing the desktop app, getting an agent CLI
+set up, opening your first workspace, and dispatching an agent run.
 
 ## 1. Install
 
-Packaged fork builds are planned for the
-[Kodra fork releases page](https://github.com/vitorvaf/kanbots/releases).
-Until they are available, [build Kodra from source](#build-from-source-any-platform).
-When they become available, the artifact names will be:
+Packaged builds live on the
+[Kodra releases page](https://github.com/vitorvaf/kodra/releases).
+
+**Linux / WSL — one line:**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/vitorvaf/kodra/main/scripts/install-linux.sh | bash
+```
+
+Installs the latest AppImage to `~/.local/share/kodra/` and exposes it as
+`kodra` on `~/.local/bin`. In WSL the UI requires WSLg (built into
+Windows 11 and updated Windows 10); on fresh systems without `libfuse2`
+the installer uses an extract-and-run wrapper automatically.
+
+Artifact names, if you prefer to download manually:
 
 | Platform | Artifact | Notes |
 | --- | --- | --- |
-| Linux x64 | `kodra-<version>-linux-x64.AppImage` | `chmod +x` and run, or wire into your launcher. |
+| Linux x64 | `kodra-<version>-linux-x64.AppImage` | `chmod +x` and run, or use the installer above. |
 | Linux x64 | `kodra-<version>-linux-x64.tar.xz` | Extract anywhere, run `./kodra`. |
 | macOS Apple Silicon | `kodra-<version>-mac-arm64.dmg` | Drag to `/Applications`. See [unsigned-builds](#unsigned-builds). |
 | macOS Intel | `kodra-<version>-mac-x64.dmg` | Drag to `/Applications`. See [unsigned-builds](#unsigned-builds). |
@@ -27,7 +36,7 @@ The releasing pipeline lives in
 [docs/releasing.md](releasing.md); to run from source instead, see
 [build-from-source](#build-from-source-macos--windows) below.
 
-### Unsigned builds (planned)
+### Unsigned builds
 
 Future Kodra binaries are not yet expected to be code-signed (Apple Developer ID and
 Windows EV certs are paid; we'll add them when revenue covers it).

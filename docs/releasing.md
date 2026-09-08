@@ -2,29 +2,29 @@
 
 The desktop app ships as binary downloads on the
 [Kodra releases page](https://github.com/vitorvaf/kodra/releases).
-Builds are produced by two workflows: [`release-cut.yml`](../.github/workflows/release-cut.yml)
-(bumps `packages/desktop` version, commits, pushes tag `v*`) and
-[`release-build.yml`](../.github/workflows/release-build.yml)
-(three-OS matrix build triggered by the tag). Releases are published
+Builds are produced by the [`release.yml`](../.github/workflows/release.yml)
+workflow: a dispatch cuts a version (bump + commit + tag `v*`), then a
+three-OS build matrix runs directly off the tag and publishes the
+release. Manually pushed `v*` tags build too. Releases are published
 immediately — **not** drafts — because electron-updater only sees
 published releases.
 
+> Why one workflow: tag pushes made with the runner's `GITHUB_TOKEN` do
+> not trigger other workflows (GitHub anti-recursion rule), so a separate
+> tag-triggered build workflow never fires for CI-cut releases.
+
 ## Cutting a release
 
-Preferred: run **release-cut** from the Actions tab (choose
+Preferred: run **release** from the Actions tab (choose
 `patch` / `minor` / `major`). It bumps `packages/desktop/package.json`,
-commits `chore(release): v<version>`, tags `v<version>`, and pushes.
+commits `chore(release): v<version>`, tags, pushes, then builds all
+platforms and publishes the release.
 
-Manual alternative (same result):
+Manual alternative: push a `v*` tag yourself (from a real checkout,
+`npm version patch` + `git push --follow-tags origin main` in
+`packages/desktop` works) — the build matrix runs off the tag directly.
 
-```sh
-cd packages/desktop
-npm version patch -m "chore(release): v%s"
-cd ../..
-git push --follow-tags origin main
-```
-
-The tag then triggers `release-build.yml`, which:
+Each build runner:
 
 1. Boots `ubuntu-latest`, `macos-latest`, and `windows-latest` runners in
    parallel.

@@ -1,155 +1,113 @@
-name: Release Kodra desktop
+name: release
 
-# Triggers a multi-OS Kodra desktop build and uploads artifacts to a GitHub
-# Release. Builds run in parallel on three OS runners; once all succeed,
-# a single publish job collects every artifact and creates one draft
-# release. The draft is left unpublished so a human can review the
-# artifact list, fill in the changelog, and click Publish.
-#
-# Trigger:
-#   * Push a tag matching `v*` (e.g. `v0.1.0`).
-#   * Or run manually from the Actions tab via workflow_dispatch.
-#
-# What ships per platform:
-#   linux   → kodra-<v>-linux-x64.AppImage, kodra-<v>-linux-x64.tar.xz
-#   macos   → kodra-<v>-mac-arm64.dmg/zip, kodra-<v>-mac-x64.dmg/zip
-#   windows → kodra-<v>-win-x64.exe (nsis installer)
-#
-# Builds are unsigned for now. macOS users will need to right-click → Open
-# the first time; Windows users will see SmartScreen and click "More info →
-# Run anyway". See docs/releasing.md.
-
+# Single release pipeline: dispatch cuts a version (bump + tag), then the
+# build matrix runs directly off the new tag. Manual `v*` tag pushes also
+# build. Kept as ONE workflow because tag pushes made with GITHUB_TOKEN do
+# not trigger other workflows (GitHub anti-recursion rule), so a separate
+# tag-triggered build workflow would never fire for CI-cut releases.
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
-      version:
-        description: "Version to build (without leading v, e.g. 0.1.0)"
+      bump:
+        description: 'Version bump type'
         required: true
-        type: string
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+  push:
+    tags: ['v*']
 
 permissions:
   contents: write
 
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  bump:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bump version, commit and tag
+        id: version
+        working-directory: packages/desktop
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Explicit bump/commit/tag — npm version's built-in git flow is
+          # unreliable here (workspace + detached checkout: exits 0 while
+          # creating neither commit nor tag).
+          npm version "${{ inputs.bump }}" --no-git-tag-version
+          VERSION="v$(node -p "require('./package.json').version")"
+          git add package.json
+          git commit -m "chore(release): $VERSION"
+          git tag -a "$VERSION" -m "$VERSION"
+          echo "tag=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # checkout@v4 leaves HEAD detached: push HEAD and the tag explicitly.
+      - name: Push commit and tag
+        run: |
+          git push origin HEAD:refs/heads/"${{ github.ref_name }}"
+          git push origin "refs/tags/${{ steps.version.outputs.tag }}"
+
   build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    needs: bump
+    # Dispatch path: bump succeeded, build its tag. Manual tag push path:
+    # bump was skipped, build github.ref directly.
+    if: always() && (needs.bump.result == 'success' || needs.bump.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: macos-latest
+            targets: --mac
+          - os: windows-latest
+            targets: --win
+          - os: ubuntu-latest
+            targets: --linux
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Resolve target version
-        id: version
-        shell: bash
-        run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
-            echo "tag=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
-          else
-            tag="${GITHUB_REF_NAME}"
-            echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-            echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup pnpm
-        # Version is taken from the root package.json `packageManager` field.
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
         with:
-          node-version: 20
-          cache: pnpm
+          ref: ${{ needs.bump.outputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm via corepack (pinned by packageManager field)
+        run: corepack enable
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Bump desktop package version (no commit)
-        shell: bash
-        run: |
-          cd packages/desktop
-          npm version --no-git-tag-version --allow-same-version "${{ steps.version.outputs.version }}"
+      - name: Build desktop bundle
+        run: pnpm --filter @kanbots/desktop run build
 
-      - name: Build (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: pnpm --filter @kanbots/desktop run release:linux
-
-      - name: Build (macOS)
-        if: matrix.os == 'macos-latest'
+      - name: Package and publish release
         env:
-          # Skip notarization (unsigned builds).
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: pnpm --filter @kanbots/desktop run release:mac
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm --filter @kanbots/desktop exec electron-builder ${{ matrix.targets }} --publish always
 
-      - name: Build (Windows)
-        if: matrix.os == 'windows-latest'
-        run: pnpm --filter @kanbots/desktop run release:win
-
-      - name: Upload build artifacts
+      - name: Upload packaging output on failure
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-${{ matrix.os }}
-          path: |
-            packages/desktop/release/*.AppImage
-            packages/desktop/release/*.tar.xz
-            packages/desktop/release/*.dmg
-            packages/desktop/release/*.zip
-            packages/desktop/release/*.exe
-            packages/desktop/release/*.blockmap
-            packages/desktop/release/latest*.yml
-          if-no-files-found: error
-          retention-days: 7
-
-  publish:
-    name: Publish draft release
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Resolve target version
-        id: version
-        shell: bash
-        run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
-            echo "tag=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
-          else
-            tag="${GITHUB_REF_NAME}"
-            echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-            echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Download every platform's build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          merge-multiple: true
-
-      - name: List collected artifacts
-        run: ls -la artifacts/
-
-      - name: Create or update draft release
-        # Publishes to this (public) source repo using the built-in
-        # GITHUB_TOKEN. `permissions: contents: write` is set at the top.
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: ${{ steps.version.outputs.version }}
-          draft: true
-          prerelease: false
-          fail_on_unmatched_files: true
-          generate_release_notes: false
-          files: |
-            artifacts/*.AppImage
-            artifacts/*.tar.xz
-            artifacts/*.dmg
-            artifacts/*.zip
-            artifacts/*.exe
-            artifacts/*.blockmap
-            artifacts/latest*.yml
+          name: release-output-${{ matrix.os }}
+          path: packages/desktop/release/
+          retention-days: 14
+          if-no-files-found: ignore

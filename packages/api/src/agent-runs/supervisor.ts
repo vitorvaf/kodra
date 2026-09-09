@@ -61,6 +61,14 @@ const DEFAULT_DECISION_PROMPT = `When you need a decision from the user before c
 
 After emitting the block, end your turn (do not continue working). The user will pick an option and you will resume with their choice provided as the next user message.`;
 
+/**
+ * Language policy layered into every composed system prompt (see
+ * composeSystemPrompt): user-facing communication is always Brazilian
+ * Portuguese, while code artifacts keep English to match repo conventions.
+ */
+const LANGUAGE_DIRECTIVE =
+  'Always write your user-facing responses (chat messages, findings, proposals, decision questions) in Brazilian Portuguese (pt-BR), regardless of the language the user writes in. Keep code, identifiers, commit messages, and other technical artifacts in English.';
+
 export type ContainmentMode = 'off' | 'warn' | 'pause';
 
 export interface CreateSupervisorOptions {
@@ -701,6 +709,7 @@ export async function createSupervisor(
     if (houseRules) {
       parts.push(`WORKSPACE_RULES — apply to every turn:\n${houseRules}`);
     }
+    parts.push(LANGUAGE_DIRECTIVE);
     parts.push(decisionInstructions);
     if (learnings) parts.push(learnings);
     if (briefing) parts.push(briefing);

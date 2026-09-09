@@ -303,6 +303,31 @@ describe('supervisor.start one-run-per-thread guard', () => {
     await handle.done;
   });
 
+  it('layers the Brazilian Portuguese language directive into every spawned system prompt', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+
+    await supervisor.start({ threadId, issueNumber: 7, prompt: 'fix the flaky test' });
+
+    expect(startCalls).toHaveLength(1);
+    expect(startCalls[0]!.appendSystemPrompt).toContain('Brazilian Portuguese (pt-BR)');
+    expect(startCalls[0]!.appendSystemPrompt).toContain('commit messages, and other technical artifacts in English');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
+
+  it('keeps the language directive alongside a /spec mode translation', async () => {
+    const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
+
+    await supervisor.start({ threadId, issueNumber: 7, prompt: '/spec add a login page' });
+
+    expect(startCalls[0]!.appendSystemPrompt).toContain('/spec mode for a Kodra task');
+    expect(startCalls[0]!.appendSystemPrompt).toContain('Brazilian Portuguese (pt-BR)');
+
+    handle.emitClose({ exitCode: 0 });
+    await handle.done;
+  });
+
   it('translates a leading /spec command into a clean prompt plus spec-mode system instructions', async () => {
     const { supervisor, startCalls, handle } = await buildSupervisorWithFakes(store);
 

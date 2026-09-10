@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { basename, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { monitorEventLoopDelay } from 'node:perf_hooks';
 import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron';
 import {
   createAgentMemoryClient,
@@ -234,6 +235,24 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason) => {
   console.error('[main] unhandledRejection:', reason);
 });
+
+let stopPerfSampler = (): void => {};
+function startPerfSampler(): void {
+  if (process.env.KODRA_PERF !== '1') return;
+  const histogram = monitorEventLoopDelay({ resolution: 20 });
+  histogram.enable();
+  const timer = setInterval(() => {
+    console.log(
+      `[kodra-perf] mean=${(histogram.mean / 1e6).toFixed(2)}ms ` +
+        `p99.5=${(histogram.percentile(99.5) / 1e6).toFixed(2)}ms events=${histogram.count}`,
+    );
+    histogram.reset();
+  }, 10_000);
+  stopPerfSampler = () => {
+    clearInterval(timer);
+    histogram.disable();
+  };
+}
 
 /**
  * Packaged builds pin the app name to the historical "kanbots" so userData
@@ -2370,6 +2389,7 @@ function tomlString(s: string): string {
 }
 
 void app.whenReady().then(async () => {
+  startPerfSampler();
   Menu.setApplicationMenu(null);
   registerIpc();
   initUpdater(() => mainWindow);
@@ -2394,6 +2414,7 @@ app.on('window-all-closed', async () => {
 });
 
 app.on('before-quit', async () => {
+  stopPerfSampler();
   closeAllChatWindows();
   await closeActiveWorkspace();
   closeProvidersStoreForShutdown();

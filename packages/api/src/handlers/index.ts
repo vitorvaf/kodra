@@ -59,7 +59,13 @@ export type { RunCheckImpl } from './agent-checks.js';
 export type { StartPreviewImpl } from './agent-preview.js';
 
 export type Handlers = {
-  [C in Exclude<ChannelName, 'updater:get-state' | 'updater:check' | 'updater:install'>]: (
+  [C in Exclude<
+    ChannelName,
+    | 'updater:get-state'
+    | 'updater:check'
+    | 'updater:install'
+    | 'agent-runs:events:ready'
+  >]: (
     args: ChannelArgs<C>,
   ) => Promise<ChannelResult<C>>;
 };

@@ -5,8 +5,8 @@ import type { RunLiveMap } from './useBoardAgentStreams.js';
 /**
  * Cloud counterpart of useBoardAgentStreams. Subscribes to one SSE
  * stream per running cloud card and exposes currentTool / currentArg /
- * eventCount per local-side run key (`activeRun.id`, which the cloud
- * adapter sets to the card number). Returns the same `RunLiveMap` shape
+ * currentTool / currentArg per local-side run key (`activeRun.id`, which the
+ * cloud adapter sets to the card number). Returns the same `RunLiveMap` shape
  * so Column can merge cloud + local maps with a plain `new Map([...a,
  * ...b])` and call sites don't change.
  */
@@ -121,26 +121,21 @@ export function useCloudBoardStreams(
       const ev = msg.event;
       if (!ev) return;
       if (ev.event === 'connected' || ev.event === 'closed' || ev.event === 'error') return;
+      if (ev.event !== 'tool_use') return;
       setMap((prev) => {
         const cur = prev.get(key) ?? {
           currentTool: null,
           currentArg: null,
           pendingDecision: null,
-          eventCount: 0,
         };
         const next = new Map(prev);
-        if (ev.event === 'tool_use') {
-          const data = (ev.data ?? {}) as { payload?: unknown };
-          const payload = (data.payload ?? {}) as { name?: unknown; input?: unknown };
-          next.set(key, {
-            ...cur,
-            currentTool: typeof payload.name === 'string' ? payload.name : cur.currentTool,
-            currentArg: summarize(payload.input),
-            eventCount: cur.eventCount + 1,
-          });
-        } else {
-          next.set(key, { ...cur, eventCount: cur.eventCount + 1 });
-        }
+        const data = (ev.data ?? {}) as { payload?: unknown };
+        const payload = (data.payload ?? {}) as { name?: unknown; input?: unknown };
+        next.set(key, {
+          ...cur,
+          currentTool: typeof payload.name === 'string' ? payload.name : cur.currentTool,
+          currentArg: summarize(payload.input),
+        });
         return next;
       });
     });

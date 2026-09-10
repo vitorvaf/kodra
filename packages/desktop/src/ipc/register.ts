@@ -6,6 +6,7 @@ import type { Handlers } from '@kanbots/api';
 export const CHANNEL_PREFIX = 'kanbots:invoke:';
 const SUBSCRIBE_CHANNEL = 'agent-runs:events:subscribe';
 const UNSUBSCRIBE_CHANNEL = 'agent-runs:events:unsubscribe';
+const READY_CHANNEL = 'agent-runs:events:ready';
 
 /**
  * Chat channels owned by the per-device chat store (userData/
@@ -36,6 +37,10 @@ interface SubscribeArgs {
 }
 
 interface UnsubscribeArgs {
+  subscriptionId: string;
+}
+
+interface ReadyArgs {
   subscriptionId: string;
 }
 
@@ -115,6 +120,16 @@ export function registerHandlers(
     }),
   );
   registered.push(UNSUBSCRIBE_CHANNEL);
+
+  ipcMain.handle(
+    `${CHANNEL_PREFIX}${READY_CHANNEL}`,
+    wrapHandler((_event, args) => {
+      const a = args as ReadyArgs;
+      registry.ready(a.subscriptionId);
+      return undefined;
+    }),
+  );
+  registered.push(READY_CHANNEL);
 
   return () => {
     for (const channel of registered) {

@@ -12,6 +12,7 @@ interface ToolUseCardProps {
   toolUse: AgentEvent;
   result: AgentEvent | null;
   isLive: boolean;
+  now?: number;
 }
 
 interface ToolUsePayload {

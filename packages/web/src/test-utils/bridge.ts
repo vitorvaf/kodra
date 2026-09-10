@@ -36,7 +36,10 @@ interface InstallOptions {
  * listeners via `bridge.push('agent-runs:events:data', payload)`.
  */
 export function installFakeBridge(opts: InstallOptions = {}): FakeBridge {
-  const handlers: Handlers = opts.handlers ?? {};
+  const handlers: Handlers = {
+    'agent-runs:events:ready': () => Promise.resolve(),
+    ...opts.handlers,
+  };
   const listeners = new Map<string, Set<(payload: unknown) => void>>();
 
   const lifecycleDefaults: Pick<

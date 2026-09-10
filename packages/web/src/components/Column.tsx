@@ -1,9 +1,26 @@
 import { useDroppable } from '@dnd-kit/core';
 import type { IssueRef } from '@kanbots/core';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Issue, StatusKey } from '../types.js';
-import { Card, type CardSelectModifiers } from './Card.js';
+import { Card, type CardProps, type CardSelectModifiers } from './Card.js';
 import type { RunLiveMap } from '../hooks/useBoardAgentStreams.js';
+
+const NOOP_SELECT = (): void => undefined;
+const NOOP_OPEN = (): void => undefined;
+
+type LiveState = { currentTool: string | null; currentArg: string | null };
+const cardLiveToolCache = new WeakMap<object, NonNullable<CardProps['liveTool']>>();
+
+function cardLiveTool(
+  live: LiveState | undefined,
+): NonNullable<CardProps['liveTool']> | null {
+  if (!live?.currentTool) return null;
+  const cached = cardLiveToolCache.get(live);
+  if (cached) return cached;
+  const next = { name: live.currentTool, arg: live.currentArg };
+  cardLiveToolCache.set(live, next);
+  return next;
+}
 
 export function columnDropId(key: StatusKey | null): string {
   return `col:${key ?? 'inbox'}`;
@@ -76,6 +93,14 @@ export function Column({
   suggestingStartedAt = null,
 }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: columnDropId(columnKey) });
+  const selectedKeys = useMemo(() => {
+    if (multiSelected === undefined) return undefined;
+    const keys = new Set<string>();
+    for (const n of multiSelected) keys.add(String(n));
+    return keys;
+  }, [multiSelected]);
+  const selectCard = onSelect ?? NOOP_SELECT;
+  const openCard = onOpen ?? NOOP_OPEN;
   return (
     <div ref={setNodeRef} className="kb-col" data-over={isOver ? 'true' : undefined}>
       <div className="kb-col-head" data-status={status}>
@@ -119,25 +144,18 @@ export function Column({
           <div className="kb-col-empty">—</div>
         ) : (
           issues.map((issue) => {
-            const live =
-              issue.activeRun && liveByRun?.get(issue.activeRun.id)?.currentTool
-                ? {
-                    name: liveByRun.get(issue.activeRun.id)!.currentTool!,
-                    arg: liveByRun.get(issue.activeRun.id)?.currentArg ?? null,
-                  }
-                : null;
+            const liveState = issue.activeRun
+              ? liveByRun?.get(issue.activeRun.id)
+              : undefined;
             return (
               <Card
                 key={String(issue.number)}
                 issue={issue}
                 selected={selectedNumber !== null && String(selectedNumber) === String(issue.number)}
-                multiSelected={
-                  multiSelected !== undefined &&
-                  [...multiSelected].some((n) => String(n) === String(issue.number))
-                }
-                liveTool={live}
-                onSelect={onSelect ?? (() => undefined)}
-                onOpen={onOpen ?? (() => undefined)}
+                multiSelected={selectedKeys?.has(String(issue.number)) ?? false}
+                liveTool={cardLiveTool(liveState)}
+                onSelect={selectCard}
+                onOpen={openCard}
               />
             );
           })

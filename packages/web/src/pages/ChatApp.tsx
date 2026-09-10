@@ -1,4 +1,5 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -26,6 +27,9 @@ import type {
   DecisionPayload,
   Message,
 } from '../types.js';
+
+const MemoizedToolUseCard = memo(ToolUseCard);
+const EMPTY_CARD_LIST: Card[] = [];
 
 const STATUS_LABEL: Record<AgentRunStatus, string> = {
   starting: 'STARTING',
@@ -145,6 +149,12 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
   // the same run id, so without this bump we'd miss the resumed run's
   // events.
   const [streamGen, setStreamGen] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const refresh = useCallback(async (): Promise<void> => {
     try {
@@ -256,6 +266,7 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
     return Array.from(byId.values());
   }, [historyCards, stream.cards]);
 
+  const cardArrayCacheRef = useRef(new Map<number, Card[]>());
   const cardsByMessageId = useMemo(() => {
     const map = new Map<number, Card[]>();
     for (const c of mergedCards) {
@@ -263,6 +274,18 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
       arr.push(c);
       map.set(c.messageId, arr);
     }
+    const nextCache = new Map<number, Card[]>();
+    for (const [messageId, cards] of map) {
+      const previous = cardArrayCacheRef.current.get(messageId);
+      const unchanged =
+        previous &&
+        previous.length === cards.length &&
+        previous.every((card, index) => card === cards[index]);
+      const stableCards = unchanged ? previous : cards;
+      nextCache.set(messageId, stableCards);
+      map.set(messageId, stableCards);
+    }
+    cardArrayCacheRef.current = nextCache;
     return map;
   }, [mergedCards]);
 
@@ -290,15 +313,38 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
     return ids;
   }, [sessionActiveRun, sessionLatestRun]);
 
+  const itemCacheRef = useRef(new Map<string, Item>());
   const items: Item[] = useMemo(() => {
     const all: Item[] = [];
+    const nextCache = new Map<string, Item>();
+    const reuseItem = (candidate: Item): void => {
+      const previous = itemCacheRef.current.get(candidate.id);
+      const unchanged =
+        previous &&
+        previous.kind === candidate.kind &&
+        ((candidate.kind === 'message' &&
+          previous.kind === 'message' &&
+          previous.message === candidate.message &&
+          previous.cards === candidate.cards) ||
+          (candidate.kind === 'event' &&
+            previous.kind === 'event' &&
+            previous.event === candidate.event));
+      if (unchanged) {
+        nextCache.set(candidate.id, previous);
+        all.push(previous);
+      } else {
+        nextCache.set(candidate.id, candidate);
+        all.push(candidate);
+      }
+    };
+
     for (const m of sessionMessages) {
-      all.push({
+      reuseItem({
         kind: 'message',
         sortKey: m.createdAt,
         id: `m${m.id}`,
         message: m,
-        cards: cardsByMessageId.get(m.id) ?? [],
+        cards: cardsByMessageId.get(m.id) ?? EMPTY_CARD_LIST,
       });
     }
     for (const e of mergedEvents) {
@@ -317,14 +363,19 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
       // sessions live in the same persisted blob (we fetch by thread)
       // but logically belong to their own transcript.
       if (sessionRunIds.size > 0 && !sessionRunIds.has(e.agentRunId)) continue;
-      all.push({ kind: 'event', sortKey: e.createdAt, id: `e${e.id}`, event: e });
+      reuseItem({ kind: 'event', sortKey: e.createdAt, id: `e${e.id}`, event: e });
     }
+    itemCacheRef.current = nextCache;
     all.sort((a, b) => {
       if (a.sortKey === b.sortKey) return a.id.localeCompare(b.id);
       return a.sortKey < b.sortKey ? -1 : 1;
     });
     return all;
   }, [sessionMessages, mergedEvents, cardsByMessageId, sessionRunIds]);
+
+  const onMessageResolved = useCallback((): void => {
+    void refresh();
+  }, [refresh]);
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const stickyRef = useRef(true);
@@ -399,20 +450,28 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
         ) : null}
         {items.map((it) =>
           it.kind === 'message' ? (
-            <MessageRow key={it.id} message={it.message} cards={it.cards} agentLabel={agentLabel} onResolved={() => void refresh()} />
+            <MessageRow
+              key={it.id}
+              message={it.message}
+              cards={it.cards}
+              agentLabel={agentLabel}
+              onResolved={onMessageResolved}
+              now={now}
+            />
           ) : it.event.type === 'tool_use' ? (
             <div key={it.id} className="kb-chat-toolwrap">
               <span className="kb-chat-toolwrap-rail" aria-hidden />
               <div className="kb-chat-toolwrap-body">
-                <ToolUseCard
+                <MemoizedToolUseCard
                   toolUse={it.event}
                   result={resultByToolUseId.get(toolUseIdOf(it.event)) ?? null}
                   isLive={isLive}
+                  now={now}
                 />
               </div>
             </div>
           ) : (
-            <EventRow key={it.id} event={it.event} agentLabel={agentLabel} />
+            <EventRow key={it.id} event={it.event} agentLabel={agentLabel} now={now} />
           ),
         )}
         {isLive && displayRun ? (
@@ -674,7 +733,7 @@ function ReplyFooter({
   );
 }
 
-function MessageRow({
+const MessageRow = memo(function MessageRow({
   message,
   cards,
   agentLabel,
@@ -686,6 +745,7 @@ function MessageRow({
    *  back to the provider id, then "agent" for legacy runs. */
   agentLabel: string;
   onResolved: () => void;
+  now: number;
 }) {
   if (message.role === 'system') {
     return (
@@ -723,7 +783,7 @@ function MessageRow({
       )}
     </div>
   );
-}
+});
 
 function DecisionInline({
   card,
@@ -799,7 +859,14 @@ function DecisionInline({
   );
 }
 
-function EventRow({ event, agentLabel }: { event: AgentEvent; agentLabel: string }) {
+const EventRow = memo(function EventRow({
+  event,
+  agentLabel,
+}: {
+  event: AgentEvent;
+  agentLabel: string;
+  now: number;
+}) {
   if (event.type === 'text') {
     const text = (event.payload as { text?: string }).text ?? '';
     return (
@@ -825,7 +892,7 @@ function EventRow({ event, agentLabel }: { event: AgentEvent; agentLabel: string
     );
   }
   return null;
-}
+});
 
 function toolUseIdOf(ev: AgentEvent): string {
   const id = (ev.payload as { toolUseId?: unknown }).toolUseId;

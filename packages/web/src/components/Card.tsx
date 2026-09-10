@@ -640,10 +640,25 @@ export const Card = memo(CardImpl, (prev, next) => {
       ra.progress !== rb.progress ||
       ra.previewUrl !== rb.previewUrl ||
       ra.previewState !== rb.previewState ||
-      (ra.pendingDecision?.cardId ?? null) !== (rb.pendingDecision?.cardId ?? null) ||
       ra.checks?.tests !== rb.checks?.tests ||
       ra.checks?.typecheck !== rb.checks?.typecheck ||
       ra.checks?.lint !== rb.checks?.lint
+    ) {
+      return false;
+    }
+    const da = ra.pendingDecision ?? null;
+    const db = rb.pendingDecision ?? null;
+    if (
+      (da?.cardId ?? null) !== (db?.cardId ?? null) ||
+      (da?.question ?? null) !== (db?.question ?? null) ||
+      da?.options.length !== db?.options.length ||
+      (da !== null &&
+        db !== null &&
+        da.options.some(
+          (option, index) =>
+            option.value !== db.options[index]?.value ||
+            option.label !== db.options[index]?.label,
+        ))
     ) {
       return false;
     }

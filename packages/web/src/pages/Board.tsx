@@ -9,7 +9,14 @@ import {
   type UniqueIdentifier,
 } from '@dnd-kit/core';
 import { isValidCustomIssueId, parseIssueRef, type IssueRef } from '@kanbots/core';
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import { api } from '../api.js';
 import { AutopilotLaunchModal } from '../components/modals/AutopilotLaunchModal.js';
 import { BoardViewsModal } from '../components/modals/BoardViewsModal.js';
@@ -61,6 +68,7 @@ function sortIssues(issues: Issue[], mode: SortMode): Issue[] {
 }
 
 const STATUS_KEYS: readonly StatusKey[] = ['backlog', 'todo', 'inProgress', 'review', 'done'];
+const NO_COLUMN_SUGGESTION_PROPS = {};
 
 function issueNumberFromDragId(id: UniqueIdentifier): IssueRef | null {
   if (typeof id !== 'string' || !id.startsWith('card:')) return null;
@@ -175,6 +183,8 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
   const [personaPickerOpen, setPersonaPickerOpen] = useState(false);
   const [autopilotLaunchOpen, setAutopilotLaunchOpen] = useState(false);
   const [selectedNumber, setSelectedNumber] = useSelection();
+  const setSelectedNumberRef = useRef(setSelectedNumber);
+  setSelectedNumberRef.current = setSelectedNumber;
   const [bulkBusy, setBulkBusy] = useState(false);
   const [manageViewsOpen, setManageViewsOpen] = useState(false);
   const cardSelection = useCardSelection();
@@ -300,6 +310,52 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
     return null;
   }, [viewsApi.views, currentViewState]);
 
+  const openPersonaPicker = useCallback((): void => {
+    if (suggesting) return;
+    setPersonaPickerOpen(true);
+  }, [suggesting]);
+
+  const handleCardSelect = useCallback(
+    (n: IssueRef, modifiers: CardSelectModifiers): void => {
+      if (modifiers.shiftKey) {
+        cardSelection.selectRange(cardSelection.anchor, n, orderedNumbers);
+        return;
+      }
+      if (modifiers.metaOrCtrlKey) {
+        cardSelection.toggle(n);
+        return;
+      }
+      // Plain click — focus the card and clear any multi-select. The
+      // selection ring (single) lives on the route hash; the multi-select
+      // ring lives in the ephemeral hook state.
+      if (cardSelection.selected.size > 0) cardSelection.clear();
+      setSelectedNumberRef.current(n);
+    },
+    [
+      cardSelection.anchor,
+      cardSelection.clear,
+      cardSelection.selectRange,
+      cardSelection.selected.size,
+      cardSelection.toggle,
+      orderedNumbers,
+    ],
+  );
+
+  const handleCardOpen = useCallback((n: IssueRef): void => {
+    setSelectedNumberRef.current(n);
+    onOpenDetail?.(n);
+  }, [onOpenDetail]);
+
+  const backlogColumnProps = useMemo(
+    () => ({
+      onSuggest: openPersonaPicker,
+      suggesting,
+      suggestingActivity: suggestActivity,
+      suggestingStartedAt: suggestStartedAt ?? null,
+    }),
+    [openPersonaPicker, suggesting, suggestActivity, suggestStartedAt],
+  );
+
   if (loading && issues.length === 0) {
     return (
       <div className="kb-app" style={{ padding: 32, color: 'var(--ink-2)' }}>
@@ -388,11 +444,6 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
     }
   }
 
-  function openPersonaPicker(): void {
-    if (suggesting) return;
-    setPersonaPickerOpen(true);
-  }
-
   async function runSuggestionWith(
     persona: Persona,
     provider?: ProviderId,
@@ -435,22 +486,6 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
   // (`orderedNumbers` / `currentViewState` / `matchedViewId` are declared
   // earlier in the function — see the block before the loading/error
   // early returns. Kept here as documentation only.)
-
-  function handleCardSelect(n: IssueRef, modifiers: CardSelectModifiers): void {
-    if (modifiers.shiftKey) {
-      cardSelection.selectRange(cardSelection.anchor, n, orderedNumbers);
-      return;
-    }
-    if (modifiers.metaOrCtrlKey) {
-      cardSelection.toggle(n);
-      return;
-    }
-    // Plain click — focus the card and clear any multi-select. The
-    // selection ring (single) lives on the route hash; the multi-select
-    // ring lives in the ephemeral hook state.
-    if (cardSelection.selected.size > 0) cardSelection.clear();
-    setSelectedNumber(n);
-  }
 
   function handleBoardBackgroundClick(e: ReactMouseEvent<HTMLDivElement>): void {
     // Only clear the multi-select if the click landed on the empty
@@ -666,18 +701,8 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
             multiSelected={cardSelection.selected}
             liveByRun={liveByRun}
             onSelect={handleCardSelect}
-            onOpen={(n) => {
-              setSelectedNumber(n);
-              onOpenDetail?.(n);
-            }}
-            {...(col.key === 'backlog'
-              ? {
-                  onSuggest: openPersonaPicker,
-                  suggesting,
-                  suggestingActivity: suggestActivity,
-                  suggestingStartedAt: suggestStartedAt,
-                }
-              : {})}
+            onOpen={handleCardOpen}
+            {...(col.key === 'backlog' ? backlogColumnProps : NO_COLUMN_SUGGESTION_PROPS)}
           />
         ))}
       </div>

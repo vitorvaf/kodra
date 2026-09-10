@@ -9,7 +9,6 @@ interface RunLive {
   currentTool: string | null;
   currentArg: string | null;
   pendingDecision: IssueActiveRun['pendingDecision'];
-  eventCount: number;
 }
 
 export type RunLiveMap = Map<number, RunLive>;
@@ -18,8 +17,31 @@ const EMPTY_LIVE: RunLive = {
   currentTool: null,
   currentArg: null,
   pendingDecision: null,
-  eventCount: 0,
 };
+
+interface PendingLiveUpdate {
+  currentTool?: string | null;
+  currentArg?: string | null;
+  pendingDecision?: IssueActiveRun['pendingDecision'];
+}
+
+type LiveBufferRef = { current: Map<number, PendingLiveUpdate> };
+type LiveTimerRef = { current: ReturnType<typeof setTimeout> | null };
+
+type BoardAgentEventPayload =
+  | AgentRunEventPayload
+  | {
+      subscriptionId: string;
+      kind: 'replay';
+      events: AgentEvent[];
+      cards: Card[];
+    };
+
+function incrementPerfCounter(field: 'boardEventsIn' | 'boardUpdates'): void {
+  if (!import.meta.env.DEV) return;
+  const perf = ((window as any).__kodraPerf ??= {}) as Record<string, number>;
+  perf[field] = (perf[field] ?? 0) + 1;
+}
 
 function summarizeInput(input: unknown): string | null {
   if (input == null) return null;
@@ -49,6 +71,8 @@ export function useBoardAgentStreams(runIds: readonly number[]): RunLiveMap {
   const [map, setMap] = useState<RunLiveMap>(() => new Map());
   const subsRef = useRef<Map<number, ActiveSub>>(new Map());
   const subsByIdRef = useRef<Map<string, number>>(new Map());
+  const liveBufferRef = useRef<Map<number, PendingLiveUpdate>>(new Map());
+  const liveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const bridge = typeof window !== 'undefined' ? window.kanbots : undefined;
@@ -62,6 +86,7 @@ export function useBoardAgentStreams(runIds: readonly number[]): RunLiveMap {
     for (const [runId, sub] of subs) {
       if (wanted.has(runId)) continue;
       subs.delete(runId);
+      liveBufferRef.current.delete(runId);
       if (sub.subscriptionId !== null) {
         const id = sub.subscriptionId;
         subsById.delete(id);
@@ -86,6 +111,9 @@ export function useBoardAgentStreams(runIds: readonly number[]): RunLiveMap {
           }
           sub.subscriptionId = subscriptionId;
           subsById.set(subscriptionId, runId);
+          void bridge
+            .invoke('agent-runs:events:ready', { subscriptionId })
+            .catch(() => {});
         })
         .catch(() => {
           // Drop the slot so a later effect can retry.
@@ -101,16 +129,19 @@ export function useBoardAgentStreams(runIds: readonly number[]): RunLiveMap {
     const subsById = subsByIdRef.current;
 
     const unsubscribe = bridge.subscribe('agent-runs:events:data', (raw) => {
-      const payload = raw as AgentRunEventPayload;
+      const payload = raw as BoardAgentEventPayload;
       const runId = subsById.get(payload.subscriptionId);
       if (runId === undefined) return;
+      if (import.meta.env.DEV) incrementPerfCounter('boardEventsIn');
 
       if (payload.kind === 'event') {
-        applyEvent(setMap, runId, payload.event);
+        applyEvent(setMap, runId, payload.event, liveBufferRef, liveTimerRef);
       } else if (payload.kind === 'card') {
-        applyCard(setMap, runId, payload.card);
+        applyCard(setMap, runId, payload.card, liveBufferRef, liveTimerRef);
+      } else if (payload.kind === 'replay') {
+        applyReplay(setMap, runId, payload.events, payload.cards);
       } else if (payload.kind === 'status') {
-        applyStatus(setMap, runId, payload.status);
+        applyStatus(setMap, runId, payload.status, liveBufferRef);
       }
     });
 
@@ -124,6 +155,11 @@ export function useBoardAgentStreams(runIds: readonly number[]): RunLiveMap {
     const subs = subsRef.current;
     const subsById = subsByIdRef.current;
     return () => {
+      if (liveTimerRef.current !== null) {
+        clearTimeout(liveTimerRef.current);
+        liveTimerRef.current = null;
+      }
+      liveBufferRef.current.clear();
       const bridge = typeof window !== 'undefined' ? window.kanbots : undefined;
       if (bridge) {
         for (const sub of subs.values()) {
@@ -148,38 +184,38 @@ function applyEvent(
   setMap: LiveSetter,
   runId: number,
   ev: AgentEvent,
+  liveBufferRef: LiveBufferRef,
+  liveTimerRef: LiveTimerRef,
 ): void {
-  if (ev.type !== 'tool_use') {
-    setMap((prev) => {
-      const cur = prev.get(runId) ?? EMPTY_LIVE;
-      const next = new Map(prev);
-      next.set(runId, { ...cur, eventCount: cur.eventCount + 1 });
-      return next;
-    });
-    return;
-  }
+  if (ev.type !== 'tool_use') return;
   const p = ev.payload as { name?: string; input?: unknown };
-  setMap((prev) => {
-    const cur = prev.get(runId) ?? EMPTY_LIVE;
-    const next = new Map(prev);
-    next.set(runId, {
-      ...cur,
-      currentTool: p.name ?? null,
-      currentArg: summarizeInput(p.input),
-      eventCount: cur.eventCount + 1,
-    });
-    return next;
-  });
+  queueLiveUpdate(
+    liveBufferRef,
+    liveTimerRef,
+    setMap,
+    runId,
+    { currentTool: p.name ?? null, currentArg: summarizeInput(p.input) },
+  );
 }
 
 function applyCard(
   setMap: LiveSetter,
   runId: number,
   card: Card,
+  liveBufferRef: LiveBufferRef,
+  liveTimerRef: LiveTimerRef,
 ): void {
-  if (card.type !== 'decision' || card.status !== 'pending') return;
+  const pendingDecision = pendingDecisionFromCard(card);
+  if (pendingDecision === null) return;
+  queueLiveUpdate(liveBufferRef, liveTimerRef, setMap, runId, { pendingDecision });
+}
+
+function pendingDecisionFromCard(
+  card: Card,
+): NonNullable<IssueActiveRun['pendingDecision']> | null {
+  if (card.type !== 'decision' || card.status !== 'pending') return null;
   const p = card.payload as { question?: string; options?: unknown };
-  if (typeof p.question !== 'string' || !Array.isArray(p.options)) return;
+  if (typeof p.question !== 'string' || !Array.isArray(p.options)) return null;
   const opts = p.options
     .filter(
       (o): o is { value: string; label: string } =>
@@ -189,17 +225,69 @@ function applyCard(
         typeof (o as { label: unknown }).label === 'string',
     )
     .map((o) => ({ value: o.value, label: o.label }));
-  if (opts.length === 0) return;
+  if (opts.length === 0) return null;
+  return { cardId: card.id, question: p.question, options: opts };
+}
+
+function queueLiveUpdate(
+  liveBufferRef: LiveBufferRef,
+  liveTimerRef: LiveTimerRef,
+  setMap: LiveSetter,
+  runId: number,
+  update: PendingLiveUpdate,
+): void {
+  const pending = liveBufferRef.current.get(runId) ?? {};
+  liveBufferRef.current.set(runId, { ...pending, ...update });
+  if (liveTimerRef.current !== null) return;
+  liveTimerRef.current = setTimeout(() => {
+    liveTimerRef.current = null;
+    flushLiveUpdates(setMap, liveBufferRef);
+  }, 150);
+}
+
+function flushLiveUpdates(setMap: LiveSetter, liveBufferRef: LiveBufferRef): void {
+  if (liveBufferRef.current.size === 0) return;
+  const updates = new Map(liveBufferRef.current);
+  liveBufferRef.current.clear();
+  if (import.meta.env.DEV) incrementPerfCounter('boardUpdates');
+  setMap((prev) => {
+    let next = prev;
+    for (const [runId, update] of updates) {
+      const cur = next.get(runId) ?? EMPTY_LIVE;
+      next = new Map(next);
+      next.set(runId, { ...cur, ...update });
+    }
+    return next;
+  });
+}
+
+function applyReplay(
+  setMap: LiveSetter,
+  runId: number,
+  events: AgentEvent[],
+  cards: Card[],
+): void {
+  let lastTool: { currentTool: string | null; currentArg: string | null } | null = null;
+  for (let i = events.length - 1; i >= 0; i--) {
+    const ev = events[i];
+    if (ev?.type !== 'tool_use') continue;
+    const p = ev.payload as { name?: string; input?: unknown };
+    lastTool = { currentTool: p.name ?? null, currentArg: summarizeInput(p.input) };
+    break;
+  }
+  let pendingDecision: NonNullable<IssueActiveRun['pendingDecision']> | null = null;
+  for (const card of cards) {
+    const decision = pendingDecisionFromCard(card);
+    if (decision !== null) pendingDecision = decision;
+  }
+  if (import.meta.env.DEV) incrementPerfCounter('boardUpdates');
   setMap((prev) => {
     const cur = prev.get(runId) ?? EMPTY_LIVE;
     const next = new Map(prev);
     next.set(runId, {
       ...cur,
-      pendingDecision: {
-        cardId: card.id,
-        question: p.question as string,
-        options: opts,
-      },
+      ...(lastTool ?? {}),
+      ...(pendingDecision !== null ? { pendingDecision } : {}),
     });
     return next;
   });
@@ -209,8 +297,12 @@ function applyStatus(
   setMap: LiveSetter,
   runId: number,
   status: string,
+  liveBufferRef: LiveBufferRef,
 ): void {
   if (status === 'awaiting_input') return;
+  const pending = liveBufferRef.current.get(runId);
+  if (pending) liveBufferRef.current.set(runId, { ...pending, pendingDecision: null });
+  if (import.meta.env.DEV) incrementPerfCounter('boardUpdates');
   setMap((prev) => {
     const cur = prev.get(runId);
     if (!cur || cur.pendingDecision === null) return prev;

@@ -776,7 +776,8 @@ export type AgentRunEventPayload =
   | { subscriptionId: string; kind: 'event'; event: AgentEvent }
   | { subscriptionId: string; kind: 'card'; card: Card }
   | { subscriptionId: string; kind: 'status'; status: AgentRunStatus }
-  | { subscriptionId: string; kind: 'end' };
+  | { subscriptionId: string; kind: 'end' }
+  | { subscriptionId: string; kind: 'replay'; events: AgentEvent[]; cards: Card[] };
 
 export interface ShipStatus {
   runId: number | null;
@@ -989,6 +990,10 @@ export interface BridgeChannels {
     result: EventSubscribeResult;
   };
   'agent-runs:events:unsubscribe': {
+    args: { subscriptionId: string };
+    result: void;
+  };
+  'agent-runs:events:ready': {
     args: { subscriptionId: string };
     result: void;
   };

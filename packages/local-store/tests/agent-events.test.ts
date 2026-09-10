@@ -78,4 +78,22 @@ describe('AgentEventsRepo', () => {
     );
     expect(store.events.list(runId).map((event) => event.seq)).toEqual([0, 1, 2]);
   });
+
+  it('classifies event and data writes separately, including mixed writes', () => {
+    const initial = store.getOwnWriteRevisions();
+    store.events.append({ agentRunId: runId, type: 'text', payload: { kind: 'event' } });
+    const afterEvent = store.getOwnWriteRevisions();
+    expect(afterEvent.events).toBeGreaterThan(initial.events);
+    expect(afterEvent.data).toBe(initial.data);
+
+    store.messages.create({ threadId: 1, role: 'user', body: 'cold data' });
+    const afterData = store.getOwnWriteRevisions();
+    expect(afterData.data).toBeGreaterThan(afterEvent.data);
+
+    store.events.appendMany([{ agentRunId: runId, type: 'text', payload: { kind: 'mixed' } }]);
+    store.messages.create({ threadId: 1, role: 'user', body: 'mixed data' });
+    const afterMixed = store.getOwnWriteRevisions();
+    expect(afterMixed.events).toBeGreaterThan(afterData.events);
+    expect(afterMixed.data).toBeGreaterThan(afterData.data);
+  });
 });

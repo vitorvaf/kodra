@@ -7,8 +7,8 @@ export interface DbWatcher {
 export interface WatchDbFileOptions {
   /** Poll interval in ms. */
   intervalMs?: number;
-  /** Revision of writes made through this process's store connection. */
-  getOwnWriteRevision?: () => number;
+  /** Classifies writes made through this process's store connection. */
+  getOwnWriteRevisions?: () => { events: number; data: number };
 }
 
 interface FileSig {
@@ -34,12 +34,12 @@ export function watchDbFile(
   opts: WatchDbFileOptions = {},
 ): DbWatcher {
   const intervalMs = opts.intervalMs ?? 2000;
-  const getOwnWriteRevision = opts.getOwnWriteRevision;
+  const getOwnWriteRevisions = opts.getOwnWriteRevisions;
   const walPath = `${dbPath}-wal`;
 
   let lastDb: FileSig | null = null;
   let lastWal: FileSig | null = null;
-  let lastRevision: number | null = null;
+  let lastRevisions: { events: number; data: number } | null = null;
   let stopped = false;
   let timer: NodeJS.Timeout | null = null;
   let inFlight = false;
@@ -64,22 +64,30 @@ export function watchDbFile(
     inFlight = true;
     try {
       const [db, wal] = await Promise.all([snapshot(dbPath), snapshot(walPath)]);
-      const revision = getOwnWriteRevision?.() ?? null;
+      const revisions = getOwnWriteRevisions?.() ?? null;
       const dbChanged = changed(lastDb, db);
       const walChanged = changed(lastWal, wal);
       const isFirstSnapshot = lastDb === null && lastWal === null;
       lastDb = db;
       lastWal = wal;
-      const ownWrite =
-        getOwnWriteRevision !== undefined &&
-        lastRevision !== null &&
-        revision !== lastRevision;
-      lastRevision = revision;
+      const dataRevisionAdvanced =
+        getOwnWriteRevisions !== undefined &&
+        lastRevisions !== null &&
+        revisions !== null &&
+        revisions.data !== lastRevisions.data;
+      const eventRevisionAdvanced =
+        getOwnWriteRevisions !== undefined &&
+        lastRevisions !== null &&
+        revisions !== null &&
+        revisions.events !== lastRevisions.events;
+      lastRevisions = revisions;
       if (isFirstSnapshot) return;
       if (!dbChanged && !walChanged) return;
-      // An external write immediately before an own write in this poll window
-      // is intentionally attributed to the own write.
-      if (ownWrite) return;
+      // Data writes must refresh. Suppress only a stats change attributable to
+      // event-only writes; with no own revision advance, treat it as external.
+      if (getOwnWriteRevisions !== undefined && !dataRevisionAdvanced && eventRevisionAdvanced) {
+        return;
+      }
       try {
         onChange();
       } catch {

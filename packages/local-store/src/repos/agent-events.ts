@@ -1,4 +1,4 @@
-import type { Db } from '../db.js';
+import { withEventWriteScope, type Db } from '../db.js';
 import type { IssueRef } from '@kanbots/core';
 import type { AgentEvent, AgentEventType, AgentRunId } from '../types.js';
 
@@ -44,66 +44,20 @@ export class AgentEventsRepo {
   }
 
   append(input: AppendAgentEventInput): AgentEvent {
-    const tx = this.db.transaction((event: AppendAgentEventInput): AgentEvent => {
-      const createdAt = new Date().toISOString();
-      const payload = JSON.stringify(event.payload);
-      const seqRow = this.db
-        .prepare('SELECT COALESCE(MAX(seq), -1) AS max FROM agent_events WHERE agent_run_id = ?')
-        .get(event.agentRunId) as { max: number };
-      const seq = seqRow.max + 1;
-      const result = this.db
-        .prepare(
-          `INSERT INTO agent_events (agent_run_id, seq, type, payload, created_at)
-           VALUES (?, ?, ?, ?, ?)`,
-        )
-        .run(event.agentRunId, seq, event.type, payload, createdAt);
-      return {
-        id: Number(result.lastInsertRowid),
-        agentRunId: event.agentRunId,
-        seq,
-        type: event.type,
-        payload: event.payload,
-        createdAt,
-      };
-    });
-    return tx(input);
-  }
-
-  /**
-   * Append a FIFO batch atomically. MAX(seq) is read once per run at the
-   * beginning of the transaction, then all rows receive contiguous seqs.
-   */
-  appendMany(inputs: readonly AppendAgentEventInput[]): AgentEvent[] {
-    if (inputs.length === 0) return [];
-
-    const tx = this.db.transaction((events: readonly AppendAgentEventInput[]): AgentEvent[] => {
-      const nextSeqByRun = new Map<AgentRunId, number>();
-      // Establish every run's starting sequence before inserting any row.
-      for (const event of events) {
-        if (nextSeqByRun.has(event.agentRunId)) continue;
-        const seqRow = this.db
-          .prepare(
-            'SELECT COALESCE(MAX(seq), -1) AS max FROM agent_events WHERE agent_run_id = ?',
-          )
-          .get(event.agentRunId) as { max: number };
-        nextSeqByRun.set(event.agentRunId, seqRow.max + 1);
-      }
-      const insert = this.db.prepare(
-        `INSERT INTO agent_events (agent_run_id, seq, type, payload, created_at)
-         VALUES (?, ?, ?, ?, ?)`,
-      );
-
-      return events.map((event) => {
-        const seq = nextSeqByRun.get(event.agentRunId)!;
-        nextSeqByRun.set(event.agentRunId, seq + 1);
+    return withEventWriteScope(this.db, () => {
+      const tx = this.db.transaction((event: AppendAgentEventInput): AgentEvent => {
         const createdAt = new Date().toISOString();
-        const result = insert.run(
-          event.agentRunId,
-          seq,
-          event.type,
-          JSON.stringify(event.payload),
-          createdAt,
-        );
+        const payload = JSON.stringify(event.payload);
+        const seqRow = this.db
+          .prepare('SELECT COALESCE(MAX(seq), -1) AS max FROM agent_events WHERE agent_run_id = ?')
+          .get(event.agentRunId) as { max: number };
+        const seq = seqRow.max + 1;
+        const result = this.db
+          .prepare(
+            `INSERT INTO agent_events (agent_run_id, seq, type, payload, created_at)
+             VALUES (?, ?, ?, ?, ?)`,
+          )
+          .run(event.agentRunId, seq, event.type, payload, createdAt);
         return {
           id: Number(result.lastInsertRowid),
           agentRunId: event.agentRunId,
@@ -113,9 +67,59 @@ export class AgentEventsRepo {
           createdAt,
         };
       });
+      return tx(input);
     });
+  }
 
-    return tx(inputs);
+  /**
+   * Append a FIFO batch atomically. MAX(seq) is read once per run at the
+   * beginning of the transaction, then all rows receive contiguous seqs.
+   */
+  appendMany(inputs: readonly AppendAgentEventInput[]): AgentEvent[] {
+    if (inputs.length === 0) return [];
+
+    return withEventWriteScope(this.db, () => {
+      const tx = this.db.transaction((events: readonly AppendAgentEventInput[]): AgentEvent[] => {
+        const nextSeqByRun = new Map<AgentRunId, number>();
+        // Establish every run's starting sequence before inserting any row.
+        for (const event of events) {
+          if (nextSeqByRun.has(event.agentRunId)) continue;
+          const seqRow = this.db
+            .prepare(
+              'SELECT COALESCE(MAX(seq), -1) AS max FROM agent_events WHERE agent_run_id = ?',
+            )
+            .get(event.agentRunId) as { max: number };
+          nextSeqByRun.set(event.agentRunId, seqRow.max + 1);
+        }
+        const insert = this.db.prepare(
+          `INSERT INTO agent_events (agent_run_id, seq, type, payload, created_at)
+           VALUES (?, ?, ?, ?, ?)`,
+        );
+
+        return events.map((event) => {
+          const seq = nextSeqByRun.get(event.agentRunId)!;
+          nextSeqByRun.set(event.agentRunId, seq + 1);
+          const createdAt = new Date().toISOString();
+          const result = insert.run(
+            event.agentRunId,
+            seq,
+            event.type,
+            JSON.stringify(event.payload),
+            createdAt,
+          );
+          return {
+            id: Number(result.lastInsertRowid),
+            agentRunId: event.agentRunId,
+            seq,
+            type: event.type,
+            payload: event.payload,
+            createdAt,
+          };
+        });
+      });
+
+      return tx(inputs);
+    });
   }
 
   list(agentRunId: AgentRunId, opts: ListAgentEventsOptions = {}): AgentEvent[] {

@@ -2,11 +2,16 @@ import Database from 'better-sqlite3';
 
 export type Db = Database.Database;
 
-interface WriteRevision {
-  value: number;
+export interface OwnWriteRevisions {
+  events: number;
+  data: number;
 }
 
-const writeRevisions = new WeakMap<object, WriteRevision>();
+interface WriteTrackingState extends OwnWriteRevisions {
+  eventWriteDepth: number;
+}
+
+const writeRevisions = new WeakMap<object, WriteTrackingState>();
 
 export function openDb(filename: string): Db {
   const rawDb = new Database(filename);
@@ -14,14 +19,27 @@ export function openDb(filename: string): Db {
   return trackDb(rawDb);
 }
 
-export function getOwnWriteRevision(db: Db): number {
-  return writeRevisions.get(db)?.value ?? 0;
+export function getOwnWriteRevisions(db: Db): OwnWriteRevisions {
+  const state = writeRevisions.get(db);
+  return { events: state?.events ?? 0, data: state?.data ?? 0 };
+}
+
+export function withEventWriteScope<T>(db: Db, fn: () => T): T {
+  const state = writeRevisions.get(db);
+  if (!state) return fn();
+  state.eventWriteDepth += 1;
+  try {
+    return fn();
+  } finally {
+    state.eventWriteDepth -= 1;
+  }
 }
 
 function trackDb(db: Db): Db {
-  const revision: WriteRevision = { value: 0 };
+  const revision: WriteTrackingState = { events: 0, data: 0, eventWriteDepth: 0 };
   const bump = (): void => {
-    revision.value += 1;
+    if (revision.eventWriteDepth > 0) revision.events += 1;
+    else revision.data += 1;
   };
 
   const tracked = new Proxy(db, {

@@ -1,4 +1,5 @@
-import { getOwnWriteRevision as getDbOwnWriteRevision, openDb, type Db } from './db.js';
+import { getOwnWriteRevisions as getDbOwnWriteRevisions, openDb, type Db } from './db.js';
+import type { OwnWriteRevisions } from './db.js';
 import { migrations } from './migrations/index.js';
 import { runMigrations } from './migrations/runner.js';
 import { AgentChecksRepo } from './repos/agent-checks.js';
@@ -51,7 +52,7 @@ export interface Store {
   readonly sentryConfig: SentryConfigRepo;
   readonly sentryImports: SentryImportsRepo;
   readonly db: Db;
-  getOwnWriteRevision(): number;
+  getOwnWriteRevisions(): OwnWriteRevisions;
   close(): void;
 }
 
@@ -96,7 +97,7 @@ function wrap(db: Db): Store {
     sentryConfig: new SentryConfigRepo(db),
     sentryImports: new SentryImportsRepo(db),
     db,
-    getOwnWriteRevision: () => getDbOwnWriteRevision(db),
+    getOwnWriteRevisions: () => getDbOwnWriteRevisions(db),
     close: () => db.close(),
   };
 }
@@ -104,6 +105,7 @@ function wrap(db: Db): Store {
 export const PACKAGE_NAME = '@kanbots/local-store';
 
 export type { Db } from './db.js';
+export type { OwnWriteRevisions } from './db.js';
 export { migrations, runMigrations };
 export type { Migration } from './migrations/types.js';
 

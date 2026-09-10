@@ -1,4 +1,5 @@
 import {
+  forwardRef,
   memo,
   useCallback,
   useEffect,
@@ -7,6 +8,7 @@ import {
   useState,
   type KeyboardEvent,
 } from 'react';
+import { Virtuoso, type ListProps } from 'react-virtuoso';
 import { api } from '../api.js';
 import {
   SessionDropdown,
@@ -16,7 +18,7 @@ import { ModelPicker, PROVIDER_LABELS } from '../components/forms/ModelPicker.js
 import { useAgentRunStream } from '../hooks/useAgentRunStream.js';
 import { ageString } from '../labels.js';
 import { ToolUseCard } from '../components/run/ToolUseCard.js';
-import { AgentSpinner } from '../components/run/AgentSpinner.js';
+import { pickSpinnerVerb, SPINNER_GLYPHS } from '../spinnerVerbs.js';
 import type {
   AgentEvent,
   AgentRun,
@@ -30,6 +32,21 @@ import type {
 
 const MemoizedToolUseCard = memo(ToolUseCard);
 const EMPTY_CARD_LIST: Card[] = [];
+const LIVE_SPINNER_FRAMES = [...SPINNER_GLYPHS, ...[...SPINNER_GLYPHS].reverse()];
+const TranscriptList = forwardRef<HTMLDivElement, ListProps>(function TranscriptList(
+  { children, style, ...props },
+  ref,
+) {
+  return (
+    <div
+      {...props}
+      ref={ref}
+      style={{ ...style, display: 'flex', flexDirection: 'column', gap: 10 }}
+    >
+      {children}
+    </div>
+  );
+});
 
 const STATUS_LABEL: Record<AgentRunStatus, string> = {
   starting: 'STARTING',
@@ -249,14 +266,14 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
       stream.status === 'starting' ||
       stream.status === 'awaiting_input');
 
-  // Merge persisted history with the live stream, deduped by id. The live
-  // stream is authoritative if both sides have an entry (it carries the
-  // freshest payload for an in-flight tool call).
+  // Merge persisted history with the live stream, deduped by (agentRunId,
+  // seq). The live stream is authoritative if both sides have an entry (it
+  // carries the freshest payload for an in-flight tool call).
   const mergedEvents = useMemo(() => {
-    const byId = new Map<number, AgentEvent>();
-    for (const e of historyEvents) byId.set(e.id, e);
-    for (const e of stream.events) byId.set(e.id, e);
-    return Array.from(byId.values());
+    const byRunAndSeq = new Map<string, AgentEvent>();
+    for (const e of historyEvents) byRunAndSeq.set(`${e.agentRunId}:${e.seq}`, e);
+    for (const e of stream.events) byRunAndSeq.set(`${e.agentRunId}:${e.seq}`, e);
+    return Array.from(byRunAndSeq.values());
   }, [historyEvents, stream.events]);
 
   const mergedCards = useMemo(() => {
@@ -367,7 +384,10 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
     }
     itemCacheRef.current = nextCache;
     all.sort((a, b) => {
-      if (a.sortKey === b.sortKey) return a.id.localeCompare(b.id);
+      if (a.sortKey === b.sortKey) {
+        if (a.kind === 'event' && b.kind === 'event') return a.event.seq - b.event.seq;
+        return a.id.localeCompare(b.id);
+      }
       return a.sortKey < b.sortKey ? -1 : 1;
     });
     return all;
@@ -377,30 +397,57 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
     void refresh();
   }, [refresh]);
 
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const stickyRef = useRef(true);
-  useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const onScroll = (): void => {
-      const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
-      stickyRef.current = distance <= 80;
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, []);
-  useEffect(() => {
-    if (!stickyRef.current) return;
-    const el = scrollerRef.current;
-    if (!el) return;
-    const id = requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight;
-    });
-    return () => cancelAnimationFrame(id);
-  }, [items.length, isLive]);
-
   const status = stream.status ?? displayRun?.status ?? null;
   const statusClass = status ? `kb-chat-status s-${status}` : 'kb-chat-status';
+  const renderItem = useCallback(
+    (_index: number, it: Item) => {
+      if (it.kind === 'message') {
+        return (
+          <MessageRow
+            message={it.message}
+            cards={it.cards}
+            agentLabel={agentLabel}
+            onResolved={onMessageResolved}
+            now={now}
+          />
+        );
+      }
+      if (it.event.type === 'tool_use') {
+        return (
+          <div className="kb-chat-toolwrap">
+            <span className="kb-chat-toolwrap-rail" aria-hidden />
+            <div className="kb-chat-toolwrap-body">
+              <MemoizedToolUseCard
+                toolUse={it.event}
+                result={resultByToolUseId.get(toolUseIdOf(it.event)) ?? null}
+                isLive={isLive}
+                now={now}
+              />
+            </div>
+          </div>
+        );
+      }
+      return <EventRow event={it.event} agentLabel={agentLabel} now={now} />;
+    },
+    [agentLabel, isLive, now, onMessageResolved, resultByToolUseId],
+  );
+  const itemKey = useCallback((_index: number, item: Item): string => item.id, []);
+  const virtuosoFooter = useCallback(
+    () =>
+      isLive && displayRun ? (
+        <MemoizedLiveAgentSpinner
+          seed={displayRun.id}
+          startedAt={displayRun.startedAt}
+          tokensOut={displayRun.tokenUsageOutput ?? null}
+          now={now}
+        />
+      ) : null,
+    [displayRun, isLive, now],
+  );
+  const virtuosoComponents = useMemo(
+    () => ({ List: TranscriptList, Footer: virtuosoFooter }),
+    [virtuosoFooter],
+  );
 
   return (
     <div className="kb-chat-room">
@@ -438,7 +485,7 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
         ) : null}
       </header>
 
-      <div ref={scrollerRef} className="kb-chat-scroller">
+      <div className="kb-chat-scroller">
         {items.length === 0 && !isLive ? (
           <div className="kb-chat-empty">
             <div className="kb-chat-empty-emoji">💬</div>
@@ -447,40 +494,19 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
               Ask the Kodra agent anything about your board or codebase.
             </div>
           </div>
-        ) : null}
-        {items.map((it) =>
-          it.kind === 'message' ? (
-            <MessageRow
-              key={it.id}
-              message={it.message}
-              cards={it.cards}
-              agentLabel={agentLabel}
-              onResolved={onMessageResolved}
-              now={now}
-            />
-          ) : it.event.type === 'tool_use' ? (
-            <div key={it.id} className="kb-chat-toolwrap">
-              <span className="kb-chat-toolwrap-rail" aria-hidden />
-              <div className="kb-chat-toolwrap-body">
-                <MemoizedToolUseCard
-                  toolUse={it.event}
-                  result={resultByToolUseId.get(toolUseIdOf(it.event)) ?? null}
-                  isLive={isLive}
-                  now={now}
-                />
-              </div>
-            </div>
-          ) : (
-            <EventRow key={it.id} event={it.event} agentLabel={agentLabel} now={now} />
-          ),
-        )}
-        {isLive && displayRun ? (
-          <AgentSpinner
-            seed={displayRun.id}
-            startedAt={displayRun.startedAt}
-            tokensOut={displayRun.tokenUsageOutput ?? null}
+        ) : (
+          <Virtuoso<Item>
+            data={items}
+            style={{ height: '100%', width: '100%' }}
+            components={virtuosoComponents}
+            computeItemKey={itemKey}
+            initialTopMostItemIndex={Math.max(0, items.length - 1)}
+            increaseViewportBy={{ top: 600, bottom: 600 }}
+            atBottomThreshold={80}
+            followOutput={isLive ? 'auto' : false}
+            itemContent={renderItem}
           />
-        ) : null}
+        )}
       </div>
 
       <ReplyFooter
@@ -501,6 +527,81 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
       {error ? <div className="kb-chat-error">{error}</div> : null}
     </div>
   );
+}
+
+interface LiveAgentSpinnerProps {
+  seed: string | number;
+  startedAt?: string | number | null;
+  tokensOut?: number | null;
+  now: number;
+}
+
+const MemoizedLiveAgentSpinner = memo(function LiveAgentSpinner({
+  seed,
+  startedAt,
+  tokensOut,
+  now,
+}: LiveAgentSpinnerProps) {
+  const verb = pickSpinnerVerb(seed);
+  const startMs = parseSpinnerStart(startedAt, now);
+  const elapsedSec = Math.max(0, (now - startMs) / 1000);
+  const tokens = typeof tokensOut === 'number' && tokensOut > 0 ? formatSpinnerNumber(tokensOut) : null;
+  const glyphRef = useRef<HTMLSpanElement | null>(null);
+  const metaRef = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    let frameIndex = 0;
+    let lastFrameSwap = performance.now();
+    let rafId: number | null = null;
+    function tick(timestamp: number): void {
+      if (timestamp - lastFrameSwap > 120) {
+        frameIndex = (frameIndex + 1) % LIVE_SPINNER_FRAMES.length;
+        if (glyphRef.current) glyphRef.current.textContent = LIVE_SPINNER_FRAMES[frameIndex] ?? '';
+        lastFrameSwap = timestamp;
+      }
+      if (metaRef.current) {
+        const elapsed = Math.max(0, (Date.now() - startMs) / 1000);
+        metaRef.current.textContent = `(${formatSpinnerElapsed(elapsed)}${tokens ? ` · ${tokens} tokens` : ''} · esc to interrupt)`;
+      }
+      rafId = requestAnimationFrame(tick);
+    }
+    rafId = requestAnimationFrame(tick);
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, [startMs, tokens]);
+
+  return (
+    <div className="kb-agent-spinner" role="status" aria-live="polite">
+      <span className="kb-spin-glyph" aria-hidden ref={glyphRef}>
+        {LIVE_SPINNER_FRAMES[0]}
+      </span>
+      <span className="kb-spin-verb">{verb}…</span>
+      <span className="kb-spin-meta" ref={metaRef}>
+        ({formatSpinnerElapsed(elapsedSec)}{tokens ? ` · ${tokens} tokens` : ''} · esc to interrupt)
+      </span>
+    </div>
+  );
+});
+
+function parseSpinnerStart(
+  value: string | number | null | undefined,
+  fallback: number,
+): number {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'number') return value;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function formatSpinnerElapsed(seconds: number): string {
+  if (seconds < 60) return `${Math.floor(seconds)}s`;
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}m ${String(Math.floor(seconds % 60)).padStart(2, '0')}s`;
+}
+
+function formatSpinnerNumber(value: number): string {
+  return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value);
 }
 
 function ChatTitleEditor({

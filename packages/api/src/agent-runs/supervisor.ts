@@ -23,6 +23,7 @@ import {
 import { resolveProviderWithCreds } from '../handlers/provider-credentials.js';
 import { describeKanbotsDir } from '@kanbots/local-store';
 import type {
+  AppendAgentEventInput,
   AgentEvent,
   AgentRun,
   AgentRunStatus,
@@ -141,6 +142,8 @@ export interface CreateSupervisorOptions {
 }
 
 const STOP_FORCE_RESOLVE_SLACK_MS = 2_000;
+const EVENT_BUFFER_MAX_AGE_MS = 150;
+const EVENT_BUFFER_MAX_SIZE = 100;
 
 export interface StartRunInput {
   threadId: number;
@@ -556,6 +559,14 @@ export async function createSupervisor(
   }
   const runMemoryProjects = new Map<number, string>();
   const runIssueNumbers = new Map<number, IssueRef>();
+  interface BufferedAgentEvent {
+    input: AppendAgentEventInput;
+    liveEvent: AgentEvent;
+  }
+  const pendingEventBuffers = new Map<number, BufferedAgentEvent[]>();
+  const pendingEventTimers = new Map<number, NodeJS.Timeout>();
+  const nextEventSeqByRun = new Map<number, number>();
+  let nextLiveEventId = -1;
   const emitter = new EventEmitter();
   emitter.setMaxListeners(0);
 
@@ -576,6 +587,90 @@ export async function createSupervisor(
   const eventChannel = (runId: number): string => `event:${runId}`;
   const statusChannel = (runId: number): string => `status:${runId}`;
   const cardChannel = (runId: number): string => `card:${runId}`;
+
+  function nextLiveEventSeq(runId: number): number {
+    const known = nextEventSeqByRun.get(runId);
+    if (known !== undefined) return known;
+    const existing = store.events.list(runId);
+    const next = (existing[existing.length - 1]?.seq ?? -1) + 1;
+    nextEventSeqByRun.set(runId, next);
+    return next;
+  }
+
+  function flushPendingEvents(runId: number): void {
+    const pending = pendingEventBuffers.get(runId);
+    if (!pending || pending.length === 0) return;
+    pendingEventBuffers.delete(runId);
+    const timer = pendingEventTimers.get(runId);
+    if (timer) clearTimeout(timer);
+    pendingEventTimers.delete(runId);
+
+    try {
+      store.events.appendMany(pending.map((event) => event.input));
+    } catch (err) {
+      // appendMany is atomic. If it fails, preserve history as far as the
+      // individual appends allow without taking down the supervisor loop.
+      console.error(`[kanbots] batched event persistence failed for run ${runId}`, err);
+      for (const event of pending) {
+        try {
+          store.events.append(event.input);
+        } catch (fallbackErr) {
+          console.error(`[kanbots] event persistence fallback failed for run ${runId}`, fallbackErr);
+        }
+      }
+    }
+  }
+
+  function flushAllPendingEvents(): void {
+    for (const runId of [...pendingEventBuffers.keys()]) flushPendingEvents(runId);
+  }
+
+  // Covers reads made outside the supervisor too (analytics, chat snapshots,
+  // issue tool summaries, and the curator), so they cannot observe a partial
+  // event history while a run is still streaming.
+  const removeBeforeReadHook = store.events.onBeforeRead(flushAllPendingEvents);
+
+  // There is no separate supervisor shutdown hook in the current API. Wrap
+  // the store close boundary so normal application shutdown also drains all
+  // run buffers before SQLite is closed. Multiple supervisors on one store
+  // compose safely because each wrapper calls the previously installed close.
+  const closeStore = store.close.bind(store);
+  store.close = (): void => {
+    flushAllPendingEvents();
+    removeBeforeReadHook();
+    closeStore();
+  };
+
+  function queueEvent(input: AppendAgentEventInput): AgentEvent {
+    const seq = nextLiveEventSeq(input.agentRunId);
+    nextEventSeqByRun.set(input.agentRunId, seq + 1);
+    const liveEvent: AgentEvent = {
+      id: nextLiveEventId--,
+      agentRunId: input.agentRunId,
+      seq,
+      type: input.type,
+      payload: input.payload,
+      createdAt: new Date().toISOString(),
+    };
+    const pending = pendingEventBuffers.get(input.agentRunId) ?? [];
+    if (pending.length === 0) {
+      const timer = setTimeout(() => flushPendingEvents(input.agentRunId), EVENT_BUFFER_MAX_AGE_MS);
+      pendingEventTimers.set(input.agentRunId, timer);
+    }
+    pending.push({ input, liveEvent });
+    pendingEventBuffers.set(input.agentRunId, pending);
+
+    // Emit before doing any synchronous persistence so subscribers see the
+    // streamed event without waiting for SQLite.
+    emitter.emit(eventChannel(input.agentRunId), liveEvent);
+    if ((pendingEventBuffers.get(input.agentRunId)?.length ?? 0) >= EVENT_BUFFER_MAX_SIZE) {
+      flushPendingEvents(input.agentRunId);
+    }
+    return liveEvent;
+  }
+
+  // The age timer bounds the hard-crash loss window to at most 150ms of
+  // streamed events. Terminal/explicit read paths flush the remainder.
   const COOLDOWN_CHANNEL = 'cooldown:changed';
   let cooldownUntilMs: number | null = null;
   let cooldownReason: CooldownState['reason'] = null;
@@ -702,6 +797,9 @@ export async function createSupervisor(
     currentRunId: number,
     extra: string | undefined,
   ): { prompt: string; briefing: string | null } {
+    // Sibling briefing reads events from other active runs directly through
+    // the store, so make that read observe all queued events first.
+    flushAllPendingEvents();
     const briefing = renderSiblingBriefing(store, currentRunId);
     const houseRules = readHouseRules();
     const learnings = collectLearningsForRun(currentRunId);
@@ -830,11 +928,15 @@ export async function createSupervisor(
       latestResultText: null,
     };
     active.set(run.id, entry);
+    // Resolve the first live sequence during run wiring, not on the first
+    // streamed event, so the event callback only does in-memory buffering and
+    // fan-out before the first persistence flush.
+    nextLiveEventSeq(run.id);
 
     handle.on('event', (streamEvent: StreamEvent) => {
       if (streamEvent.kind === 'rate_limit') {
         applyRateLimit(streamEvent.reason, streamEvent.retryAfterMs, streamEvent.message);
-        const persistedRl = store.events.append({
+        queueEvent({
           agentRunId: run.id,
           type: 'error',
           payload: {
@@ -844,7 +946,6 @@ export async function createSupervisor(
             retryAfterMs: streamEvent.retryAfterMs,
           },
         });
-        emitter.emit(eventChannel(run.id), persistedRl);
         return;
       }
       if (streamEvent.kind === 'session') {
@@ -929,11 +1030,13 @@ export async function createSupervisor(
           afterText: streamEvent.after,
         });
       }
-      const persisted = persistEvent(store, run.id, streamEvent);
-      if (persisted) emitter.emit(eventChannel(run.id), persisted);
+      const eventInput = persistEvent(run.id, streamEvent);
+      if (eventInput) queueEvent(eventInput);
     });
 
     handle.on('close', (summary) => {
+      // A terminal status is not visible until every queued event is durable.
+      flushPendingEvents(run.id);
       const naturalStatus: AgentRunStatus = summary.killedByStop
         ? 'stopped'
         : summary.result?.isError === true
@@ -1070,12 +1173,11 @@ export async function createSupervisor(
     });
 
     handle.on('error', (err) => {
-      const errEvent = store.events.append({
+      queueEvent({
         agentRunId: run.id,
         type: 'error',
         payload: { message: err.message },
       });
-      emitter.emit(eventChannel(run.id), errEvent);
     });
   }
 
@@ -1092,12 +1194,11 @@ export async function createSupervisor(
       heuristic: escape.heuristic,
       mode: containmentMode,
     };
-    const ev = store.events.append({
+    queueEvent({
       agentRunId: run.id,
       type: 'containment_warning',
       payload,
     });
-    emitter.emit(eventChannel(run.id), ev);
     if (containmentMode !== 'pause') return;
 
     entry.containmentPaused = true;
@@ -1463,6 +1564,7 @@ export async function createSupervisor(
     });
     if (!card) return;
 
+    flushPendingEvents(run.id);
     const eventText = store.events
       .list(run.id)
       .filter((event) => event.type === 'text')
@@ -1504,6 +1606,7 @@ export async function createSupervisor(
         // Force the run out of an active state so the slot is freed and the
         // caller doesn't deadlock. Clean up the in-memory entry; if the close
         // handler fires later, active.delete will be a no-op.
+        flushPendingEvents(runId);
         active.delete(runId);
         invokeRunCleanup(runId, entry);
         runMemoryProjects.delete(runId);
@@ -1545,6 +1648,7 @@ export async function createSupervisor(
   }
 
   function listEvents(runId: number, sinceSeq?: number): AgentEvent[] {
+    flushPendingEvents(runId);
     return store.events.list(runId, sinceSeq !== undefined ? { afterSeq: sinceSeq } : {});
   }
 
@@ -1597,22 +1701,22 @@ export async function createSupervisor(
   };
 }
 
-function persistEvent(store: Store, runId: number, ev: StreamEvent): AgentEvent | null {
+function persistEvent(runId: number, ev: StreamEvent): AppendAgentEventInput | null {
   switch (ev.kind) {
     case 'text':
-      return store.events.append({
+      return {
         agentRunId: runId,
         type: 'text',
         payload: { text: ev.text },
-      });
+      };
     case 'tool_use':
-      return store.events.append({
+      return {
         agentRunId: runId,
         type: 'tool_use',
         payload: { toolUseId: ev.toolUseId, name: ev.name, input: ev.input },
-      });
+      };
     case 'tool_result':
-      return store.events.append({
+      return {
         agentRunId: runId,
         type: 'tool_result',
         payload: {
@@ -1620,13 +1724,13 @@ function persistEvent(store: Store, runId: number, ev: StreamEvent): AgentEvent 
           isError: ev.isError,
           content: ev.content,
         },
-      });
+      };
     case 'parse_error':
-      return store.events.append({
+      return {
         agentRunId: runId,
         type: 'error',
         payload: { message: ev.message, raw: ev.raw },
-      });
+      };
     case 'session':
     case 'decision':
     case 'result':

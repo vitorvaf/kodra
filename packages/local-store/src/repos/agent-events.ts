@@ -33,39 +33,93 @@ export interface ListAgentEventsOptions {
 }
 
 export class AgentEventsRepo {
+  private readonly beforeReadHooks = new Set<() => void>();
+
   constructor(private readonly db: Db) {}
 
-  append(input: AppendAgentEventInput): AgentEvent {
-    const tx = this.db.transaction((args: AppendAgentEventInput): AgentEvent => {
-      const createdAt = new Date().toISOString();
-      const payload = JSON.stringify(args.payload);
+  /** Register a synchronous hook for callers that buffer events above the repo. */
+  onBeforeRead(hook: () => void): () => void {
+    this.beforeReadHooks.add(hook);
+    return () => this.beforeReadHooks.delete(hook);
+  }
 
+  append(input: AppendAgentEventInput): AgentEvent {
+    const tx = this.db.transaction((event: AppendAgentEventInput): AgentEvent => {
+      const createdAt = new Date().toISOString();
+      const payload = JSON.stringify(event.payload);
       const seqRow = this.db
         .prepare('SELECT COALESCE(MAX(seq), -1) AS max FROM agent_events WHERE agent_run_id = ?')
-        .get(args.agentRunId) as { max: number };
+        .get(event.agentRunId) as { max: number };
       const seq = seqRow.max + 1;
-
       const result = this.db
         .prepare(
           `INSERT INTO agent_events (agent_run_id, seq, type, payload, created_at)
            VALUES (?, ?, ?, ?, ?)`,
         )
-        .run(args.agentRunId, seq, args.type, payload, createdAt);
-
+        .run(event.agentRunId, seq, event.type, payload, createdAt);
       return {
         id: Number(result.lastInsertRowid),
-        agentRunId: args.agentRunId,
+        agentRunId: event.agentRunId,
         seq,
-        type: args.type,
-        payload: args.payload,
+        type: event.type,
+        payload: event.payload,
         createdAt,
       };
     });
-
     return tx(input);
   }
 
+  /**
+   * Append a FIFO batch atomically. MAX(seq) is read once per run at the
+   * beginning of the transaction, then all rows receive contiguous seqs.
+   */
+  appendMany(inputs: readonly AppendAgentEventInput[]): AgentEvent[] {
+    if (inputs.length === 0) return [];
+
+    const tx = this.db.transaction((events: readonly AppendAgentEventInput[]): AgentEvent[] => {
+      const nextSeqByRun = new Map<AgentRunId, number>();
+      // Establish every run's starting sequence before inserting any row.
+      for (const event of events) {
+        if (nextSeqByRun.has(event.agentRunId)) continue;
+        const seqRow = this.db
+          .prepare(
+            'SELECT COALESCE(MAX(seq), -1) AS max FROM agent_events WHERE agent_run_id = ?',
+          )
+          .get(event.agentRunId) as { max: number };
+        nextSeqByRun.set(event.agentRunId, seqRow.max + 1);
+      }
+      const insert = this.db.prepare(
+        `INSERT INTO agent_events (agent_run_id, seq, type, payload, created_at)
+         VALUES (?, ?, ?, ?, ?)`,
+      );
+
+      return events.map((event) => {
+        const seq = nextSeqByRun.get(event.agentRunId)!;
+        nextSeqByRun.set(event.agentRunId, seq + 1);
+        const createdAt = new Date().toISOString();
+        const result = insert.run(
+          event.agentRunId,
+          seq,
+          event.type,
+          JSON.stringify(event.payload),
+          createdAt,
+        );
+        return {
+          id: Number(result.lastInsertRowid),
+          agentRunId: event.agentRunId,
+          seq,
+          type: event.type,
+          payload: event.payload,
+          createdAt,
+        };
+      });
+    });
+
+    return tx(inputs);
+  }
+
   list(agentRunId: AgentRunId, opts: ListAgentEventsOptions = {}): AgentEvent[] {
+    this.notifyBeforeRead();
     const afterSeq = opts.afterSeq ?? -1;
     const rows = this.db
       .prepare('SELECT * FROM agent_events WHERE agent_run_id = ? AND seq > ? ORDER BY seq')
@@ -82,6 +136,7 @@ export class AgentEventsRepo {
    * from the UI).
    */
   listByThread(threadId: number): AgentEvent[] {
+    this.notifyBeforeRead();
     const rows = this.db
       .prepare(
         `SELECT e.* FROM agent_events e
@@ -94,6 +149,7 @@ export class AgentEventsRepo {
   }
 
   findLatestToolUseByRun(runIds: readonly AgentRunId[]): Map<AgentRunId, AgentEvent> {
+    this.notifyBeforeRead();
     const out = new Map<AgentRunId, AgentEvent>();
     if (runIds.length === 0) return out;
     const placeholders = runIds.map(() => '?').join(',');
@@ -114,6 +170,7 @@ export class AgentEventsRepo {
   }
 
   countByRun(runIds: readonly AgentRunId[]): Map<AgentRunId, number> {
+    this.notifyBeforeRead();
     const out = new Map<AgentRunId, number>();
     if (runIds.length === 0) return out;
     const placeholders = runIds.map(() => '?').join(',');
@@ -136,6 +193,7 @@ export class AgentEventsRepo {
   listRecentAcrossWorkspace(
     limit: number,
   ): Array<AgentEvent & { issueNumber: IssueRef; runStatus: string }> {
+    this.notifyBeforeRead();
     const rows = this.db
       .prepare(
         `SELECT e.*, t.issue_number AS issue_number_alias, r.status AS run_status_alias
@@ -153,5 +211,9 @@ export class AgentEventsRepo {
       issueNumber: row.issue_number_alias,
       runStatus: row.run_status_alias,
     }));
+  }
+
+  private notifyBeforeRead(): void {
+    for (const hook of this.beforeReadHooks) hook();
   }
 }

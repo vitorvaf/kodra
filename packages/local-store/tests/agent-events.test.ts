@@ -63,4 +63,19 @@ describe('AgentEventsRepo', () => {
     expect(fetched?.payload).toEqual(payload);
     expect(fetched?.id).toBe(e.id);
   });
+
+  it('appendMany preserves FIFO order and contiguous seqs', () => {
+    const inputs = [
+      { agentRunId: runId, type: 'text' as const, payload: { i: 1 } },
+      { agentRunId: runId, type: 'tool_use' as const, payload: { i: 2 } },
+      { agentRunId: runId, type: 'text' as const, payload: { i: 3 } },
+    ];
+    const appended = store.events.appendMany(inputs);
+
+    expect(appended.map((event) => event.seq)).toEqual([0, 1, 2]);
+    expect(appended.map((event) => [event.type, event.payload])).toEqual(
+      inputs.map((input) => [input.type, input.payload]),
+    );
+    expect(store.events.list(runId).map((event) => event.seq)).toEqual([0, 1, 2]);
+  });
 });

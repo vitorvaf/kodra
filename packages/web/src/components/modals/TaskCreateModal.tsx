@@ -13,6 +13,7 @@ import {
 } from 'react';
 import { api, isCloudMode } from '../../api.js';
 import { CardPreview } from '../Card.js';
+import { notifyBacklogCreated } from '../BacklogToast.js';
 import {
   MarkdownEditor,
   type MarkdownEditorHandle,
@@ -432,6 +433,7 @@ export function TaskCreateModal({
         ...(trimmedCustomNumber ? { number: trimmedCustomNumber } : {}),
         ...(assignee === 'me' ? { assignees: ['you'] } : {}),
       });
+      notifyBacklogCreated(labels);
       onCreated?.(created);
 
       if (mode === 'spec' || mode === 'dispatch') {
@@ -488,6 +490,7 @@ export function TaskCreateModal({
         ...(trimmedCustomNumber ? { number: trimmedCustomNumber } : {}),
         ...(assignee === 'me' ? { assignees: ['you'] } : {}),
       });
+      notifyBacklogCreated(labels);
       onCreated?.(created);
       onClose();
     } catch (err) {

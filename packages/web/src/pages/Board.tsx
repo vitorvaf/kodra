@@ -20,6 +20,7 @@ import {
 import { api } from '../api.js';
 import { AutopilotLaunchModal } from '../components/modals/AutopilotLaunchModal.js';
 import { BoardViewsModal } from '../components/modals/BoardViewsModal.js';
+import { notifyBacklogCreated } from '../components/BacklogToast.js';
 import { BoardErrorBanner } from '../components/board/BoardErrorBanner.js';
 import { BoardFilters } from '../components/board/BoardFilters.js';
 import { BoardToolbar } from '../components/board/BoardToolbar.js';
@@ -462,6 +463,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
         body: drafted.body,
         labels: ['status:backlog', 'type:feat'],
       });
+      notifyBacklogCreated(['status:backlog', 'type:feat']);
       dispatchIssuesRefetch();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

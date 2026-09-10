@@ -92,6 +92,35 @@ export interface WorktreeRecord {
   detached: boolean;
 }
 
+type WorktreeFileStatus = { path: string; status: string };
+
+interface WorktreeSweep {
+  records: WorktreeRecord[];
+  statuses: Map<string, WorktreeFileStatus[]>;
+  statusMap: WorktreeStatusMap;
+}
+
+interface WorktreeCacheEntry {
+  recordsExpiresAt: number;
+  sweepExpiresAt: number;
+  records?: WorktreeRecord[];
+  enumerationPromise?: Promise<WorktreeRecord[]>;
+  sweep?: WorktreeSweep;
+  sweepPromise?: Promise<WorktreeSweep>;
+}
+
+// TTL must be >= the fastest renderer poll intervals (WorkspaceTree 8s,
+// WorktreesSection 10s) so steady-state polls hit the cache instead of
+// each triggering a fresh `git worktree list` + per-worktree `git status`
+// sweep. Max staleness ≈ TTL + one sweep duration (~11s) — acceptable for
+// status hints that the UI already refreshes at 8-10s granularity.
+const WORKTREE_CACHE_TTL_MS = 10_000;
+const worktreeCache = new Map<string, WorktreeCacheEntry>();
+
+function worktreeCacheKey(rootPath: string): string {
+  return resolve(rootPath);
+}
+
 async function parseWorktreeList(rootPath: string): Promise<WorktreeRecord[]> {
   try {
     const { stdout } = await execAsync('git worktree list --porcelain', {
@@ -142,14 +171,9 @@ async function parseWorktreeList(rootPath: string): Promise<WorktreeRecord[]> {
   }
 }
 
-async function listWorktrees(rootPath: string): Promise<string[]> {
-  const records = await parseWorktreeList(rootPath);
-  return records.map((r) => r.path);
-}
-
 async function statusForWorktree(
   worktreePath: string,
-): Promise<Array<{ path: string; status: string }>> {
+): Promise<WorktreeFileStatus[]> {
   try {
     const { stdout } = await execAsync('git status --porcelain=v1 -z', {
       cwd: worktreePath,
@@ -187,6 +211,98 @@ function normaliseStatus(code: string): WorktreeStatusMap['files'][string]['stat
   return 'M';
 }
 
+function cachedWorktreeEnumeration(rootPath: string): Promise<WorktreeRecord[]> {
+  const key = worktreeCacheKey(rootPath);
+  let entry = worktreeCache.get(key);
+  const now = Date.now();
+  if (entry === undefined) {
+    entry = { recordsExpiresAt: 0, sweepExpiresAt: 0 };
+    worktreeCache.set(key, entry);
+  }
+  if (entry.records !== undefined && entry.recordsExpiresAt > now) return Promise.resolve(entry.records);
+  if (entry.enumerationPromise !== undefined) return entry.enumerationPromise;
+
+  const promise = parseWorktreeList(rootPath);
+  entry.enumerationPromise = promise;
+  void promise.then(
+    (records) => {
+      const current = worktreeCache.get(key);
+      if (current !== entry) return;
+      entry.records = records;
+      entry.recordsExpiresAt = Date.now() + WORKTREE_CACHE_TTL_MS;
+      delete entry.enumerationPromise;
+    },
+    () => {
+      const current = worktreeCache.get(key);
+      if (current === entry) delete entry.enumerationPromise;
+    },
+  );
+  return promise;
+}
+
+function cachedWorktreeSweep(rootPath: string): Promise<WorktreeSweep> {
+  const key = worktreeCacheKey(rootPath);
+  let entry = worktreeCache.get(key);
+  const now = Date.now();
+  if (entry === undefined) {
+    entry = { recordsExpiresAt: 0, sweepExpiresAt: 0 };
+    worktreeCache.set(key, entry);
+  }
+  if (entry.sweep !== undefined && entry.sweepExpiresAt > now) return Promise.resolve(entry.sweep);
+  if (entry.sweepPromise !== undefined) return entry.sweepPromise;
+
+  const promise = (async (): Promise<WorktreeSweep> => {
+    const records = await cachedWorktreeEnumeration(rootPath);
+    const statuses = new Map<string, WorktreeFileStatus[]>();
+    const files: WorktreeStatusMap['files'] = {};
+    for (const rec of records) {
+      const status = await statusForWorktree(rec.path);
+      statuses.set(rec.path, status);
+      if (status.length === 0) continue;
+      for (const { path, status: code } of status) {
+        // For an agent worktree, the same file may show up under a
+        // different repo-relative path than the main checkout (worktree
+        // root differs). Normalise to "relative to wt itself" — the
+        // renderer matches against the file tree it reads from `rootPath`,
+        // and for the main checkout that's the same path; for agent
+        // worktrees we just want the user to know "something elsewhere
+        // is touching X" so the path-as-key still surfaces correctly.
+        const rel = path.replace(/\\/g, '/');
+        const prev = files[rel];
+        if (prev === undefined) {
+          files[rel] = { status: normaliseStatus(code), worktrees: [rec.path] };
+        } else if (!prev.worktrees.includes(rec.path)) {
+          prev.worktrees.push(rec.path);
+        }
+      }
+    }
+    return {
+      records,
+      statuses,
+      statusMap: { files, worktrees: records.map((record) => record.path) },
+    };
+  })();
+  entry.sweepPromise = promise;
+  void promise.then(
+    (sweep) => {
+      const current = worktreeCache.get(key);
+      if (current !== entry) return;
+      entry.sweep = sweep;
+      entry.sweepExpiresAt = Date.now() + WORKTREE_CACHE_TTL_MS;
+      delete entry.sweepPromise;
+    },
+    () => {
+      const current = worktreeCache.get(key);
+      if (current === entry) delete entry.sweepPromise;
+    },
+  );
+  return promise;
+}
+
+function invalidateWorktreeCache(rootPath: string): void {
+  worktreeCache.delete(worktreeCacheKey(rootPath));
+}
+
 async function readDirEntries(rootPath: string, relPath: string): Promise<TreeEntry[]> {
   const absDir = resolveSafe(rootPath, relPath);
   if (absDir === null) return [];
@@ -218,29 +334,8 @@ async function readDirEntries(rootPath: string, relPath: string): Promise<TreeEn
 }
 
 async function worktreeStatus(rootPath: string): Promise<WorktreeStatusMap> {
-  const worktrees = await listWorktrees(rootPath);
-  const files: WorktreeStatusMap['files'] = {};
-  for (const wt of worktrees) {
-    const status = await statusForWorktree(wt);
-    if (status.length === 0) continue;
-    for (const { path, status: code } of status) {
-      // For an agent worktree, the same file may show up under a
-      // different repo-relative path than the main checkout (worktree
-      // root differs). Normalise to "relative to wt itself" — the
-      // renderer matches against the file tree it reads from `rootPath`,
-      // and for the main checkout that's the same path; for agent
-      // worktrees we just want the user to know "something elsewhere
-      // is touching X" so the path-as-key still surfaces correctly.
-      const rel = path.replace(/\\/g, '/');
-      const prev = files[rel];
-      if (prev === undefined) {
-        files[rel] = { status: normaliseStatus(code), worktrees: [wt] };
-      } else if (!prev.worktrees.includes(wt)) {
-        prev.worktrees.push(wt);
-      }
-    }
-  }
-  return { files, worktrees };
+  const sweep = await cachedWorktreeSweep(rootPath);
+  return sweep.statusMap;
 }
 
 let resolveRoot: (() => string | null) | null = null;
@@ -327,11 +422,10 @@ export function registerWorkspaceTreeIpc(opts: WorkspaceTreeIpcOptions): void {
     > => {
       const root = resolveRoot ? resolveRoot() : null;
       if (root === null || resolve(args.rootPath) !== resolve(root)) return [];
-      const records = await parseWorktreeList(root);
+      const sweep = await cachedWorktreeSweep(root);
       const out: Array<WorktreeRecord & { dirtyCount: number }> = [];
-      for (const rec of records) {
-        const status = await statusForWorktree(rec.path);
-        out.push({ ...rec, dirtyCount: status.length });
+      for (const rec of sweep.records) {
+        out.push({ ...rec, dirtyCount: sweep.statuses.get(rec.path)?.length ?? 0 });
       }
       return out;
     },
@@ -346,7 +440,7 @@ export function registerWorkspaceTreeIpc(opts: WorkspaceTreeIpcOptions): void {
       // from reading arbitrary directories.
       const root = resolveRoot ? resolveRoot() : null;
       if (root === null) return { ok: false, error: 'no active workspace' };
-      const records = await parseWorktreeList(root);
+      const records = await cachedWorktreeEnumeration(root);
       const allowed = records.some((r) => resolve(r.path) === resolve(args.path));
       if (!allowed) return { ok: false, error: 'path is not a worktree of the active repo' };
       try {
@@ -365,7 +459,7 @@ export function registerWorkspaceTreeIpc(opts: WorkspaceTreeIpcOptions): void {
     async (_event, args: { path: string }): Promise<{ ok: boolean }> => {
       const root = resolveRoot ? resolveRoot() : null;
       if (root === null) return { ok: false };
-      const records = await parseWorktreeList(root);
+      const records = await cachedWorktreeEnumeration(root);
       const allowed = records.some((r) => resolve(r.path) === resolve(args.path));
       if (!allowed) return { ok: false };
       clipboard.writeText(args.path);
@@ -387,7 +481,7 @@ export function registerWorkspaceTreeIpc(opts: WorkspaceTreeIpcOptions): void {
     ): Promise<{ ok: boolean; error?: string }> => {
       const root = resolveRoot ? resolveRoot() : null;
       if (root === null) return { ok: false, error: 'no active workspace' };
-      const records = await parseWorktreeList(root);
+      const records = await cachedWorktreeEnumeration(root);
       const target = records.find((r) => resolve(r.path) === resolve(args.path));
       if (target === undefined) return { ok: false, error: 'not a worktree of the active repo' };
       if (target.isMain) return { ok: false, error: 'cannot remove the main worktree' };
@@ -409,6 +503,7 @@ export function registerWorkspaceTreeIpc(opts: WorkspaceTreeIpcOptions): void {
           worktreePath: target.path,
           ...(args.force === true ? { force: true } : {}),
         });
+        invalidateWorktreeCache(root);
         return { ok: true };
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -451,9 +546,9 @@ export function registerWorkspaceTreeIpc(opts: WorkspaceTreeIpcOptions): void {
       // Defence: the worktree must belong to the active repo's
       // `git worktree list` set so a compromised renderer can't ask
       // us to diff an arbitrary file.
-      const allowed = await listWorktrees(root);
+      const records = await cachedWorktreeEnumeration(root);
       const wtAbs = resolve(args.worktreePath);
-      if (!allowed.some((w) => resolve(w) === wtAbs)) {
+      if (!records.some((record) => resolve(record.path) === wtAbs)) {
         return { status: null, oldText: null, newText: null };
       }
       // And the file path itself must resolve inside the worktree.

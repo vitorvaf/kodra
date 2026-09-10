@@ -70,7 +70,7 @@ export function ActivitySection({ onSelectIssue }: ActivitySectionProps) {
     let cancelled = false;
     let skipUnregistered = false;
     async function tick(): Promise<void> {
-      if (skipUnregistered) return;
+      if (skipUnregistered || (typeof document !== 'undefined' && document.hidden)) return;
       try {
         const list = await api.listRecentActivity({ limit: DEFAULT_LIMIT });
         if (cancelled) return;

@@ -675,7 +675,9 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
 
   // Catch external db writes (other process, direct sqlite3 edits) — the
   // notify-wrappers below only cover writes that go through our handlers.
-  const dbWatcher = watchDbFile(kdir.dbPath, broadcastIssueChange);
+  const dbWatcher = watchDbFile(kdir.dbPath, broadcastIssueChange, {
+    getOwnWriteRevision: store.getOwnWriteRevision,
+  });
 
   let source: IssueSource;
   try {

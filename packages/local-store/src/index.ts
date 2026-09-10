@@ -1,4 +1,4 @@
-import { openDb, type Db } from './db.js';
+import { getOwnWriteRevision as getDbOwnWriteRevision, openDb, type Db } from './db.js';
 import { migrations } from './migrations/index.js';
 import { runMigrations } from './migrations/runner.js';
 import { AgentChecksRepo } from './repos/agent-checks.js';
@@ -51,6 +51,7 @@ export interface Store {
   readonly sentryConfig: SentryConfigRepo;
   readonly sentryImports: SentryImportsRepo;
   readonly db: Db;
+  getOwnWriteRevision(): number;
   close(): void;
 }
 
@@ -95,6 +96,7 @@ function wrap(db: Db): Store {
     sentryConfig: new SentryConfigRepo(db),
     sentryImports: new SentryImportsRepo(db),
     db,
+    getOwnWriteRevision: () => getDbOwnWriteRevision(db),
     close: () => db.close(),
   };
 }

@@ -4,8 +4,8 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
-  useState,
   type ReactNode,
 } from 'react';
 import { api } from '../api.js';
@@ -28,16 +28,11 @@ export const ISSUES_CHANGED_CHANNEL = 'issues:changed';
 export const CHECKS_CHANGED_CHANNEL = 'checks:changed';
 
 export function IssuesProvider({ children }: { children: ReactNode }) {
-  const [refetchTick, setRefetchTick] = useState(0);
   const folderId = useCurrentFolderId();
-  const { data, loading, error, mutate } = useFetch(
-    `issues:open:${folderId ?? 'all'}:${refetchTick}`,
+  const { data, loading, error, mutate, refetch } = useFetch(
+    `issues:open:${folderId ?? 'all'}`,
     () => api.issues('open', folderId ?? undefined),
   );
-
-  const refetch = useCallback(async () => {
-    setRefetchTick((t) => t + 1);
-  }, []);
 
   // Coalesce bursts of change events so a flurry of label/run updates
   // results in at most one refetch per ~80ms window.
@@ -83,9 +78,14 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const value = useMemo(
+    () => ({ issues: data ?? [], loading, error, mutate, refetch }),
+    [data, loading, error, mutate, refetch],
+  );
+
   return createElement(
     IssuesContext.Provider,
-    { value: { issues: data ?? [], loading, error, mutate, refetch } },
+    { value },
     children,
   );
 }

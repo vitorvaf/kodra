@@ -7,6 +7,8 @@ export interface DbWatcher {
 export interface WatchDbFileOptions {
   /** Poll interval in ms. */
   intervalMs?: number;
+  /** Revision of writes made through this process's store connection. */
+  getOwnWriteRevision?: () => number;
 }
 
 interface FileSig {
@@ -32,10 +34,12 @@ export function watchDbFile(
   opts: WatchDbFileOptions = {},
 ): DbWatcher {
   const intervalMs = opts.intervalMs ?? 2000;
+  const getOwnWriteRevision = opts.getOwnWriteRevision;
   const walPath = `${dbPath}-wal`;
 
   let lastDb: FileSig | null = null;
   let lastWal: FileSig | null = null;
+  let lastRevision: number | null = null;
   let stopped = false;
   let timer: NodeJS.Timeout | null = null;
   let inFlight = false;
@@ -60,13 +64,22 @@ export function watchDbFile(
     inFlight = true;
     try {
       const [db, wal] = await Promise.all([snapshot(dbPath), snapshot(walPath)]);
+      const revision = getOwnWriteRevision?.() ?? null;
       const dbChanged = changed(lastDb, db);
       const walChanged = changed(lastWal, wal);
       const isFirstSnapshot = lastDb === null && lastWal === null;
       lastDb = db;
       lastWal = wal;
+      const ownWrite =
+        getOwnWriteRevision !== undefined &&
+        lastRevision !== null &&
+        revision !== lastRevision;
+      lastRevision = revision;
       if (isFirstSnapshot) return;
       if (!dbChanged && !walChanged) return;
+      // An external write immediately before an own write in this poll window
+      // is intentionally attributed to the own write.
+      if (ownWrite) return;
       try {
         onChange();
       } catch {

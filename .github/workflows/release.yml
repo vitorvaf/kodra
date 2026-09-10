@@ -63,11 +63,34 @@ jobs:
           git push origin HEAD:refs/heads/"${{ github.ref_name }}"
           git push origin "refs/tags/${{ steps.version.outputs.tag }}"
 
-  build:
+  prepare-release:
+    # GitHub allows MULTIPLE releases per tag. When the build matrix jobs
+    # publish concurrently, two electron-builder publishers can race
+    # release creation and strand each job's assets on a DIFFERENT release
+    # object for the same tag (happened on v1.2.0 and v1.2.2 — assets went
+    # missing from the tag-resolved release). Create the published release
+    # exactly once BEFORE the matrix starts so builders only ever attach.
+    if: always() && (needs.bump.result == 'success' || needs.bump.result == 'skipped')
     needs: bump
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ensure release exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.bump.outputs.tag || github.ref_name }}"
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release $TAG already exists"
+            exit 0
+          fi
+          gh release create "$TAG" -R "$GITHUB_REPOSITORY" --title "${TAG#v}" --verify-tag --notes ""
+
+  build:
+    needs: [bump, prepare-release]
     # Dispatch path: bump succeeded, build its tag. Manual tag push path:
     # bump was skipped, build github.ref directly.
-    if: always() && (needs.bump.result == 'success' || needs.bump.result == 'skipped')
+    if: always() && !failure() && !cancelled() && (needs.bump.result == 'success' || needs.bump.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:

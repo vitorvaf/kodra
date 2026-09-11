@@ -62,14 +62,44 @@ export const MODELS: ModelEntry[] = [
     contextWindow: 200_000,
     toolUse: true,
   },
-  // Codex CLI (OpenAI agentic CLI)
+  // Codex CLI (OpenAI agentic CLI). The 5.6 family is the current lineup
+  // (sol flagship / terra balanced / luna fast-cheap); gpt-5.4 & 5.4-mini
+  // were retired from Codex on 2026-08-31 and are not catalogued.
+  {
+    provider: 'codex-cli',
+    id: 'gpt-5.6-sol',
+    label: 'GPT-5.6 Sol',
+    contextWindow: 1_000_000,
+    toolUse: true,
+    recommended: true,
+  },
+  {
+    provider: 'codex-cli',
+    id: 'gpt-5.6-terra',
+    label: 'GPT-5.6 Terra',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
+  {
+    provider: 'codex-cli',
+    id: 'gpt-5.6-luna',
+    label: 'GPT-5.6 Luna',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
+  {
+    provider: 'codex-cli',
+    id: 'gpt-5.5',
+    label: 'GPT-5.5',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
   {
     provider: 'codex-cli',
     id: 'gpt-5',
     label: 'GPT-5',
     contextWindow: 400_000,
     toolUse: true,
-    recommended: true,
   },
   {
     provider: 'codex-cli',
@@ -78,19 +108,29 @@ export const MODELS: ModelEntry[] = [
     contextWindow: 400_000,
     toolUse: true,
   },
-  // Google Gemini CLI
+  // Google Gemini CLI is in maintenance for individual accounts (replaced by
+  // Antigravity CLI since June 2026). NOTE: v0.55.1 silently rewrites any
+  // `--model gemini-X.Y-flash` to gemini-3.5-flash — 3.5 is catalogued
+  // deliberately as the correctly-routing fallback.
   {
     provider: 'gemini-cli',
-    id: 'gemini-3-pro-preview',
-    label: 'Gemini 3 Pro',
+    id: 'gemini-3.1-pro-preview',
+    label: 'Gemini 3.1 Pro (Preview)',
     contextWindow: 1_000_000,
     toolUse: true,
     recommended: true,
   },
   {
     provider: 'gemini-cli',
-    id: 'gemini-3-flash-preview',
-    label: 'Gemini 3 Flash',
+    id: 'gemini-3.8-flash',
+    label: 'Gemini 3.8 Flash',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
+  {
+    provider: 'gemini-cli',
+    id: 'gemini-3.5-flash',
+    label: 'Gemini 3.5 Flash',
     contextWindow: 1_000_000,
     toolUse: true,
   },
@@ -118,6 +158,27 @@ export const MODELS: ModelEntry[] = [
     provider: 'agy-cli',
     id: 'gemini-3.1-pro-low',
     label: 'Gemini 3.1 Pro (Low)',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
+  {
+    provider: 'agy-cli',
+    id: 'gemini-3.8-flash-high',
+    label: 'Gemini 3.8 Flash (High)',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
+  {
+    provider: 'agy-cli',
+    id: 'gemini-3.8-flash-medium',
+    label: 'Gemini 3.8 Flash (Medium)',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
+  {
+    provider: 'agy-cli',
+    id: 'gemini-3.8-flash-low',
+    label: 'Gemini 3.8 Flash (Low)',
     contextWindow: 1_000_000,
     toolUse: true,
   },
@@ -165,27 +226,6 @@ export const MODELS: ModelEntry[] = [
   },
   {
     provider: 'agy-cli',
-    id: 'gemini-3.5-flash-high',
-    label: 'Gemini 3.5 Flash (High)',
-    contextWindow: 1_000_000,
-    toolUse: true,
-  },
-  {
-    provider: 'agy-cli',
-    id: 'gemini-3.5-flash-medium',
-    label: 'Gemini 3.5 Flash (Medium)',
-    contextWindow: 1_000_000,
-    toolUse: true,
-  },
-  {
-    provider: 'agy-cli',
-    id: 'gemini-3.5-flash-low',
-    label: 'Gemini 3.5 Flash (Low)',
-    contextWindow: 1_000_000,
-    toolUse: true,
-  },
-  {
-    provider: 'agy-cli',
     id: 'claude-sonnet-4-6',
     label: 'Claude Sonnet 4.6 (Antigravity)',
     contextWindow: 200_000,
@@ -216,10 +256,8 @@ export const MODELS: ModelEntry[] = [
     toolUse: true,
     recommended: true,
   },
-  // Cursor Agent CLI. `auto` lets cursor pick the strongest model
-  // available on the user's plan; the explicit ids are the most
-  // commonly-recommended cursor families. Cursor's model namespace
-  // evolves quickly — keep this list curated rather than exhaustive.
+  // Cursor Agent CLI. Slugs verified against cursor-agent --list-models Sept
+  // 2026; the namespace evolves quickly, so keep this list curated.
   {
     provider: 'cursor-cli',
     id: 'auto',
@@ -230,21 +268,55 @@ export const MODELS: ModelEntry[] = [
   },
   {
     provider: 'cursor-cli',
-    id: 'sonnet-4.6',
-    label: 'Claude Sonnet 4.6 (Cursor)',
+    id: 'composer-2.5',
+    label: 'Composer 2.5 (Cursor)',
     contextWindow: 200_000,
     toolUse: true,
   },
   {
     provider: 'cursor-cli',
-    id: 'gpt-5.4',
-    label: 'GPT-5.4 (Cursor)',
+    id: 'claude-fable-5',
+    label: 'Claude Fable 5 (Cursor)',
+    contextWindow: 200_000,
+    toolUse: true,
+  },
+  {
+    provider: 'cursor-cli',
+    id: 'claude-sonnet-5',
+    label: 'Claude Sonnet 5 (Cursor)',
+    contextWindow: 200_000,
+    toolUse: true,
+  },
+  {
+    provider: 'cursor-cli',
+    id: 'gpt-5.5',
+    label: 'GPT-5.5 (Cursor)',
     contextWindow: 400_000,
     toolUse: true,
   },
-  // GitHub Copilot CLI. The `gpt-5` id maps to Copilot's flagship
-  // routing alias; users can override per run if their plan exposes a
-  // wider list.
+  // GitHub Copilot CLI. Curated subset of Copilot's supported list (GA Sept
+  // 2026); gemini-3.8-flash was added 2026-09-03.
+  {
+    provider: 'copilot-cli',
+    id: 'gpt-5.6-sol',
+    label: 'GPT-5.6 Sol (Copilot)',
+    contextWindow: 256_000,
+    toolUse: true,
+  },
+  {
+    provider: 'copilot-cli',
+    id: 'claude-sonnet-5',
+    label: 'Claude Sonnet 5 (Copilot)',
+    contextWindow: 200_000,
+    toolUse: true,
+  },
+  {
+    provider: 'copilot-cli',
+    id: 'gemini-3.8-flash',
+    label: 'Gemini 3.8 Flash (Copilot)',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
   {
     provider: 'copilot-cli',
     id: 'gpt-5',
@@ -271,15 +343,23 @@ export const MODELS: ModelEntry[] = [
     toolUse: true,
     recommended: true,
   },
-  // Factory Droid. `droid-1` is the headline model alias; explicit
-  // upstream ids are also accepted.
+  // Factory Droid. Factory default moved to gpt-5.6-sol in droid v0.209.0
+  // (2026-09-01); `droid-1` was a product label, not a model slug. glm-5.2
+  // is a Droid Core open model (no API key).
   {
     provider: 'droid-cli',
-    id: 'droid-1',
-    label: 'Droid 1',
-    contextWindow: 200_000,
+    id: 'gpt-5.6-sol',
+    label: 'GPT-5.6 Sol (Droid)',
+    contextWindow: 1_000_000,
     toolUse: true,
     recommended: true,
+  },
+  {
+    provider: 'droid-cli',
+    id: 'glm-5.2',
+    label: 'GLM-5.2 (Droid Core)',
+    contextWindow: 200_000,
+    toolUse: true,
   },
   {
     provider: 'droid-cli',
@@ -301,6 +381,13 @@ export const MODELS: ModelEntry[] = [
   },
   // Qwen Code. The CLI accepts upstream Qwen model ids; `qwen3-coder-plus`
   // is the current flagship coding variant.
+  {
+    provider: 'qwen-cli',
+    id: 'qwen3.7-plus',
+    label: 'Qwen 3.7 Plus',
+    contextWindow: 1_000_000,
+    toolUse: true,
+  },
   {
     provider: 'qwen-cli',
     id: 'qwen3-coder-plus',

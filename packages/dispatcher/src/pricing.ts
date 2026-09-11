@@ -71,6 +71,30 @@ export const MODEL_PRICING: Readonly<Record<string, ModelPricing>> = Object.free
   },
   // OpenAI GPT-5 family — used by codex-cli. These drive the actual cost
   // computation since codex emits tokens but no cost.
+  'gpt-5.6-sol': {
+    inputUsdPerMtok: 4,
+    outputUsdPerMtok: 20,
+    asOf: '2026-09-10',
+    source: 'https://developers.openai.com/api/docs/pricing',
+  },
+  'gpt-5.6-terra': {
+    inputUsdPerMtok: 2,
+    outputUsdPerMtok: 12,
+    asOf: '2026-09-10',
+    source: 'https://developers.openai.com/api/docs/pricing',
+  },
+  'gpt-5.6-luna': {
+    inputUsdPerMtok: 0.2,
+    outputUsdPerMtok: 1.2,
+    asOf: '2026-09-10',
+    source: 'https://developers.openai.com/api/docs/pricing',
+  },
+  'gpt-5.5': {
+    inputUsdPerMtok: 5,
+    outputUsdPerMtok: 30,
+    asOf: '2026-09-10',
+    source: 'https://developers.openai.com/api/docs/pricing',
+  },
   'gpt-5': {
     inputUsdPerMtok: 1.25,
     outputUsdPerMtok: 10,

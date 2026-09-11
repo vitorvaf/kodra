@@ -7,8 +7,16 @@ export const UPDATER_GET_STATE_CHANNEL = 'updater:get-state' as const;
 export const UPDATER_CHECK_CHANNEL = 'updater:check' as const;
 export const UPDATER_INSTALL_CHANNEL = 'updater:install' as const;
 
-const INITIAL_CHECK_DELAY_MS = 30_000;
-const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1_000;
+function envDuration(name: string, fallback: number): number {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+const INITIAL_CHECK_DELAY_MS = envDuration('KODRA_UPDATE_INITIAL_DELAY_MS', 30_000);
+const CHECK_INTERVAL_MS = Math.max(
+  60_000,
+  envDuration('KODRA_UPDATE_CHECK_INTERVAL_MS', 30 * 60 * 1_000),
+);
 
 let initialized = false;
 let mainWindowGetter: (() => BrowserWindow | null | undefined) | null = null;
@@ -78,6 +86,9 @@ export async function checkForUpdates(): Promise<void> {
   try {
     setState('checking');
     await autoUpdater.checkForUpdates();
+    if (latestState.status === 'available' && autoUpdater.autoDownload) {
+      void autoUpdater.downloadUpdate().catch(reportError);
+    }
   } catch (error) {
     reportError(error);
   }

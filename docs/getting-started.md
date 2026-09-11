@@ -20,7 +20,10 @@ curl -fsSL https://raw.githubusercontent.com/vitorvaf/kodra/main/scripts/install
 Installs the latest AppImage to `~/.local/share/kodra/` and exposes it as
 `kodra` on `~/.local/bin`. In WSL the UI requires WSLg (built into
 Windows 11 and updated Windows 10); on fresh systems without `libfuse2`
-the installer uses an extract-and-run wrapper automatically.
+the installer uses an extract-and-run wrapper automatically. This fallback
+disables in-app auto-updates because the app runs from a temporary extraction;
+run `sudo apt install libfuse2` and re-run the installer to switch to a
+symlink and enable auto-updates.
 
 Artifact names, if you prefer to download manually:
 

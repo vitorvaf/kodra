@@ -7,8 +7,8 @@
 # - Downloads the latest AppImage release into ~/.local/share/kodra/
 # - Exposes it as `kodra` on ~/.local/bin (symlink, or an extract-and-run
 #   wrapper when libfuse2 is missing — common on fresh WSL installs)
-# - In-place auto-updates keep working either way (electron-updater
-#   replaces the AppImage file itself)
+# - The symlink keeps in-place auto-updates working; the extract-and-run
+#   wrapper runs from a temporary extraction and cannot self-update
 set -euo pipefail
 
 REPO="vitorvaf/kodra"
@@ -49,14 +49,25 @@ curl -fL --progress-bar -o "$APP" "$URL"
 chmod +x "$APP"
 
 rm -f "$BIN_DIR/kodra"
-if ldconfig -p 2>/dev/null | grep -q libfuse2; then
+USED_WRAPPER=false
+if ldconfig -p 2>/dev/null | grep -q 'libfuse\.so\.2'; then
   ln -s "$APP" "$BIN_DIR/kodra"
 else
-  # No libfuse2 (typical on fresh WSL): extract-and-run needs no FUSE.
-  # Slower to start; `sudo apt install libfuse2` enables the fast path.
-  printf '#!/usr/bin/env bash\nexec %q --appimage-extract-and-run "$@"\n' "$APP" >"$BIN_DIR/kodra"
-  chmod +x "$BIN_DIR/kodra"
-  say "libfuse2 not found — using extract-and-run wrapper (tip: sudo apt install libfuse2 for faster startup)."
+  if command -v apt-get >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+    say "Attempting to install libfuse2 for the fast self-updating path..."
+    sudo apt-get install -y libfuse2 || true
+  fi
+
+  if ldconfig -p 2>/dev/null | grep -q 'libfuse\.so\.2'; then
+    ln -s "$APP" "$BIN_DIR/kodra"
+  else
+    # No libfuse2 (typical on fresh WSL): extract-and-run needs no FUSE.
+    printf '#!/usr/bin/env bash\nexec %q --appimage-extract-and-run "$@"\n' "$APP" >"$BIN_DIR/kodra"
+    chmod +x "$BIN_DIR/kodra"
+    USED_WRAPPER=true
+    say "WARNING: extract-and-run mode DISABLES in-app auto-updates (the app cannot replace its own AppImage from a temp extraction)."
+    say "To enable auto-updates later: sudo apt install libfuse2 && re-run this installer (it will switch to a symlink)."
+  fi
 fi
 
 case ":$PATH:" in
@@ -65,4 +76,8 @@ case ":$PATH:" in
 esac
 
 say "Done: kodra $VER installed ($BIN_DIR/kodra)"
-say "Run 'kodra' to start. New versions download in the background and install when you quit the app."
+if [ "$USED_WRAPPER" = true ]; then
+  say "Run 'kodra' to start. Updates require re-running the installer after installing libfuse2 (or switching to the symlink)."
+else
+  say "Run 'kodra' to start. New versions download in the background and install when you quit the app."
+fi

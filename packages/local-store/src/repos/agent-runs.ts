@@ -283,6 +283,20 @@ export class AgentRunsRepo {
     return row ? rowToAgentRun(row) : null;
   }
 
+  findLatestResumableForChatSession(chatSessionId: ChatSessionId, provider?: string): AgentRun | null {
+    const row = this.db
+      .prepare(
+        `SELECT * FROM agent_runs WHERE chat_session_id = ? AND session_id IS NOT NULL${
+          provider !== undefined ? ' AND provider = ?' : ''
+        }
+         ORDER BY id DESC LIMIT 1`,
+      )
+      .get(...(provider !== undefined ? [chatSessionId, provider] : [chatSessionId])) as
+      | AgentRunRow
+      | undefined;
+    return row ? rowToAgentRun(row) : null;
+  }
+
   listByThread(threadId: ThreadId): AgentRun[] {
     const rows = this.db
       .prepare('SELECT * FROM agent_runs WHERE thread_id = ? ORDER BY id')

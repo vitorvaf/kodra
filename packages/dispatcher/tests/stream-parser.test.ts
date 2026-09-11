@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { makeLineSplitter, parseStreamLine } from '../src/stream-parser.js';
+import { detectRateLimit, makeLineSplitter, parseStreamLine } from '../src/stream-parser.js';
 
 const ASSISTANT_TEXT = JSON.stringify({
   type: 'assistant',
@@ -210,6 +210,25 @@ describe('parseStreamLine', () => {
       message: { content: [{ type: 'text', text: '' }] },
     });
     expect(parseStreamLine(empty)).toEqual([]);
+  });
+});
+
+describe('detectRateLimit', () => {
+  it('classifies session limits as quota rate limits', () => {
+    expect(
+      detectRateLimit("You've hit your session limit · resets 1:40am (America/Sao_Paulo)"),
+    ).toMatchObject({ kind: 'rate_limit', reason: 'quota' });
+  });
+
+  it('classifies usage limits as quota rate limits', () => {
+    expect(detectRateLimit('Usage limit reached – upgrade your plan')).toMatchObject({
+      kind: 'rate_limit',
+      reason: 'quota',
+    });
+  });
+
+  it('does not classify text without a complete limit phrase', () => {
+    expect(detectRateLimit('session started')).toBeNull();
   });
 });
 

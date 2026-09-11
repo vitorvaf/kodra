@@ -244,6 +244,10 @@ export function makeStubSupervisor(store: Store): StubSupervisor {
       for (const s of subs) s.onStatus(run.status);
       return run;
     },
+    async recallMemoryForChat(input) {
+      calls.push({ type: 'recallMemoryForChat', args: input });
+      return null;
+    },
     async stop(runId) {
       calls.push({ type: 'stop', args: runId });
       const stopped = store.agentRuns.update(runId, {

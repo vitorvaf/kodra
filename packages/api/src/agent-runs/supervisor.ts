@@ -274,6 +274,7 @@ export interface AgentSupervisor {
   resume(input: ResumeRunInput): Promise<AgentRun>;
   startChat(input: StartChatInput): Promise<AgentRun>;
   resumeChat(input: ResumeChatInput): Promise<AgentRun>;
+  recallMemoryForChat(input: { query: string; budgetUsd?: number | null }): Promise<string | null>;
   stop(runId: number): Promise<AgentRun>;
   getRun(runId: number): AgentRun | null;
   listEvents(runId: number, sinceSeq?: number): AgentEvent[];
@@ -848,6 +849,17 @@ export async function createSupervisor(
     }
   }
 
+  async function recallMemoryForChat(input: {
+    query: string;
+    budgetUsd?: number | null;
+  }): Promise<string | null> {
+    return recallMemoryBlock({
+      query: input.query,
+      repoPath: resolveRepoPath(),
+      budgetUsd: input.budgetUsd ?? null,
+    });
+  }
+
   /** Pull top-N learnings for the run's repo and format them as a system
    *  block. Bumps use_count on the injected entries so the recency-decayed
    *  ranker rotates between them over time. Returns null when the repo has
@@ -1115,12 +1127,40 @@ export async function createSupervisor(
         invokeRunCleanup(run.id, entry);
         const project = entry.memoryProject ?? runMemoryProjects.get(run.id);
         const issueNumber = entry.issueNumber ?? runIssueNumbers.get(run.id);
-        if (status === 'complete' && updated.sessionId && project && issueNumber !== undefined) {
+        const hadContent =
+          entry.costSoFarUsd > 0 ||
+          (summary.result?.tokenUsage?.output ?? 0) > 0 ||
+          (entry.latestResultText ?? '').trim().length > 0 ||
+          entry.specText.trim().length > 0;
+        const interrupted =
+          project &&
+          hadContent &&
+          (status === 'failed' || status === 'stopped');
+        const completed =
+          status === 'complete' && updated.sessionId && project && issueNumber !== undefined;
+        if (completed || interrupted) {
           void Promise.resolve(
             (async () => {
               try {
                 const memory = opts.memory;
                 if (!memory?.getConfig()?.enabled) return;
+                if (interrupted) {
+                  await memory.client.save({
+                    content:
+                      `Run #${updated.id}${issueNumber !== undefined ? ` (issue #${issueNumber})` : ''} ` +
+                      `${status === 'failed' ? 'failed' : 'was stopped'} mid-work. ` +
+                      `Reason: ${(exitReason ?? 'unknown').slice(0, 300)}. ` +
+                      `Branch: ${updated.branchName ?? 'n/a'}.`,
+                    namespace: project,
+                    kind: 'run-summary',
+                    metadata: {
+                      runId: updated.id,
+                      branchName: updated.branchName,
+                      interrupted: true,
+                    },
+                  });
+                  return;
+                }
                 const session = await memory.client.getSession(updated.sessionId!);
                 if (session === null || !session.hasContent) {
                   await memory.client.save({
@@ -1259,6 +1299,10 @@ export async function createSupervisor(
         ? { chatSessionId: input.chatSessionId }
         : {}),
     });
+    runMemoryProjects.set(
+      run.id,
+      memoryNamespace({ workspaceId: 'default', repoId: resolveRepoPath() }),
+    );
     const budget = resolveBudget(input.costBudgetUsd);
     const provider = resolveProvider(input.provider);
     run = store.agentRuns.update(run.id, {
@@ -1271,15 +1315,21 @@ export async function createSupervisor(
     const composed = composeSystemPrompt(run.id, translated.appendSystemPrompt);
     persistBriefing(run.id, composed.briefing);
     applyAcpWorkspaceCommand();
-    const handle = startAgent({
-      cwd: resolveRepoPath(),
-      prompt: translated.prompt,
-      appendSystemPrompt: composed.prompt,
-      ...(input.model !== undefined ? { model: input.model } : {}),
-      provider,
-      ...(input.extraArgs !== undefined ? { extraArgs: input.extraArgs } : {}),
-      ...(input.env !== undefined ? { env: input.env } : {}),
-    });
+    let handle: AgentRunHandle;
+    try {
+      handle = startAgent({
+        cwd: resolveRepoPath(),
+        prompt: translated.prompt,
+        appendSystemPrompt: composed.prompt,
+        ...(input.model !== undefined ? { model: input.model } : {}),
+        provider,
+        ...(input.extraArgs !== undefined ? { extraArgs: input.extraArgs } : {}),
+        ...(input.env !== undefined ? { env: input.env } : {}),
+      });
+    } catch (err) {
+      runMemoryProjects.delete(run.id);
+      throw err;
+    }
     run = store.agentRuns.update(run.id, {
       status: 'running',
       pid: handle.pid,
@@ -1686,6 +1736,7 @@ export async function createSupervisor(
     resume,
     startChat,
     resumeChat,
+    recallMemoryForChat,
     stop,
     getRun,
     listEvents,

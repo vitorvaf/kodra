@@ -4,10 +4,16 @@ import { openStoreInMemory, type Store } from '../src/index.js';
 describe('AgentRunsRepo', () => {
   let store: Store;
   let threadId: number;
+  let chatSessionId: number;
 
   beforeEach(() => {
     store = openStoreInMemory();
     threadId = store.threads.create({ repoOwner: 'a', repoName: 'b', issueNumber: 1 }).id;
+    const conversation = store.chatConversations.create({ title: 'Chat' });
+    chatSessionId = store.chatSessions.create({
+      conversationId: conversation.id,
+      agentProvider: 'claude-code',
+    }).id;
   });
 
   afterEach(() => {
@@ -99,6 +105,38 @@ describe('AgentRunsRepo', () => {
     const r2 = store.agentRuns.create({ threadId });
     store.agentRuns.update(r2.id, { status: 'complete', endedAt: new Date().toISOString() });
     expect(store.agentRuns.findLatestForThread(threadId)?.id).toBe(r2.id);
+  });
+
+  describe('findLatestResumableForChatSession', () => {
+    it('returns the most recent row with a session id', () => {
+      const older = store.agentRuns.create({ threadId, chatSessionId });
+      store.agentRuns.update(older.id, { sessionId: 'older-session' });
+      const noSession = store.agentRuns.create({ threadId, chatSessionId });
+      const newer = store.agentRuns.create({ threadId, chatSessionId });
+      store.agentRuns.update(newer.id, { sessionId: 'newer-session' });
+
+      expect(store.agentRuns.findLatestResumableForChatSession(chatSessionId)?.id).toBe(newer.id);
+      expect(store.agentRuns.findById(noSession.id)?.sessionId).toBeNull();
+    });
+
+    it('filters resumable rows by provider', () => {
+      const claude = store.agentRuns.create({ threadId, chatSessionId });
+      store.agentRuns.update(claude.id, { provider: 'claude-code', sessionId: 'claude-session' });
+      const agy = store.agentRuns.create({ threadId, chatSessionId });
+      store.agentRuns.update(agy.id, { provider: 'agy-cli', sessionId: 'agy-session' });
+
+      expect(
+        store.agentRuns.findLatestResumableForChatSession(chatSessionId, 'claude-code')?.id,
+      ).toBe(claude.id);
+      expect(
+        store.agentRuns.findLatestResumableForChatSession(chatSessionId, 'agy-cli')?.id,
+      ).toBe(agy.id);
+    });
+
+    it('returns null when no resumable row exists', () => {
+      store.agentRuns.create({ threadId, chatSessionId });
+      expect(store.agentRuns.findLatestResumableForChatSession(chatSessionId)).toBeNull();
+    });
   });
 
   it('listOrphans surfaces active runs with a recorded pid', () => {

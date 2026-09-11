@@ -237,13 +237,30 @@ describe('agent memory flow', () => {
     expect(memory.saves).toHaveLength(0);
   });
 
-  it('does not checkpoint non-complete runs', async () => {
+  it('checkpoints a failed run with content as mid-work', async () => {
+    const store = openStoreInMemory();
+    stores.push(store);
+    const memory = makeMemoryClient();
+    const { supervisor, handles } = await buildSupervisor(store, memory.memory);
+    const run = await supervisor.start({ threadId: makeThread(store), issueNumber: 7, prompt: 'Fail this task' });
+    handles[0]!.emitEvent({ kind: 'text', text: 'Started implementing the requested change.' });
+    handles[0]!.emitClose(1);
+    await handles[0]!.done;
+    await vi.waitFor(() => expect(memory.saves).toHaveLength(1));
+
+    expect(memory.saves[0]).toMatchObject({
+      kind: 'run-summary',
+      content: expect.stringContaining(`Run #${run.id} (issue #7) failed mid-work`),
+      metadata: { runId: run.id, interrupted: true },
+    });
+  });
+
+  it('does not checkpoint a trivial interrupted run without content', async () => {
     const store = openStoreInMemory();
     stores.push(store);
     const memory = makeMemoryClient({ session: { hasContent: false } });
     const { supervisor, handles } = await buildSupervisor(store, memory.memory);
     await supervisor.start({ threadId: makeThread(store), issueNumber: 7, prompt: 'Fail this task' });
-    handles[0]!.emitEvent({ kind: 'session', sessionId: 'session-failed', model: null });
     handles[0]!.emitClose(1);
     await handles[0]!.done;
     await Promise.resolve();

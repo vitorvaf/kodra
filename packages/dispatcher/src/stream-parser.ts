@@ -169,6 +169,7 @@ const RATE_LIMIT_PATTERNS: Array<{ kind: RateLimitKind; re: RegExp }> = [
   { kind: 'overloaded', re: /overloaded[_ ]error|"overloaded"|\boverloaded\b/i },
   { kind: 'rate_limit', re: /rate[_ ]limit[_ ]?error|\brate[- ]?limit(ed|ing)?\b|\b429\b|too[_ ]many[_ ]requests/i },
   { kind: 'quota', re: /quota[_ ]exceeded|\bquota\b/i },
+  { kind: 'quota', re: /\bsession[ _-]?limit\b|\busage[ _-]?limit\b/i },
 ];
 
 const RETRY_AFTER_PATTERNS: RegExp[] = [

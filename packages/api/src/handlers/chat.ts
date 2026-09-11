@@ -401,7 +401,7 @@ export async function postMessage(
     // Active/latest are now scoped to the session so two parallel
     // sessions on the same conversation can run independently.
     const active = deps.store.agentRuns.findActiveForChatSession(session.id);
-    const latest = active ?? deps.store.agentRuns.findLatestForChatSession(session.id);
+    let latest = active ?? deps.store.agentRuns.findLatestForChatSession(session.id);
     // If the user explicitly picked a provider that doesn't match the latest
     // run's provider, treat it as a provider switch and start a fresh run
     // instead of silently resuming the old session under the wrong CLI.
@@ -411,6 +411,37 @@ export async function postMessage(
       latest !== null &&
       latest.provider !== null &&
       latest.provider !== parsed.provider;
+    let lostSessionContext = switchingProvider && latest !== null;
+    // Recovery: the latest run may have died before the CLI created a
+    // session (claude-code exits in seconds on "You've hit your session
+    // limit", before the init event carries a session id). Without this,
+    // every subsequent message starts a brand-new run and the session's
+    // prior context is lost. Fall back to the most recent run in this
+    // session that still holds a CLI session id for the provider the user
+    // intends to run.
+    let resumeOverride: AgentRun | null = null;
+    if (!switchingProvider && active === null && latest !== null && latest.sessionId === null) {
+      const intended = (parsed.provider ?? session.agentProvider) as AgentRunProvider;
+      const candidate = deps.store.agentRuns.findLatestResumableForChatSession(
+        session.id,
+        intended,
+      );
+      if (candidate !== null) {
+        if (latest.provider === null || latest.provider === intended) {
+          // Graft the CLI session id onto the latest row so it stays the
+          // session's live row (Last-run panel + future resume path).
+          deps.store.agentRuns.update(latest.id, { sessionId: candidate.sessionId });
+          latest = deps.store.agentRuns.findById(latest.id) ?? latest;
+        } else {
+          // Latest row is a dead run of a different provider (e.g. a one-off
+          // claude attempt in an agy session). Resume the provider-matching
+          // row directly; resumeChat reuses that row's own provider.
+          resumeOverride = candidate;
+        }
+      } else {
+        lostSessionContext = true;
+      }
+    }
     const willResume =
       !switchingProvider &&
       ((active !== null && active.status === 'awaiting_input') ||
@@ -419,10 +450,34 @@ export async function postMessage(
     if (active !== null && !willResume) {
       throw alreadyActive(`agent run #${active.id} is already ${active.status}`, active);
     }
-    const appendSystemPrompt =
-      parsed.appendSystemPrompt !== undefined
-        ? `${SYSTEM_PROMPT_DEFAULT}\n\n${parsed.appendSystemPrompt}`
-        : SYSTEM_PROMPT_DEFAULT;
+    let recoveryBlock: string | null = null;
+    if (lostSessionContext && active === null && !willResume) {
+      const history = deps.store.messages
+        .listBySession(session.id)
+        .slice(-20)
+        .map((m) => `[${m.role}] ${m.body.replace(/\s+/g, ' ').trim().slice(0, 500)}`)
+        .join('\n');
+      const lastRunLine =
+        latest !== null
+          ? `Last run: #${latest.id} ${latest.provider ?? 'unknown provider'} status=${latest.status}${latest.exitReason ? ` reason: ${latest.exitReason.slice(0, 300)}` : ''}`
+          : null;
+      const recall = await deps.supervisor.recallMemoryForChat({ query: parsed.body });
+      recoveryBlock = [
+        'SESSION_RECOVERY — the previous agent session in this conversation could not be resumed (e.g. the agent CLI hit its usage limit before its session id was recorded). Continue the work from where it stopped, using the context below; do not restart from scratch.',
+        history.length > 0 ? `Recent conversation:\n${history}` : null,
+        lastRunLine,
+        recall,
+      ]
+        .filter((part): part is string => part !== null && part.length > 0)
+        .join('\n\n');
+    }
+    const appendSystemPrompt = [
+      SYSTEM_PROMPT_DEFAULT,
+      recoveryBlock,
+      parsed.appendSystemPrompt,
+    ]
+      .filter((part): part is string => part !== null && part !== undefined && part.length > 0)
+      .join('\n\n');
     // Resolve the provider that will actually be spawned *before* preparing
     // the MCP wiring — claude wants `--mcp-config <file>`, codex wants
     // `-c mcp_servers.<name>.*` overrides, and passing the wrong shape
@@ -445,7 +500,14 @@ export async function postMessage(
       }
     }
     try {
-      if (willResume && latest !== null) {
+      if (resumeOverride !== null) {
+        await deps.supervisor.resumeChat({
+          runId: resumeOverride.id,
+          prompt: parsed.body,
+          appendSystemPrompt,
+          ...(toolPrep ? { extraArgs: toolPrep.extraArgs, env: toolPrep.env } : {}),
+        });
+      } else if (willResume && latest !== null) {
         await deps.supervisor.resumeChat({
           runId: latest.id,
           prompt: parsed.body,

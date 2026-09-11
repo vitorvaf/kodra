@@ -1021,6 +1021,12 @@
   margin: 4px 4px;
   background: var(--hairline-soft);
 }
+.kb-rail-account-version {
+  padding: 7px 9px 3px;
+  color: var(--ink-3);
+  font-size: 11px;
+  text-align: left;
+}
 
 /* ---------- Activity section ---------- */
 .kb-rail-activity {

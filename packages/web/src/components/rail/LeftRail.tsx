@@ -210,7 +210,23 @@ export function LeftRail({
   const ws = useWorkspace();
   const { issues } = useIssues();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const bridge = getBridge();
+    if (!bridge) return;
+    let alive = true;
+    bridge
+      .updaterGetState()
+      .then((state) => {
+        if (alive) setAppVersion(state.currentVersion);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!accountMenuOpen) return;
@@ -428,6 +444,7 @@ export function LeftRail({
               <span className="kb-rail-account-icon" aria-hidden>⚙</span>
               Settings
             </button>
+            <div className="kb-rail-account-version">Kodra{appVersion ? ` v${appVersion}` : ''}</div>
           </div>
         ) : null}
       </div>

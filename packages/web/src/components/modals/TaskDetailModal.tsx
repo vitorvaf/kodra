@@ -16,7 +16,7 @@ import {
   SessionDropdown,
   useActiveSessionId,
 } from '../chat/SessionDropdown.js';
-import { PROVIDER_LABELS } from '../forms/ModelPicker.js';
+import { ModelPicker, PROVIDER_LABELS, type ModelPickerValue } from '../forms/ModelPicker.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useFocusTrap } from '../../hooks/useFocusTrap.js';
 import { useFocusedRepo } from '../../hooks/useFocusedRepo.js';
@@ -525,6 +525,8 @@ function ReplyFooter({
   onSent: () => void;
 }) {
   const [body, setBody] = useState('');
+  const [modelSelection, setModelSelection] = useState<ModelPickerValue | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingComments, setPendingComments] = useState<ReviewCommentPayload[]>([]);
@@ -775,6 +777,10 @@ function ReplyFooter({
         setPendingComments([]);
       }
       const postOpts: Parameters<typeof api.postMessage>[2] = {};
+      if (modelSelection) {
+        postOpts.model = modelSelection.model;
+        postOpts.provider = modelSelection.provider;
+      }
       if (focusedRepoId !== null) postOpts.repoId = focusedRepoId;
       if (activeSessionId !== null) postOpts.chatSessionId = activeSessionId;
       await api.postMessage(issueNumber, messageBody, postOpts);
@@ -812,6 +818,19 @@ function ReplyFooter({
               await api.deleteThreadChatSession(id);
             }}
           />
+        </div>
+      ) : null}
+      {showAdvanced ? (
+        <div className="kb-chat-foot-advanced">
+          <label className="kb-chat-foot-field">
+            <span className="kb-chat-foot-field-label">Model override</span>
+            <ModelPicker
+              value={modelSelection}
+              onChange={setModelSelection}
+              agentRunsOnly
+              className="kb-chat-model-picker"
+            />
+          </label>
         </div>
       ) : null}
       <div className="kb-reply-input-wrap">
@@ -856,6 +875,17 @@ function ReplyFooter({
           {pendingComments.length} comment{pendingComments.length === 1 ? '' : 's'}
         </span>
       ) : null}
+      <button
+        type="button"
+        className="kb-chat-foot-opts-toggle"
+        onClick={() => setShowAdvanced((v) => !v)}
+        aria-expanded={showAdvanced}
+      >
+        <span className={`kb-chat-foot-opts-chev${showAdvanced ? ' open' : ''}`} aria-hidden>
+          ›
+        </span>
+        {showAdvanced ? 'Hide options' : 'Options'}
+      </button>
       <button
         type="button"
         className="kb-btn primary"

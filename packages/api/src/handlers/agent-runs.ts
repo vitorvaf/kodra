@@ -497,12 +497,11 @@ export async function promotePr(
   args: PromotePrArgs,
 ): Promise<PromotePrResult> {
   const parsed = parseArgs(promotePrSchema, args);
-  if (deps.config.mode !== 'github') {
-    throw badRequest('PR creation requires github mode');
-  }
   const openDraftPR = deps.source.openDraftPR;
   if (typeof openDraftPR !== 'function') {
-    throw badRequest('source does not support PR creation');
+    throw badRequest(
+      'PR creation requires a GitHub-hosted repository (no GitHub remote or token available for this workspace)',
+    );
   }
   const repoPath = deps.config.repoPath;
   if (!repoPath) throw badRequest('repoPath is not configured');
@@ -541,7 +540,9 @@ export async function promotePr(
     ...(finalBody ? { body: finalBody } : {}),
     head: run.branchName,
     base,
-    ...(typeof issue.number === 'number' ? { issueNumber: issue.number } : {}),
+    ...(deps.config.mode === 'github' && typeof issue.number === 'number'
+      ? { issueNumber: issue.number }
+      : {}),
   });
   // PR open is a "promoted" signal too — the user has chosen to land this
   // run via review rather than direct commit. Monotonic upgrade.

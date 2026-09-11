@@ -1,9 +1,11 @@
+import { execFile } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { basename, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { monitorEventLoopDelay } from 'node:perf_hooks';
+import { promisify } from 'node:util';
 import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron';
 import {
   createAgentMemoryClient,
@@ -32,7 +34,12 @@ import {
   type SuggestFeatureFn,
   type ToolBridge,
 } from '@kanbots/api';
-import { GitHubClient, resolveGitHubToken, type IssueSource } from '@kanbots/core';
+import {
+  GitHubClient,
+  parseGitHubRemoteUrl,
+  resolveGitHubToken,
+  type IssueSource,
+} from '@kanbots/core';
 import {
   createComposer,
   createPrDescriptionDrafter,
@@ -202,6 +209,8 @@ import {
   UPDATER_GET_STATE_CHANNEL,
   UPDATER_INSTALL_CHANNEL,
 } from './updater.js';
+
+const execFileAsync = promisify(execFile);
 
 interface ActiveWorkspace {
   repoPath: string;
@@ -555,10 +564,37 @@ async function buildSource(
     { owner: 'local', repo: config.name, mode: 'local' },
     repoPath,
   );
-  return new LocalIssueSource({
+  const source = new LocalIssueSource({
     repo: store.localIssues,
     authorLogin: config.authorLogin,
     folderId: currentFolder.id,
+  });
+  // Local cards can still create GitHub PRs when this workspace's git origin is hosted there.
+  let remoteUrl: string;
+  try {
+    ({ stdout: remoteUrl } = await execFileAsync('git', ['remote', 'get-url', 'origin'], {
+      cwd: repoPath,
+    }));
+  } catch {
+    return source;
+  }
+  const remote = parseGitHubRemoteUrl(remoteUrl);
+  if (!remote) return source;
+  let token: string;
+  try {
+    token = await resolveGitHubToken();
+  } catch {
+    return source;
+  }
+  const gh = new GitHubClient({
+    owner: remote.owner,
+    repo: remote.repo,
+    token,
+    cache: store.httpCache,
+  });
+  return Object.assign(source, {
+    openDraftPR: (input: Parameters<GitHubClient['openDraftPR']>[0]) => gh.openDraftPR(input),
+    findOpenPullForBranch: (branch: string) => gh.findOpenPullForBranch(branch),
   });
 }
 

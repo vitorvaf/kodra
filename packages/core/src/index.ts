@@ -20,6 +20,7 @@ export type {
 export { resolveGitHubToken, TOKEN_FILE_PATH, type AuthDeps } from './auth.js';
 export type { IssueSource } from './issue-source.js';
 export { GitHubRequestError, KanbotsAuthError, KanbotsError } from './errors.js';
+export { parseGitHubRemoteUrl } from './github-remote.js';
 export {
   AGENT_LABELS,
   AGENT_PREFIX,

@@ -13,6 +13,7 @@ import type {
   PlannerEvent,
   SentryAnalyzerFn,
   SuggestFeatureFn,
+  WorkspaceMemory,
 } from '../bridge.js';
 
 export type {
@@ -69,6 +70,11 @@ export interface WorkspaceHouseRulesAccessor {
   set(input: { houseRules: string | null }): Promise<void> | void;
 }
 
+export interface WorkspaceMemoryAccessor {
+  get(): WorkspaceMemory;
+  set(input: { enabled: boolean }): Promise<void> | void;
+}
+
 export interface WorkspaceAcpCommandAccessor {
   get(): { acpCommand: string | null };
   set(input: { acpCommand: string | null }): Promise<void> | void;
@@ -94,6 +100,7 @@ export interface HandlerDeps {
   providers: ProvidersRuntime;
   budgets?: WorkspaceBudgetsAccessor;
   houseRules?: WorkspaceHouseRulesAccessor;
+  memorySettings?: WorkspaceMemoryAccessor;
   acpCommand?: WorkspaceAcpCommandAccessor;
   revealPath?: (path: string) => Promise<void>;
   chatTools?: ChatToolRuntime;

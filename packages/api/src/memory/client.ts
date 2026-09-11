@@ -28,12 +28,32 @@ export interface SaveMemoryInput {
   metadata?: Record<string, unknown>;
 }
 
+export interface SessionStartInput {
+  sessionId: string;
+  project: string;
+  cwd: string;
+  title?: string | null;
+  agentId?: string;
+}
+
+export interface ObserveInput {
+  sessionId: string;
+  project: string;
+  cwd: string;
+  hookType: string;
+  data?: Record<string, unknown>;
+  timestamp?: string;
+}
+
 export interface AgentMemoryClient {
   health(): Promise<boolean>;
   version(): Promise<string | null>;
   smartSearch(input: SmartSearchInput): Promise<MemoryHit[]>;
   getSession(sessionId: string): Promise<{ hasContent: boolean } | null>;
   save(input: SaveMemoryInput): Promise<boolean>;
+  sessionStart(input: SessionStartInput): Promise<boolean>;
+  observe(input: ObserveInput): Promise<boolean>;
+  sessionEnd(sessionId: string): Promise<boolean>;
 }
 
 const ENDPOINTS = {
@@ -43,6 +63,9 @@ const ENDPOINTS = {
   smartSearch: '/agentmemory/smart-search',
   sessions: '/agentmemory/sessions',
   remember: '/agentmemory/remember',
+  sessionStart: '/agentmemory/session/start',
+  observe: '/agentmemory/observe',
+  sessionEnd: '/agentmemory/session/end',
 } as const;
 
 const DEFAULT_TIMEOUT_MS = 1500;
@@ -227,6 +250,7 @@ export function createAgentMemoryClient(config: MemoryClientConfig): AgentMemory
           headers: { ...authHeaders, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content: input.content,
+            ...(input.sessionId ? { sessionId: input.sessionId } : {}),
             ...(input.kind ? { type: input.kind } : {}),
             ...(input.namespace ? { project: input.namespace } : {}),
             ...(metadata?.concepts ? { concepts: metadata.concepts } : {}),
@@ -236,6 +260,61 @@ export function createAgentMemoryClient(config: MemoryClientConfig): AgentMemory
         return true;
       } catch (error) {
         warnFailure('save', error);
+        return false;
+      }
+    },
+
+    async sessionStart(input: SessionStartInput): Promise<boolean> {
+      try {
+        await request(endpointUrl(config.baseUrl, ENDPOINTS.sessionStart), timeoutMs, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: input.sessionId,
+            project: input.project,
+            cwd: input.cwd,
+            ...(input.title ? { title: input.title } : {}),
+            ...(input.agentId ? { agentId: input.agentId } : {}),
+          }),
+        });
+        return true;
+      } catch (error) {
+        warnFailure('sessionStart', error);
+        return false;
+      }
+    },
+
+    async observe(input: ObserveInput): Promise<boolean> {
+      try {
+        await request(endpointUrl(config.baseUrl, ENDPOINTS.observe), timeoutMs, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hookType: input.hookType,
+            sessionId: input.sessionId,
+            project: input.project,
+            cwd: input.cwd,
+            timestamp: input.timestamp ?? new Date().toISOString(),
+            data: input.data ?? {},
+          }),
+        });
+        return true;
+      } catch (error) {
+        warnFailure('observe', error);
+        return false;
+      }
+    },
+
+    async sessionEnd(sessionId: string): Promise<boolean> {
+      try {
+        await request(endpointUrl(config.baseUrl, ENDPOINTS.sessionEnd), timeoutMs, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+        return true;
+      } catch (error) {
+        warnFailure('sessionEnd', error);
         return false;
       }
     },

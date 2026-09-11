@@ -18,6 +18,7 @@ import type {
   WorkspaceBudgets,
   WorkspaceFolderPayload,
   WorkspaceHouseRules,
+  WorkspaceMemory,
   WorkspaceRepoPayload,
   WorkspaceRepoStatus,
 } from '../bridge.js';
@@ -140,6 +141,34 @@ export async function setHouseRules(
   }
   await deps.houseRules.set({ houseRules: next });
   return deps.houseRules.get();
+}
+
+const setMemorySchema = z
+  .object({
+    enabled: z.boolean(),
+  })
+  .strict();
+
+const DEFAULT_MEMORY_URL = 'http://localhost:3111';
+
+export async function getMemory(deps: HandlerDeps): Promise<WorkspaceMemory> {
+  if (deps.memorySettings) return deps.memorySettings.get();
+  const current = deps.memory?.getConfig();
+  return {
+    enabled: current?.enabled ?? false,
+    url: current?.url ?? DEFAULT_MEMORY_URL,
+    secret: current?.secret ?? null,
+  };
+}
+
+export async function setMemory(
+  deps: HandlerDeps,
+  args: { enabled: boolean },
+): Promise<{ enabled: boolean }> {
+  const parsed = parseArgs(setMemorySchema, args);
+  if (!deps.memorySettings) throw badRequest('host has no active workspace');
+  await deps.memorySettings.set(parsed);
+  return { enabled: deps.memorySettings.get().enabled };
 }
 
 const setScriptsSchema = z

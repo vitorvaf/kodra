@@ -11,6 +11,7 @@ import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createSupervisor, type CreateSupervisorOptions } from '../src/agent-runs/supervisor.js';
 import type { AgentMemoryClient, MemoryHit } from '../src/memory/client.js';
+import type { AgentMemorySessionBridge } from '../src/memory/session-bridge.js';
 import { issueFixture } from './helpers/fixtures.js';
 import { makeHandlerTestKit } from './helpers/make-handlers.js';
 
@@ -89,6 +90,9 @@ function makeMemoryClient(input: {
       saves.push(saveInput);
       return true;
     },
+    sessionStart: async () => true,
+    observe: async () => true,
+    sessionEnd: async () => true,
   };
   return {
     memory: { client, getConfig: () => enabledConfig },
@@ -99,6 +103,7 @@ function makeMemoryClient(input: {
 async function buildSupervisor(
   store: Store,
   memory?: CreateSupervisorOptions['memory'],
+  memorySessionBridge?: AgentMemorySessionBridge,
 ): Promise<{
   supervisor: Awaited<ReturnType<typeof createSupervisor>>;
   calls: StartAgentRunOptions[];
@@ -110,6 +115,7 @@ async function buildSupervisor(
     store,
     repoPath: '/tmp/repo',
     ...(memory ? { memory } : {}),
+    ...(memorySessionBridge ? { memorySessionBridge } : {}),
     prepareWorktreeDir: async () => undefined,
     createWorktree: async (input: CreateWorktreeInput): Promise<Worktree> => ({
       branch: input.branch,
@@ -130,6 +136,17 @@ async function buildSupervisor(
     },
   });
   return { supervisor, calls, handles };
+}
+
+function makeSessionBridge(): AgentMemorySessionBridge {
+  return {
+    startChatSession: vi.fn(),
+    observeChat: vi.fn(),
+    endChatSession: vi.fn(),
+    startCardSession: vi.fn(),
+    observeCard: vi.fn(),
+    endCardSession: vi.fn(),
+  };
 }
 
 function makeThread(store: Store): number {
@@ -163,6 +180,83 @@ describe('agent memory flow', () => {
     expect(calls[0]?.appendSystemPrompt).toContain('RELEVANT_PROJECT_MEMORY');
     expect(calls[0]?.appendSystemPrompt).toContain('Prefer the existing repository service boundary.');
     expect(calls[0]?.appendSystemPrompt).toContain('Run focused API tests before the full suite.');
+  });
+
+  it('bridges card runs independently from chat sessions', async () => {
+    const store = openStoreInMemory();
+    stores.push(store);
+    const threadId = makeThread(store);
+    const prior = store.agentRuns.create({ threadId });
+    store.agentRuns.update(prior.id, { status: 'failed', provider: 'claude-code' });
+    const bridge = makeSessionBridge();
+    const { supervisor, handles } = await buildSupervisor(store, undefined, bridge);
+
+    const cardRun = await supervisor.start({
+      threadId,
+      issueNumber: 7,
+      prompt: 'Dispatch a card task',
+      provider: 'opencode-cli',
+    });
+    expect(bridge.startCardSession).toHaveBeenCalledWith(
+      expect.objectContaining({ threadId, title: 'Dispatch a card task' }),
+    );
+    expect(bridge.observeCard).toHaveBeenCalledWith(
+      expect.objectContaining({ hookType: 'agent_run_started', threadId }),
+    );
+    expect(bridge.observeCard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hookType: 'agent_changed',
+        data: { from: 'claude-code', to: 'opencode-cli' },
+      }),
+    );
+
+    handles[0]!.emitEvent({ kind: 'session', sessionId: 'card-session', model: null });
+    handles[0]!.emitClose();
+    await handles[0]!.done;
+    await vi.waitFor(() =>
+      expect(bridge.observeCard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hookType: 'run_completed',
+          data: expect.objectContaining({ runId: cardRun.id, agentSessionId: 'card-session' }),
+        }),
+      ),
+    );
+    expect(bridge.endCardSession).not.toHaveBeenCalled();
+
+    const chatSession = store.chatSessions.create({
+      threadId,
+      agentProvider: 'claude-code',
+    });
+    await supervisor.start({
+      threadId,
+      issueNumber: 7,
+      prompt: 'Chat-scoped task',
+      chatSessionId: chatSession.id,
+    });
+    expect(bridge.startCardSession).toHaveBeenCalledTimes(1);
+    expect(bridge.observeCard).toHaveBeenCalledTimes(4);
+    expect(bridge.startChatSession).toHaveBeenCalledWith(
+      expect.objectContaining({ chatSessionId: chatSession.id }),
+    );
+    expect(bridge.startChatSession).toHaveBeenCalledTimes(1);
+    expect(bridge.observeChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatSessionId: chatSession.id,
+        hookType: 'agent_run_started',
+      }),
+    );
+
+    handles[1]!.emitClose(1);
+    await handles[1]!.done;
+    await vi.waitFor(() =>
+      expect(bridge.observeChat).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chatSessionId: chatSession.id,
+          hookType: 'run_failed',
+        }),
+      ),
+    );
+    expect(bridge.endChatSession).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -350,5 +444,41 @@ describe('agent memory flow', () => {
     await kit.handlers['cards:resolve']({ cardId: card.id, value: 'a' });
     await Promise.resolve();
     expect(memory.saves).toHaveLength(0);
+  });
+
+  it('ends the chat memory session when the logical session is deleted', async () => {
+    const kit = makeHandlerTestKit();
+    const bridge = makeSessionBridge();
+    kit.supervisor.endMemorySession = vi.fn((chatSessionId: number) => {
+      bridge.endChatSession(chatSessionId);
+    });
+    const conversation = kit.store.chatConversations.create({ title: 'Memory lifecycle' });
+    const session = kit.store.chatSessions.create({
+      conversationId: conversation.id,
+      agentProvider: 'claude-code',
+    });
+
+    await kit.handlers['chat:sessions:delete']({ id: session.id });
+
+    expect(kit.supervisor.endMemorySession).toHaveBeenCalledWith(session.id);
+    expect(bridge.endChatSession).toHaveBeenCalledWith(session.id);
+  });
+
+  it('ends the chat memory session when a thread session is deleted', async () => {
+    const kit = makeHandlerTestKit();
+    const bridge = makeSessionBridge();
+    kit.supervisor.endMemorySession = vi.fn((chatSessionId: number) => {
+      bridge.endChatSession(chatSessionId);
+    });
+    const thread = makeThread(kit.store);
+    const session = kit.store.chatSessions.create({
+      threadId: thread,
+      agentProvider: 'claude-code',
+    });
+
+    await kit.handlers['chat:thread-sessions:delete']({ id: session.id });
+
+    expect(kit.supervisor.endMemorySession).toHaveBeenCalledWith(session.id);
+    expect(bridge.endChatSession).toHaveBeenCalledWith(session.id);
   });
 });

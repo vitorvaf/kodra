@@ -1607,6 +1607,93 @@
 }
 .kb-memory-error { margin: 0; color: var(--ink-3); font-size: 12px; }
 
+/* Enable toggle — switch control with label + helper copy. */
+.kb-memory-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--bg-2) 60%, transparent);
+}
+.kb-memory-toggle-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+.kb-memory-toggle-help {
+  display: block;
+  margin: 3px 0 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Switch control (button[role="switch"]). Generic enough to reuse for
+   future workspace toggles. */
+.kb-switch {
+  flex: 0 0 auto;
+  position: relative;
+  width: 34px;
+  height: 20px;
+  margin-top: 1px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--bg-3);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease;
+}
+.kb-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease;
+}
+.kb-switch:hover:not(:disabled) { border-color: var(--ink-4); }
+.kb-switch[aria-checked='true'] {
+  border-color: var(--accent-line);
+  background: color-mix(in oklch, var(--accent) 24%, var(--bg-3));
+}
+.kb-switch[aria-checked='true'] .kb-switch-knob {
+  transform: translateX(16px);
+  background: var(--ink);
+}
+.kb-switch:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+}
+.kb-switch:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.kb-switch.is-pending {
+  animation: kb-switch-pending 900ms ease-in-out infinite;
+}
+/* Opacity-only so it never fights the knob's translateX transition. */
+@keyframes kb-switch-pending {
+  50% { opacity: 0.6; }
+}
+
+/* Server status stays visible while memory is off, just de-emphasized. */
+.kb-memory-status-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: opacity 160ms ease;
+}
+.kb-memory-status-group.is-dimmed { opacity: 0.5; }
+
 
 /* Sentry analysis section in TaskDetailModal overview */
 .kb-sentry-section {

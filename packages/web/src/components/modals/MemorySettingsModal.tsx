@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useState, type MouseEvent } from 'react';
 import type { MemoryStatus } from '@kanbots/api';
 import { Logo } from '../Logo.js';
 import { getBridge } from '../../desktop-bridge.js';
@@ -8,8 +8,23 @@ type MemoryState =
   | { kind: 'ready'; status: MemoryStatus }
   | { kind: 'error' };
 
-export interface MemorySettingsModalProps {
-  onClose: () => void;
+/** Shape of `workspace:get-memory` per the locked IPC contract. */
+interface WorkspaceMemoryConfig {
+  enabled: boolean;
+  url: string;
+  secret: string | null;
+}
+
+// The workspace:get-memory / workspace:set-memory channels join the typed
+// BridgeChannels map in @kanbots/api in parallel work; until then, route
+// them through the locked contract shapes so our call sites stay typed.
+async function invokeWorkspaceMemory<T>(
+  channel: 'workspace:get-memory' | 'workspace:set-memory',
+  args: unknown,
+): Promise<T> {
+  const bridge = getBridge();
+  if (!bridge) throw new Error('Electron bridge unavailable');
+  return bridge.invoke(channel as never, args as never) as Promise<T>;
 }
 
 async function readMemoryStatus(): Promise<MemoryStatus> {
@@ -18,10 +33,22 @@ async function readMemoryStatus(): Promise<MemoryStatus> {
   return bridge.invoke('memory:status', undefined);
 }
 
+export interface MemorySettingsModalProps {
+  onClose: () => void;
+}
+
 export function MemorySettingsModal({ onClose }: MemorySettingsModalProps) {
   const [state, setState] = useState<MemoryState>({ kind: 'checking' });
+  // null while the workspace setting is loading (or failed to load).
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [configError, setConfigError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const switchId = useId();
+  const labelId = `${switchId}-label`;
+  const helpId = `${switchId}-help`;
 
-  async function refresh(): Promise<void> {
+  async function refreshStatus(): Promise<void> {
     setState({ kind: 'checking' });
     try {
       const status = await readMemoryStatus();
@@ -31,9 +58,49 @@ export function MemorySettingsModal({ onClose }: MemorySettingsModalProps) {
     }
   }
 
+  async function refreshConfig(): Promise<void> {
+    try {
+      const config = await invokeWorkspaceMemory<WorkspaceMemoryConfig>(
+        'workspace:get-memory',
+        undefined,
+      );
+      setEnabled(config.enabled);
+      setConfigError(false);
+    } catch {
+      setEnabled(null);
+      setConfigError(true);
+    }
+  }
+
   useEffect(() => {
-    void refresh();
+    void refreshStatus();
+    void refreshConfig();
   }, []);
+
+  async function handleToggle(): Promise<void> {
+    if (enabled === null || saving) return;
+    const previous = enabled;
+    const next = !previous;
+    setActionError(null);
+    setEnabled(next); // optimistic; reverted on failure
+    setSaving(true);
+    try {
+      const result = await invokeWorkspaceMemory<{ enabled: boolean }>(
+        'workspace:set-memory',
+        { enabled: next },
+      );
+      setEnabled(result.enabled);
+    } catch {
+      setEnabled(previous);
+      setActionError(
+        next
+          ? 'Couldn’t turn memory on — the setting is unchanged.'
+          : 'Couldn’t turn memory off — the setting is unchanged.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function stopInner(event: MouseEvent<HTMLDivElement>): void {
     event.stopPropagation();
@@ -86,26 +153,78 @@ export function MemorySettingsModal({ onClose }: MemorySettingsModalProps) {
             <p>Optional memory server for context shared across dispatched agent runs.</p>
           </div>
 
-          <div className={`kb-memory-status kb-memory-status--${badgeTone}`} title={tooltip} role="status" aria-live="polite">
-            <span className="kb-memory-dot" aria-hidden="true" />
-            <span>{badgeLabel}</span>
+          <div className="kb-memory-toggle">
+            <button
+              type="button"
+              id={switchId}
+              className={`kb-switch${saving ? ' is-pending' : ''}`}
+              role="switch"
+              aria-checked={enabled === true}
+              aria-labelledby={labelId}
+              aria-describedby={helpId}
+              disabled={enabled === null || saving}
+              onClick={() => void handleToggle()}
+              title={saving ? 'Saving…' : undefined}
+            >
+              <span className="kb-switch-knob" aria-hidden="true" />
+            </button>
+            <div className="kb-memory-toggle-copy">
+              <strong className="kb-memory-toggle-label" id={labelId}>
+                Enable agent memory
+              </strong>
+              <small className="kb-memory-toggle-help" id={helpId}>
+                Sessions and observations from dispatched agent runs are mirrored to the
+                agentmemory server for cross-agent context.
+              </small>
+            </div>
           </div>
 
-          {state.kind === 'ready' && status ? (
-            <dl className="kb-memory-details">
-              <div><dt>Endpoint</dt><dd>{status.url}</dd></div>
-              <div><dt>Availability</dt><dd>{status.available ? 'Responding' : 'Not detected'}</dd></div>
-            </dl>
+          {configError ? (
+            <p className="kb-memory-error" role="alert">
+              Couldn’t load this workspace’s memory setting.
+            </p>
           ) : null}
-          {state.kind === 'error' ? (
-            <p className="kb-memory-error" role="alert">Couldn’t check agentmemory right now.</p>
+          {actionError ? (
+            <p className="kb-memory-error" role="alert">
+              {actionError}
+            </p>
           ) : null}
+
+          <div className={`kb-memory-status-group${enabled === false ? ' is-dimmed' : ''}`}>
+            <div
+              className={`kb-memory-status kb-memory-status--${badgeTone}`}
+              title={tooltip}
+              role="status"
+              aria-live="polite"
+            >
+              <span className="kb-memory-dot" aria-hidden="true" />
+              <span>{badgeLabel}</span>
+            </div>
+
+            {state.kind === 'ready' && status ? (
+              <dl className="kb-memory-details">
+                <div><dt>Endpoint</dt><dd>{status.url}</dd></div>
+                <div><dt>Availability</dt><dd>{status.available ? 'Responding' : 'Not detected'}</dd></div>
+              </dl>
+            ) : null}
+            {state.kind === 'error' ? (
+              <p className="kb-memory-error" role="alert">Couldn’t check agentmemory right now.</p>
+            ) : null}
+          </div>
         </div>
 
         <div className="kb-modal-foot">
           <span className="hint">Status is checked when this panel opens.</span>
           <span className="grow" />
-          <button type="button" className="kb-btn ghost" onClick={() => void refresh()} disabled={state.kind === 'checking'}>
+          <button
+            type="button"
+            className="kb-btn ghost"
+            onClick={() => {
+              void refreshStatus();
+              void refreshConfig();
+            }}
+            disabled={state.kind === 'checking'}
+          >
             {state.kind === 'checking' ? 'Checking…' : 'Refresh'}
           </button>
           <button type="button" className="kb-btn ghost" onClick={onClose}>Close</button>

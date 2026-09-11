@@ -47,6 +47,13 @@ export {
   type SaveMemoryInput,
   type SmartSearchInput,
 } from './memory/client.js';
+export {
+  createAgentMemorySessionBridge,
+  memoryCardSessionId,
+  memoryChatSessionId,
+  type AgentMemorySessionBridge,
+  type AgentMemorySessionBridgeOptions,
+} from './memory/session-bridge.js';
 
 export {
   createCurator,
@@ -206,6 +213,7 @@ export type {
   WorkspaceBudgets,
   WorkspaceFolderPayload,
   WorkspaceHouseRules,
+  WorkspaceMemory,
   WorkspaceRepoPayload,
   WorkspaceRepoStatus,
   WorkspaceRunScriptResult,

@@ -977,6 +977,30 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
           }
         },
       },
+      memorySettings: {
+        get: () => ({
+          enabled: config.memory?.enabled ?? false,
+          url: config.memory?.url ?? DEFAULT_AGENTMEMORY_BASE_URL,
+          secret: config.memory?.secret ?? null,
+        }),
+        set: async (input) => {
+          const current = config.memory;
+          const memory = {
+            enabled: input.enabled,
+            provider: current?.provider ?? ('agentmemory' as const),
+            url: current?.url ?? DEFAULT_AGENTMEMORY_BASE_URL,
+            secret: current?.secret ?? null,
+            scope: current?.scope ?? ('shared' as const),
+            teamId: current?.teamId ?? null,
+          };
+          const next: WorkspaceConfig = { ...config, memory };
+          await writeWorkspaceConfig(gitRoot, next);
+          config = next;
+          if (activeWorkspace && activeWorkspace.repoPath === gitRoot) {
+            activeWorkspace.config = next;
+          }
+        },
+      },
       acpCommand: {
         get: () => ({ acpCommand: acpCommandState.acpCommand }),
         set: async (input) => {
@@ -2364,7 +2388,16 @@ function buildChatToolRuntime(args: {
         env: bridgeEnv,
       };
       const memoryEntry = agentMemoryMcpEntry(getMemoryConfig());
-      const env = { ...bridgeEnv, ...(memoryEntry?.env ?? {}) };
+      const env = {
+        ...bridgeEnv,
+        ...(memoryEntry?.env ?? {}),
+        // Kodra owns the agentmemory session lifecycle (see the session
+        // bridge in @kanbots/api). agentmemory's hook scripts read this flag
+        // and self-suppress so agent-side hooks cannot create parallel
+        // sessions for the same work. The agentmemory MCP server and its
+        // tools are unaffected — only hook scripts check this flag.
+        ...(memoryEntry ? { AGENTMEMORY_SDK_CHILD: '1' } : {}),
+      };
       let extraArgs: string[];
       const mcpSupport = getAdapterMcpSupport(provider);
       if (mcpSupport === 'flags') {

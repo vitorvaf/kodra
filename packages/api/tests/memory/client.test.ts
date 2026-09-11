@@ -148,6 +148,99 @@ describe('agentmemory client', () => {
     expect(await client.save({ content: 'another memory' })).toBe(false);
   });
 
+  it('starts agentmemory sessions with the lifecycle payload and degrades on failures', async () => {
+    const client = createAgentMemoryClient({ baseUrl, secret: 'token' });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, 200));
+    await expect(
+      client.sessionStart({
+        sessionId: 'kodra-12',
+        project: 'kanbots:w:r',
+        cwd: '/tmp/worktree',
+        title: 'Implement lifecycle',
+        agentId: 'claude-code',
+      }),
+    ).resolves.toBe(true);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${baseUrl}/agentmemory/session/start`);
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+    });
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1].body as string)).toEqual({
+      sessionId: 'kodra-12',
+      project: 'kanbots:w:r',
+      cwd: '/tmp/worktree',
+      title: 'Implement lifecycle',
+      agentId: 'claude-code',
+    });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, 500));
+    await expect(
+      client.sessionStart({ sessionId: 'kodra-13', project: 'p', cwd: '/tmp' }),
+    ).resolves.toBe(false);
+
+    fetchMock.mockRejectedValueOnce(new Error('offline'));
+    await expect(
+      client.sessionStart({ sessionId: 'kodra-14', project: 'p', cwd: '/tmp' }),
+    ).resolves.toBe(false);
+  });
+
+  it('observes agentmemory hooks with an ISO timestamp and degrades on failures', async () => {
+    const client = createAgentMemoryClient({ baseUrl, secret: 'token' });
+    const timestamp = '2026-09-11T12:34:56.000Z';
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, 200));
+    await expect(
+      client.observe({
+        hookType: 'agent_run_started',
+        sessionId: 'kodra-12',
+        project: 'kanbots:w:r',
+        cwd: '/tmp/worktree',
+        timestamp,
+        data: { runId: 3 },
+      }),
+    ).resolves.toBe(true);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${baseUrl}/agentmemory/observe`);
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+    });
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1].body as string)).toEqual({
+      hookType: 'agent_run_started',
+      sessionId: 'kodra-12',
+      project: 'kanbots:w:r',
+      cwd: '/tmp/worktree',
+      timestamp,
+      data: { runId: 3 },
+    });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, 500));
+    await expect(
+      client.observe({ hookType: 'run_failed', sessionId: 'kodra-12', project: 'p', cwd: '/tmp' }),
+    ).resolves.toBe(false);
+  });
+
+  it('ends agentmemory sessions and degrades on failures', async () => {
+    const client = createAgentMemoryClient({ baseUrl, secret: 'token' });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, 200));
+    await expect(client.sessionEnd('kodra-12')).resolves.toBe(true);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${baseUrl}/agentmemory/session/end`);
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+    });
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1].body as string)).toEqual({
+      sessionId: 'kodra-12',
+    });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, 500));
+    await expect(client.sessionEnd('kodra-13')).resolves.toBe(false);
+
+    fetchMock.mockRejectedValueOnce(new Error('offline'));
+    await expect(client.sessionEnd('kodra-14')).resolves.toBe(false);
+  });
+
   it('sends bearer auth on every endpoint except livez', async () => {
     const client = createAgentMemoryClient({ baseUrl, secret: 'token' });
     fetchMock.mockImplementation((url: string) => {
@@ -163,6 +256,9 @@ describe('agentmemory client', () => {
     await client.smartSearch({ query: 'x' });
     await client.getSession('x');
     await client.save({ content: 'x' });
+    await client.sessionStart({ sessionId: 's', project: 'p', cwd: '/tmp' });
+    await client.observe({ hookType: 'x', sessionId: 's', project: 'p', cwd: '/tmp' });
+    await client.sessionEnd('s');
 
     for (const [url, options] of fetchMock.mock.calls) {
       if (url.endsWith('/livez')) {
@@ -182,6 +278,9 @@ describe('agentmemory client', () => {
     await expect(client.smartSearch({ query: 'x' })).resolves.toEqual([]);
     await expect(client.getSession('x')).resolves.toBeNull();
     await expect(client.save({ content: 'x' })).resolves.toBe(false);
+    await expect(client.sessionStart({ sessionId: 's', project: 'p', cwd: '/tmp' })).resolves.toBe(false);
+    await expect(client.observe({ hookType: 'x', sessionId: 's', project: 'p', cwd: '/tmp' })).resolves.toBe(false);
+    await expect(client.sessionEnd('s')).resolves.toBe(false);
   });
 
   it('builds the ADR-0004 memory scopes', () => {

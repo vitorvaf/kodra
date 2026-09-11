@@ -635,6 +635,8 @@ export async function deleteSession(
       // best-effort — proceed with delete regardless
     }
   }
+  // Best-effort agentmemory close for the logical session being deleted.
+  deps.supervisor.endMemorySession?.(parsed.id);
   deps.store.chatSessions.remove(parsed.id);
   return { ok: true };
 }
@@ -738,6 +740,8 @@ export async function deleteThreadSession(
       // best-effort — proceed with delete regardless
     }
   }
+  // Best-effort agentmemory close for the logical session being deleted.
+  deps.supervisor.endMemorySession?.(parsed.id);
   deps.store.chatSessions.remove(parsed.id);
   return { ok: true };
 }

@@ -148,6 +148,8 @@ export function createHandlers(opts: CreateHandlersOptions): Handlers {
     'workspace:set-budgets': (args) => workspace.setBudgets(deps, args),
     'workspace:get-house-rules': () => workspace.getHouseRules(deps),
     'workspace:set-house-rules': (args) => workspace.setHouseRules(deps, args),
+    'workspace:get-memory': () => workspace.getMemory(deps),
+    'workspace:set-memory': (args) => workspace.setMemory(deps, args),
     'workspace:get-scripts': () => workspace.getScripts(deps),
     'workspace:set-scripts': (args) => workspace.setScripts(deps, args),
     'workspace:run-script': (args) => workspace.runScript(deps, args),

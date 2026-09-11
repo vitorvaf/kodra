@@ -40,6 +40,10 @@ import {
   type CheckChangeListener,
 } from '../checks-changed.js';
 import { memoryNamespace, type AgentMemoryClient } from '../memory/client.js';
+import {
+  createAgentMemorySessionBridge,
+  type AgentMemorySessionBridge,
+} from '../memory/session-bridge.js';
 import { BRIEFING_MARKER, renderSiblingBriefing } from './sibling-briefing.js';
 import {
   describeReapOutcome,
@@ -139,6 +143,8 @@ export interface CreateSupervisorOptions {
     client: AgentMemoryClient;
     getConfig: () => MemoryConfig | undefined;
   };
+  /** Optional seam for tests and alternate memory transports. */
+  memorySessionBridge?: AgentMemorySessionBridge;
 }
 
 const STOP_FORCE_RESOLVE_SLACK_MS = 2_000;
@@ -292,6 +298,8 @@ export interface AgentSupervisor {
   notifyChecksChanged(runId: number): void;
   subscribeChecksChanged(listener: CheckChangeListener): () => void;
   waitForCooldown(signal?: AbortSignal): Promise<void>;
+  /** Best-effort agentmemory session close for a deleted logical chat session. */
+  endMemorySession?(chatSessionId: number): void;
 }
 
 interface ActiveRun {
@@ -484,6 +492,14 @@ export async function createSupervisor(
   // claude-code chain.
   const hasCreds: (id: AgentRunProvider) => boolean =
     opts.hasProviderCredentials ?? (() => true);
+  const memoryBridge =
+    opts.memorySessionBridge ??
+    (opts.memory
+      ? createAgentMemorySessionBridge({
+          client: opts.memory.client,
+          getConfig: opts.memory.getConfig,
+        })
+      : null);
 
   function readDefaultBudget(): number | null {
     const raw = opts.defaultRunCostBudgetUsd;
@@ -582,6 +598,55 @@ export async function createSupervisor(
       });
     } catch {
       // best-effort hook; failures must not affect run completion
+    }
+  }
+
+  function endMemorySession(chatSessionId: number): void {
+    memoryBridge?.endChatSession(chatSessionId);
+  }
+
+  function observeRunStarted(
+    run: AgentRun,
+    cwd: string,
+    title: string | null | undefined,
+  ): void {
+    if (!memoryBridge) return;
+    const project = runMemoryProjects.get(run.id);
+    if (!project) return;
+    const data = {
+      runId: run.id,
+      provider: run.provider,
+      ...(run.model !== null ? { model: run.model } : {}),
+      ...(run.branchName !== null ? { branch: run.branchName } : {}),
+    };
+    if (run.chatSessionId !== null) {
+      memoryBridge.startChatSession({
+        chatSessionId: run.chatSessionId,
+        project,
+        cwd,
+        ...(title !== undefined ? { title } : {}),
+      });
+      memoryBridge.observeChat({
+        chatSessionId: run.chatSessionId,
+        project,
+        cwd,
+        hookType: 'agent_run_started',
+        data,
+      });
+    } else {
+      memoryBridge.startCardSession({
+        threadId: run.threadId,
+        project,
+        cwd,
+        ...(title !== undefined ? { title } : {}),
+      });
+      memoryBridge.observeCard({
+        threadId: run.threadId,
+        project,
+        cwd,
+        hookType: 'agent_run_started',
+        data,
+      });
     }
   }
 
@@ -965,6 +1030,31 @@ export async function createSupervisor(
           sessionId: streamEvent.sessionId,
           ...(streamEvent.model !== null ? { model: streamEvent.model } : {}),
         });
+        const project = entry.memoryProject ?? runMemoryProjects.get(run.id);
+        if (memoryBridge && project) {
+          const data = {
+            runId: run.id,
+            provider: run.provider,
+            agentSessionId: streamEvent.sessionId,
+          };
+          if (run.chatSessionId !== null) {
+            memoryBridge.observeChat({
+              chatSessionId: run.chatSessionId,
+              project,
+              cwd: entry.worktreePath ?? resolveRepoPath(),
+              hookType: 'agent_session_registered',
+              data,
+            });
+          } else if (run.threadId !== null) {
+            memoryBridge.observeCard({
+              threadId: run.threadId,
+              project,
+              cwd: entry.worktreePath ?? resolveRepoPath(),
+              hookType: 'agent_session_registered',
+              data,
+            });
+          }
+        }
         return;
       }
       if (streamEvent.kind === 'text') {
@@ -1133,6 +1223,31 @@ export async function createSupervisor(
         invokeRunCleanup(run.id, entry);
         const project = entry.memoryProject ?? runMemoryProjects.get(run.id);
         const issueNumber = entry.issueNumber ?? runIssueNumbers.get(run.id);
+        if (memoryBridge && project) {
+          const data = {
+            runId: updated.id,
+            provider: updated.provider,
+            agentSessionId: updated.sessionId,
+            status: updated.status,
+          };
+          if (updated.chatSessionId !== null) {
+            memoryBridge.observeChat({
+              chatSessionId: updated.chatSessionId,
+              project,
+              cwd: entry.worktreePath ?? resolveRepoPath(),
+              hookType: status === 'complete' ? 'run_completed' : 'run_failed',
+              data,
+            });
+          } else if (updated.threadId !== null) {
+            memoryBridge.observeCard({
+              threadId: updated.threadId,
+              project,
+              cwd: entry.worktreePath ?? resolveRepoPath(),
+              hookType: status === 'complete' ? 'run_completed' : 'run_failed',
+              data,
+            });
+          }
+        }
         const hadContent =
           entry.costSoFarUsd > 0 ||
           (summary.result?.tokenUsage?.output ?? 0) > 0 ||
@@ -1340,6 +1455,7 @@ export async function createSupervisor(
       status: 'running',
       pid: handle.pid,
     });
+    observeRunStarted(run, resolveRepoPath(), input.prompt.slice(0, 200));
     if (run.chatSessionId !== null) {
       store.chatSessions.setStatus(run.chatSessionId, 'running');
     }
@@ -1402,6 +1518,7 @@ export async function createSupervisor(
     if (run.chatSessionId !== null) {
       store.chatSessions.setStatus(run.chatSessionId, 'running');
     }
+    observeRunStarted(run, resolveRepoPath(), input.prompt.slice(0, 200));
     wireHandle(run, handle);
     emitter.emit(statusChannel(run.id), run.status);
     return run;
@@ -1426,6 +1543,7 @@ export async function createSupervisor(
     }
     const cd = snapshotCooldown();
     if (cd.active) throw new RateLimitedError(cd);
+    const previousRun = store.agentRuns.findLatestForThread(input.threadId);
     let run = store.agentRuns.create({
       threadId: input.threadId,
       status: 'starting',
@@ -1546,6 +1664,24 @@ export async function createSupervisor(
     if (run.chatSessionId !== null) {
       store.chatSessions.setStatus(run.chatSessionId, 'running');
     }
+    observeRunStarted(run, worktreePath, input.prompt.slice(0, 200));
+    if (
+      memoryBridge &&
+      run.chatSessionId === null &&
+      previousRun !== null &&
+      previousRun.provider !== run.provider
+    ) {
+      const project = runMemoryProjects.get(run.id);
+      if (project) {
+        memoryBridge.observeCard({
+          threadId: run.threadId,
+          project,
+          cwd: worktreePath,
+          hookType: 'agent_changed',
+          data: { from: previousRun.provider, to: run.provider },
+        });
+      }
+    }
     wireHandle(run, handle);
     return run;
   }
@@ -1596,6 +1732,7 @@ export async function createSupervisor(
       pid: handle.pid,
       ...(input.costBudgetUsd !== undefined ? { costBudgetUsd: input.costBudgetUsd } : {}),
     });
+    observeRunStarted(run, existing.worktreePath, input.prompt.slice(0, 200));
     wireHandle(run, handle);
     emitter.emit(statusChannel(run.id), run.status);
     return run;
@@ -1755,6 +1892,7 @@ export async function createSupervisor(
     notifyChecksChanged,
     subscribeChecksChanged,
     waitForCooldown,
+    endMemorySession,
   };
 }
 

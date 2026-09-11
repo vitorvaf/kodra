@@ -551,6 +551,12 @@ export interface WorkspaceHouseRules {
   houseRules: string | null;
 }
 
+export interface WorkspaceMemory {
+  enabled: boolean;
+  url: string;
+  secret: string | null;
+}
+
 export interface WorkspaceScriptsBridgePayload {
   scripts: {
     devServer?: string;
@@ -1055,6 +1061,11 @@ export interface BridgeChannels {
   'workspace:set-house-rules': {
     args: { houseRules: string | null };
     result: WorkspaceHouseRules;
+  };
+  'workspace:get-memory': { args: void; result: WorkspaceMemory };
+  'workspace:set-memory': {
+    args: { enabled: boolean };
+    result: { enabled: boolean };
   };
   'workspace:get-scripts': { args: void; result: WorkspaceScriptsBridgePayload };
   'workspace:set-scripts': {

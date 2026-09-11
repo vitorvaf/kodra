@@ -203,6 +203,29 @@ describe('agent memory flow', () => {
     expect(calls[0]?.appendSystemPrompt).not.toContain('RELEVANT_PROJECT_MEMORY');
   });
 
+  it('persists token usage from a result event while the run is still active', async () => {
+    const store = openStoreInMemory();
+    stores.push(store);
+    const { supervisor, handles } = await buildSupervisor(store);
+    const run = await supervisor.start({ threadId: makeThread(store), issueNumber: 7, prompt: 'Keep working' });
+
+    handles[0]!.emitEvent({
+      kind: 'result',
+      isError: false,
+      text: '',
+      tokenUsage: { input: 1200, output: 340 },
+      durationMs: null,
+      totalCostUsd: null,
+    });
+
+    expect(store.agentRuns.findById(run.id)).toMatchObject({
+      tokenUsageInput: 1200,
+      tokenUsageOutput: 340,
+    });
+    handles[0]!.emitClose();
+    await handles[0]!.done;
+  });
+
   it('writes a fallback checkpoint when the completed session is empty', async () => {
     const store = openStoreInMemory();
     stores.push(store);

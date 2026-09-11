@@ -979,6 +979,12 @@ export async function createSupervisor(
           entry.costSoFarUsd += streamEvent.totalCostUsd;
           store.agentRuns.update(run.id, { totalCostUsd: entry.costSoFarUsd });
         }
+        if (streamEvent.tokenUsage !== null) {
+          store.agentRuns.update(run.id, {
+            tokenUsageInput: streamEvent.tokenUsage.input,
+            tokenUsageOutput: streamEvent.tokenUsage.output,
+          });
+        }
         if (
           !entry.budgetExceeded &&
           entry.budgetUsd !== null &&

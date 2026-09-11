@@ -74,4 +74,40 @@ describe('chat session recovery', () => {
     const startArgs = supervisor.calls.at(-1)?.args as { appendSystemPrompt?: string };
     expect(startArgs.appendSystemPrompt).not.toContain('SESSION_RECOVERY');
   });
+
+  it('stops an active run before switching providers and starts with recovery context', async () => {
+    const { handlers, store, supervisor, conversation, session } = makeChatSession();
+    const active = store.agentRuns.create({ threadId: conversation.threadId, chatSessionId: session.id });
+    store.agentRuns.update(active.id, { provider: 'claude-code', status: 'running' });
+
+    await handlers['chat:post-message']({
+      conversationId: conversation.id,
+      body: 'continue with antigravity',
+      provider: 'agy-cli',
+    });
+
+    expect(supervisor.calls.find((call) => call.type === 'stop')).toMatchObject({
+      type: 'stop',
+      args: active.id,
+    });
+    const startCall = supervisor.calls.find((call) => call.type === 'start');
+    expect(startCall).toMatchObject({
+      type: 'start',
+      args: expect.objectContaining({ provider: 'agy-cli' }),
+    });
+    expect((startCall?.args as { appendSystemPrompt?: string }).appendSystemPrompt).toContain(
+      'SESSION_RECOVERY',
+    );
+  });
+
+  it('rejects a provider-less message while an active run is running', async () => {
+    const { handlers, store, supervisor, conversation, session } = makeChatSession();
+    const active = store.agentRuns.create({ threadId: conversation.threadId, chatSessionId: session.id });
+    store.agentRuns.update(active.id, { provider: 'claude-code', status: 'running' });
+
+    await expect(
+      handlers['chat:post-message']({ conversationId: conversation.id, body: 'keep going' }),
+    ).rejects.toMatchObject({ name: 'AlreadyActive' });
+    expect(supervisor.calls).toEqual([]);
+  });
 });

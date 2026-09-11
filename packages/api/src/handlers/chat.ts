@@ -400,11 +400,28 @@ export async function postMessage(
   if (dispatch) {
     // Active/latest are now scoped to the session so two parallel
     // sessions on the same conversation can run independently.
-    const active = deps.store.agentRuns.findActiveForChatSession(session.id);
+    let active = deps.store.agentRuns.findActiveForChatSession(session.id);
     let latest = active ?? deps.store.agentRuns.findLatestForChatSession(session.id);
     // If the user explicitly picked a provider that doesn't match the latest
     // run's provider, treat it as a provider switch and start a fresh run
     // instead of silently resuming the old session under the wrong CLI.
+    // Explicit provider switch while a run is active: the user picked a
+    // different agent in the Model override (e.g. handing a long-running
+    // claude session to antigravity after a usage limit). The active run
+    // holds the session, so stop it first — stop() resolves once the run is
+    // out of active state — then fall through to the start path below,
+    // which injects the SESSION_RECOVERY bundle. Same-provider picks keep
+    // today's behavior (resume/awaiting/alreadyActive).
+    if (
+      parsed.provider !== undefined &&
+      active !== null &&
+      active.provider !== null &&
+      active.provider !== parsed.provider
+    ) {
+      await deps.supervisor.stop(active.id);
+      active = deps.store.agentRuns.findActiveForChatSession(session.id);
+      latest = active ?? deps.store.agentRuns.findLatestForChatSession(session.id);
+    }
     const switchingProvider =
       active === null &&
       parsed.provider !== undefined &&

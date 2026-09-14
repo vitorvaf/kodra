@@ -41,6 +41,10 @@ export interface UpdaterState {
   availableVersion?: string | undefined;
   progress?: number | undefined;
   error?: string | undefined;
+  // Release notes for the available update.
+  releaseNotes?: string | undefined;
+  // Whether the renderer may offer update installation.
+  canInstall?: boolean | undefined;
 }
 
 export interface ActiveWorkspaceInfo {
@@ -141,6 +145,7 @@ export interface KanbotsBridge {
   closeWindow(): Promise<void>;
   updaterGetState(): Promise<UpdaterState>;
   updaterCheck(): Promise<void>;
+  updaterDownload(): Promise<void>;
   updaterInstall(): Promise<void>;
   claudeAuthStatus(): Promise<{ authed: boolean }>;
   claudeLoginStart(): Promise<{ ok: true } | { ok: false; error: string }>;

@@ -35,6 +35,7 @@ const INVOKE_PREFIX = 'kanbots:invoke:';
 const UPDATER_GET_STATE_CHANNEL = 'updater:get-state';
 const UPDATER_CHECK_CHANNEL = 'updater:check';
 const UPDATER_INSTALL_CHANNEL = 'updater:install';
+const UPDATER_DOWNLOAD_CHANNEL = 'updater:download';
 
 const api: KanbotsBridge = {
   bootstrap: () => ipcRenderer.invoke('kanbots:bootstrap') as Promise<BootstrapPayload>,
@@ -62,6 +63,8 @@ const api: KanbotsBridge = {
     >,
   updaterCheck: () =>
     ipcRenderer.invoke(`${INVOKE_PREFIX}${UPDATER_CHECK_CHANNEL}`, undefined) as Promise<void>,
+  updaterDownload: () =>
+    ipcRenderer.invoke(`${INVOKE_PREFIX}${UPDATER_DOWNLOAD_CHANNEL}`, undefined) as Promise<void>,
   updaterInstall: () =>
     ipcRenderer.invoke(`${INVOKE_PREFIX}${UPDATER_INSTALL_CHANNEL}`, undefined) as Promise<void>,
   claudeAuthStatus: () =>

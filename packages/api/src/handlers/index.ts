@@ -63,6 +63,7 @@ export type Handlers = {
     ChannelName,
     | 'updater:get-state'
     | 'updater:check'
+    | 'updater:download'
     | 'updater:install'
     | 'agent-runs:events:ready'
   >]: (

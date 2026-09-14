@@ -74,6 +74,7 @@ export interface KanbotsBridge {
   closeWindow(): Promise<void>;
   updaterGetState(): Promise<UpdaterState>;
   updaterCheck(): Promise<void>;
+  updaterDownload(): Promise<void>;
   updaterInstall(): Promise<void>;
   claudeAuthStatus(): Promise<{ authed: boolean }>;
   claudeLoginStart(): Promise<{ ok: true } | { ok: false; error: string }>;

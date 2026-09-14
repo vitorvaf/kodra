@@ -6,6 +6,7 @@ export const UPDATER_CHANGED_CHANNEL = 'updater:changed' as const;
 export const UPDATER_GET_STATE_CHANNEL = 'updater:get-state' as const;
 export const UPDATER_CHECK_CHANNEL = 'updater:check' as const;
 export const UPDATER_INSTALL_CHANNEL = 'updater:install' as const;
+export const UPDATER_DOWNLOAD_CHANNEL = 'updater:download' as const;
 
 function envDuration(name: string, fallback: number): number {
   const value = Number(process.env[name]);
@@ -23,6 +24,7 @@ let mainWindowGetter: (() => BrowserWindow | null | undefined) | null = null;
 let latestState: UpdaterState = {
   status: 'idle',
   currentVersion: app.getVersion(),
+  canInstall: process.platform !== 'darwin',
 };
 
 function errorMessage(error: unknown): string {
@@ -47,6 +49,8 @@ function setState(
     availableVersion?: string;
     progress?: number;
     error?: string;
+    releaseNotes?: string;
+    canInstall?: boolean;
   } = {},
 ): void {
   const state: UpdaterState = {
@@ -57,6 +61,8 @@ function setState(
       : {}),
     ...(details.progress !== undefined ? { progress: details.progress } : {}),
     ...(details.error !== undefined ? { error: details.error } : {}),
+    ...(details.releaseNotes !== undefined ? { releaseNotes: details.releaseNotes } : {}),
+    ...(details.canInstall !== undefined ? { canInstall: details.canInstall } : {}),
   };
   latestState = state;
   broadcast(state);
@@ -86,12 +92,17 @@ export async function checkForUpdates(): Promise<void> {
   try {
     setState('checking');
     await autoUpdater.checkForUpdates();
-    if (latestState.status === 'available' && autoUpdater.autoDownload) {
-      void autoUpdater.downloadUpdate().catch(reportError);
-    }
   } catch (error) {
     reportError(error);
   }
+}
+
+export function downloadUpdate(): void {
+  if (!app.isPackaged) return;
+  // Only start a download while an update decision is pending — guards
+  // against duplicate triggers after the state moved on.
+  if (latestState.status !== 'available') return;
+  void autoUpdater.downloadUpdate().catch(reportError);
 }
 
 export function installUpdate(): void {
@@ -113,17 +124,15 @@ export function initUpdater(
   mainWindowGetter = getMainWindow;
 
   try {
-    autoUpdater.autoDownload = true;
+    // Downloads are opt-in: the renderer starts one through the
+    // updater:download handler after the user chooses "Update now".
+    autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
     // macOS unsigned builds cannot install updates — Squirrel.Mac requires
     // a signed bundle, and quitAndInstall() would simply quit the app,
     // relaunching at the same version. Until builds are signed +
-    // notarized, darwin stays detect-only: no auto-download, no
-    // "Restart now" surface (the renderer keeps 'available' invisible).
-    // TODO(signing): remove this override when macOS signing lands.
-    if (process.platform === 'darwin') {
-      autoUpdater.autoDownload = false;
-    }
+    // notarized, the renderer hides the decision modal using canInstall.
+    // TODO(signing): remove the macOS canInstall guard when signing lands.
 
     const feedUrl = process.env.KODRA_UPDATE_FEED_URL || process.env.KANBOTS_UPDATE_FEED_URL;
     if (feedUrl) {
@@ -139,7 +148,22 @@ export function initUpdater(
     });
     autoUpdater.on('update-available', (info) => {
       try {
-        setState('available', { availableVersion: info.version });
+        const normalizedReleaseNotes =
+          typeof info.releaseNotes === 'string'
+            ? info.releaseNotes
+            : Array.isArray(info.releaseNotes)
+              ? info.releaseNotes
+                  .map((entry) => entry.note)
+                  .filter(Boolean)
+                  .join('\n\n')
+              : undefined;
+        setState('available', {
+          availableVersion: info.version,
+          ...(normalizedReleaseNotes !== undefined
+            ? { releaseNotes: normalizedReleaseNotes }
+            : {}),
+          canInstall: process.platform !== 'darwin',
+        });
       } catch (error) {
         reportError(error);
       }

@@ -62,6 +62,7 @@ export const UPDATER_CHANGED_CHANNEL = 'updater:changed' as const;
 export const UPDATER_GET_STATE_CHANNEL = 'updater:get-state' as const;
 export const UPDATER_CHECK_CHANNEL = 'updater:check' as const;
 export const UPDATER_INSTALL_CHANNEL = 'updater:install' as const;
+export const UPDATER_DOWNLOAD_CHANNEL = 'updater:download' as const;
 
 export type UpdaterStatus =
   | 'idle'
@@ -78,6 +79,8 @@ export interface UpdaterState {
   availableVersion?: string | undefined;
   progress?: number | undefined;
   error?: string | undefined;
+  releaseNotes?: string | undefined;
+  canInstall?: boolean | undefined;
 }
 
 export interface CloudStatusPayload {

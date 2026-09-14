@@ -735,6 +735,7 @@ export const UPDATER_CHANGED_CHANNEL = 'updater:changed' as const;
 export const UPDATER_GET_STATE_CHANNEL = 'updater:get-state' as const;
 export const UPDATER_CHECK_CHANNEL = 'updater:check' as const;
 export const UPDATER_INSTALL_CHANNEL = 'updater:install' as const;
+export const UPDATER_DOWNLOAD_CHANNEL = 'updater:download' as const;
 
 export type UpdaterStatus =
   | 'idle'
@@ -751,6 +752,10 @@ export interface UpdaterState {
   availableVersion?: string | undefined;
   progress?: number | undefined;
   error?: string | undefined;
+  /** Release notes for the available update. */
+  releaseNotes?: string | undefined;
+  /** Whether the renderer may offer update installation. */
+  canInstall?: boolean | undefined;
 }
 
 export interface SpecPayload {
@@ -819,6 +824,7 @@ export interface MemoryStatus {
 export interface BridgeChannels {
   'updater:get-state': { args: void; result: UpdaterState };
   'updater:check': { args: void; result: void };
+  'updater:download': { args: void; result: void };
   'updater:install': { args: void; result: void };
   'config:get': { args: void; result: Config };
   'memory:status': { args: void; result: MemoryStatus };

@@ -1,10 +1,14 @@
 /* =========================================================================
-   Kodra — auto-updater notices (bottom-right corner chrome)
-   Mirrors the decision tray's card anatomy (tray.css) at a smaller scale:
-   bg-1 card, hairline border, 12px radius, shadow-pop, mono micro-type.
+   Kodra — auto-updater surfaces
+   Two beats of one flow, one mint identity:
+   1. Decision modal ('available') — asks before downloading; app modal
+      anatomy (modals.css / cloud-auth.css) on the modal layer (z 80).
+   2. Corner chrome (bottom-right, z 45) — mirrors the decision tray's
+      card anatomy (tray.css) at a smaller scale: bg-1 card, hairline
+      border, 12px radius, shadow-pop, mono micro-type.
    State semantics per tokens.css: mint (--running) marks the completed
    background work; the downloading pill stays neutral ink on purpose —
-   it whispers, the toast speaks.
+   it whispers, the modal asks, the toast speaks.
    ========================================================================= */
 
 .kb-updater {
@@ -191,6 +195,393 @@
   outline: 2px solid var(--accent-line);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* -- decision modal ('available') ----------------------------------------
+   The asking beat of the flow: a branded decision card on the app's modal
+   layer. Chrome mirrors the shared modal anatomy (modals.css kb-modal /
+   cloud-auth.css kb-cloud-modal) — bg card, hairline, 14px radius, pop
+   shadow, blurred scrim — re-hued to the updater's mint so pill → modal →
+   toast read as one surface across the flow. Classes are self-contained
+   kb-upd-m-* names (the same way the toast mirrors tray.css without
+   importing its classes), because kb-upd-head/-body/-title are already
+   taken by the toast below. */
+
+.kb-upd-overlay {
+  position: fixed;
+  inset: 0;
+  /* The app's modal layer: tray 40 · updater corner chrome 45 · tweaks 60
+     · shell 70 · modals 80 · palette 90. Sits above the app chrome and
+     the updater's own corner notices; below the command palette. */
+  z-index: 80;
+  background: oklch(0 0 0 / 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  animation: kb-scrim-in 0.15s ease-out; /* shared modal keyframes (tokens.css) */
+}
+
+.kb-upd-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  box-shadow:
+    0 32px 80px oklch(0 0 0 / 0.6),
+    0 0 0 1px oklch(1 0 0 / 0.04) inset;
+  animation: kb-modal-in 0.18s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.kb-upd-modal:focus {
+  outline: none; /* silent focus anchor; the buttons keep their rings */
+}
+
+.kb-upd-m-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hairline);
+  flex-shrink: 0;
+  /* Modal-head surface mix (modals.css) overlaid with the toast head's
+     mint tint — the family tie between the two updater surfaces. */
+  background:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--running) 9%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(180deg, color-mix(in oklch, var(--bg) 88%, var(--bg-1)), var(--bg));
+}
+.kb-upd-m-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-1);
+  letter-spacing: -0.005em;
+}
+.kb-upd-m-grow {
+  flex: 1;
+}
+.kb-upd-m-x {
+  /* Same quiet square as .kb-modal-head .x-btn (modals.css). */
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+.kb-upd-m-x:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+  border-color: var(--hairline);
+}
+
+.kb-upd-m-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto; /* short windows: the body yields before the card does */
+  padding: 20px 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Hero — the version transition is the headline. Cloud-modal hero
+   anatomy (cloud-auth.css), mono-set because versions are the updater's
+   native voice (pill, ver chips). */
+.kb-upd-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.kb-upd-hero-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--running);
+  background: color-mix(in oklch, var(--running) 10%, var(--bg-1));
+  border: 1px solid color-mix(in oklch, var(--running) 30%, var(--hairline-soft));
+  position: relative;
+  margin-bottom: 4px;
+}
+/* Same soft bloom as .kb-cloud-hero-icon::after, re-hued to mint. */
+.kb-upd-hero-icon::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 16px;
+  background: radial-gradient(
+    circle at center,
+    color-mix(in oklch, var(--running) 30%, transparent),
+    transparent 70%
+  );
+  opacity: 0.5;
+  z-index: -1;
+  filter: blur(12px);
+}
+.kb-upd-vers {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: var(--ff-mono);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.kb-upd-vers-from {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.kb-upd-vers-arrow {
+  color: var(--ink-4);
+  font-size: 15px;
+  font-weight: 400;
+}
+.kb-upd-vers-to {
+  color: var(--running);
+}
+.kb-upd-hero-tag {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  max-width: 340px;
+}
+
+/* Notes — a scrollable changelog card, max-height keeps the decision
+   actions on-screen no matter how long the release notes run. */
+.kb-upd-notes-label {
+  /* Section label voice from .kb-mas-h (modals.css aside blocks). */
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.kb-upd-notes {
+  max-height: 40vh;
+  overflow-y: auto;
+  background: var(--bg-1);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-1);
+  overflow-wrap: break-word;
+}
+.kb-upd-notes-fallback {
+  margin: 0;
+  color: var(--ink-3);
+}
+
+/* Scoped markdown — renderMarkdown (lib/markdown.ts) escapes before it
+   decorates, and these selectors are the whole vocabulary it can emit.
+   Headings clamp small: release notes love to open with a giant
+   "# v1.3.5" that would otherwise dwarf the card. */
+.kb-upd-notes > :first-child {
+  margin-top: 0;
+}
+.kb-upd-notes > :last-child {
+  margin-bottom: 0;
+}
+.kb-upd-notes p {
+  margin: 0 0 8px;
+}
+.kb-upd-notes h1,
+.kb-upd-notes h2,
+.kb-upd-notes h3,
+.kb-upd-notes h4,
+.kb-upd-notes h5,
+.kb-upd-notes h6 {
+  margin: 14px 0 6px;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.3;
+}
+.kb-upd-notes h1 {
+  font-size: 14px;
+}
+.kb-upd-notes h2 {
+  font-size: 13px;
+}
+.kb-upd-notes h3,
+.kb-upd-notes h4,
+.kb-upd-notes h5,
+.kb-upd-notes h6 {
+  font-size: 12.5px;
+}
+.kb-upd-notes ul,
+.kb-upd-notes ol {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+.kb-upd-notes li {
+  margin: 3px 0;
+}
+.kb-upd-notes li::marker {
+  color: var(--ink-3);
+}
+.kb-upd-notes code {
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 4px;
+  padding: 0.5px 5px;
+}
+.kb-upd-notes pre {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  background: var(--bg-inset);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.kb-upd-notes pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.kb-upd-notes a {
+  color: var(--ink-1);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.kb-upd-notes a:hover {
+  color: var(--ink);
+}
+.kb-upd-notes blockquote {
+  margin: 0 0 8px;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--hairline);
+  color: var(--ink-2);
+}
+.kb-upd-notes hr {
+  border: none;
+  height: 1px;
+  background: var(--hairline-soft);
+  margin: 12px 0;
+}
+.kb-upd-notes img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+/* Foot — kb-modal-foot metrics (modals.css): bg-1 strip, hint left,
+   actions right (secondary then primary, like the autopilot foot). */
+.kb-upd-m-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--hairline);
+  background: var(--bg-1);
+  flex-shrink: 0;
+}
+.kb-upd-m-hint {
+  color: var(--ink-3);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* Secondary — ghost, the slot kb-btn.ghost / .kb-cloud-secondary hold in
+   the other decision surfaces. */
+.kb-upd-later {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--ff-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+.kb-upd-later:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+  border-color: var(--hairline-soft);
+}
+
+/* Primary — the toast's .kb-upd-install at modal scale: same accent
+   gradient + accent-ink pairing (a compact .kb-cloud-cta). */
+.kb-upd-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-line);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--accent) 88%, transparent),
+    var(--accent)
+  );
+  color: var(--accent-ink);
+  font-family: var(--ff-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.14) inset,
+    0 6px 18px var(--accent-soft);
+  transition:
+    filter 120ms ease,
+    transform 60ms ease;
+}
+.kb-upd-cta:hover {
+  filter: brightness(1.06);
+}
+.kb-upd-cta:active {
+  transform: translateY(0.5px);
+}
+
+/* Keyboard — same focus treatment as the toast's actions. */
+.kb-upd-cta:focus-visible,
+.kb-upd-later:focus-visible,
+.kb-upd-m-x:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
 }
 
 /* -- motion ------------------------------------------------------------- */

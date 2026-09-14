@@ -206,8 +206,10 @@ import {
   initUpdater,
   installUpdate,
   UPDATER_CHECK_CHANNEL,
+  UPDATER_DOWNLOAD_CHANNEL,
   UPDATER_GET_STATE_CHANNEL,
   UPDATER_INSTALL_CHANNEL,
+  downloadUpdate,
 } from './updater.js';
 
 const execFileAsync = promisify(execFile);
@@ -1374,6 +1376,9 @@ function registerIpc(): void {
   ipcMain.handle(`${CHANNEL_PREFIX}${UPDATER_GET_STATE_CHANNEL}`, () => getUpdaterState());
   ipcMain.handle(`${CHANNEL_PREFIX}${UPDATER_CHECK_CHANNEL}`, (): void => {
     void checkForUpdates();
+  });
+  ipcMain.handle(`${CHANNEL_PREFIX}${UPDATER_DOWNLOAD_CHANNEL}`, (): void => {
+    downloadUpdate();
   });
   ipcMain.handle(`${CHANNEL_PREFIX}${UPDATER_INSTALL_CHANNEL}`, (): void => {
     installUpdate();

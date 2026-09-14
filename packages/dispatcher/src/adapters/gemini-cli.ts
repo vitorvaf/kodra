@@ -1,12 +1,5 @@
-import {
-  detectRateLimit as detectRateLimitFromText,
-  type StreamEvent,
-} from '../stream-parser.js';
-import type {
-  AgentCliAdapter,
-  BuildArgsInput,
-  ComposePromptInput,
-} from './types.js';
+import { detectRateLimit as detectRateLimitFromText, type StreamEvent } from '../stream-parser.js';
+import type { AgentCliAdapter, BuildArgsInput, ComposePromptInput } from './types.js';
 
 /**
  * Google Gemini CLI adapter. Spawns `gemini` and parses its line-delimited
@@ -204,9 +197,12 @@ function mapEvent(ev: GeminiEvent): StreamEvent[] {
       out.push({
         kind: 'result',
         isError,
-        text: isError && r.error !== undefined
-          ? (typeof r.error === 'string' ? r.error : JSON.stringify(r.error))
-          : '',
+        text:
+          isError && r.error !== undefined
+            ? typeof r.error === 'string'
+              ? r.error
+              : JSON.stringify(r.error)
+            : '',
         tokenUsage: tokenUsageFrom(r.usage),
         durationMs: typeof r.duration_ms === 'number' ? r.duration_ms : null,
         totalCostUsd: typeof r.cost_usd === 'number' ? r.cost_usd : null,

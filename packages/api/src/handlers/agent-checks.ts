@@ -5,11 +5,7 @@ import {
   type CheckCommandOverrides,
   type CheckResult,
 } from '@kanbots/dispatcher';
-import {
-  readWorkspaceConfig,
-  type AgentCheck,
-  type CheckKind,
-} from '@kanbots/local-store';
+import { readWorkspaceConfig, type AgentCheck, type CheckKind } from '@kanbots/local-store';
 import { z } from 'zod';
 import { badRequest, notFound, parseArgs } from './errors.js';
 import type { HandlerDeps } from './types.js';
@@ -43,10 +39,7 @@ export type RunCheckImpl = (options: {
 
 const inFlight = new Map<number, Set<CheckKind>>();
 
-export async function list(
-  deps: HandlerDeps,
-  args: ListChecksArgs,
-): Promise<AgentCheck[]> {
+export async function list(deps: HandlerDeps, args: ListChecksArgs): Promise<AgentCheck[]> {
   const parsed = parseArgs(listSchema, args);
   return deps.store.checks.listLatestByRun(parsed.runId);
 }
@@ -55,18 +48,14 @@ export interface RunChecksDeps extends HandlerDeps {
   runCheckImpl?: RunCheckImpl;
 }
 
-export async function runChecks(
-  deps: RunChecksDeps,
-  args: RunChecksArgs,
-): Promise<AgentCheck[]> {
+export async function runChecks(deps: RunChecksDeps, args: RunChecksArgs): Promise<AgentCheck[]> {
   const parsed = parseArgs(runSchema, args);
   const run = deps.store.agentRuns.findById(parsed.runId);
   if (!run) throw notFound(`agent run ${parsed.runId} not found`);
   if (!run.worktreePath) throw badRequest('run has no worktree');
 
   const runImpl: RunCheckImpl =
-    deps.runCheckImpl ??
-    ((opts) => runCheck({ cwd: opts.cwd, command: opts.command }));
+    deps.runCheckImpl ?? ((opts) => runCheck({ cwd: opts.cwd, command: opts.command }));
 
   const kinds: CheckKind[] = parsed.kinds ?? ['typecheck', 'tests', 'lint'];
   const queued = inFlight.get(parsed.runId) ?? new Set<CheckKind>();
@@ -89,12 +78,7 @@ export async function runChecks(
         finishCheck(deps, checkRow.id, result.status, result.summary);
       })
       .catch((err: unknown) => {
-        finishCheck(
-          deps,
-          checkRow.id,
-          'fail',
-          err instanceof Error ? err.message : String(err),
-        );
+        finishCheck(deps, checkRow.id, 'fail', err instanceof Error ? err.message : String(err));
       })
       .finally(() => {
         queued.delete(checkRow.kind);

@@ -111,7 +111,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
      * the new full value, not the inserted slice).
      */
     const applyEdit = useCallback(
-      (range: { start: number; end: number }, next: string, selStart: number, selEnd: number): void => {
+      (
+        range: { start: number; end: number },
+        next: string,
+        selStart: number,
+        selEnd: number,
+      ): void => {
         const ta = taRef.current;
         if (!ta) return;
         const before = ta.value.slice(0, range.start);
@@ -179,8 +184,15 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       const lineEnd = lineEndIdx === -1 ? v.length : lineEndIdx;
       const block = v.slice(lineStart, lineEnd);
       const lines = block.split('\n');
-      const numbered = lines.map((line, i) => `${i + 1}. ${line.replace(/^\d+\.\s*/, '')}`).join('\n');
-      applyEdit({ start: lineStart, end: lineEnd }, numbered, lineStart, lineStart + numbered.length);
+      const numbered = lines
+        .map((line, i) => `${i + 1}. ${line.replace(/^\d+\.\s*/, '')}`)
+        .join('\n');
+      applyEdit(
+        { start: lineStart, end: lineEnd },
+        numbered,
+        lineStart,
+        lineStart + numbered.length,
+      );
     }, [applyEdit]);
 
     const insertHeading = useCallback(
@@ -199,12 +211,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         // new one or leave the line bare (toggle-off when already at level).
         const stripped = block.replace(/^#{1,6}\s+/, '');
         const next = block.startsWith(`${marker} `) ? stripped : `${marker} ${stripped}`;
-        applyEdit(
-          { start: lineStart, end: lineEnd },
-          next,
-          lineStart,
-          lineStart + next.length,
-        );
+        applyEdit({ start: lineStart, end: lineEnd }, next, lineStart, lineStart + next.length);
       },
       [applyEdit],
     );
@@ -256,8 +263,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (k === 'k') {
           e.preventDefault();
           const ta = taRef.current;
-          const hasSelection =
-            ta !== null && ta.selectionStart !== ta.selectionEnd;
+          const hasSelection = ta !== null && ta.selectionStart !== ta.selectionEnd;
           if (hasSelection) insertLink();
           else wrap({ before: '`', after: '`', placeholder: 'code' });
           return;
@@ -381,9 +387,23 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
               disabled={disabled || previewing}
             >
               <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-                <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3" fill="none" />
+                <rect
+                  x="2"
+                  y="3"
+                  width="12"
+                  height="10"
+                  rx="1.5"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                  fill="none"
+                />
                 <circle cx="6" cy="7" r="1.2" fill="currentColor" />
-                <path d="M2.6 12.4 L6.5 8.5 L9.5 11 L11.5 9 L13.4 11" stroke="currentColor" strokeWidth="1.3" fill="none" />
+                <path
+                  d="M2.6 12.4 L6.5 8.5 L9.5 11 L11.5 9 L13.4 11"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                  fill="none"
+                />
               </svg>
             </ToolbarBtn>
             <span className="grow" />

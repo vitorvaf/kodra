@@ -28,9 +28,7 @@ export function ProvidersOverlay({ reason, onConfigured }: ProvidersOverlayProps
     setPending(provider);
     setError(null);
     const result =
-      provider === 'claude'
-        ? await bridge.claudeLoginStart()
-        : await bridge.codexLoginStart();
+      provider === 'claude' ? await bridge.claudeLoginStart() : await bridge.codexLoginStart();
     setPending(null);
     if (!result.ok) {
       setError(result.error);
@@ -49,7 +47,14 @@ export function ProvidersOverlay({ reason, onConfigured }: ProvidersOverlayProps
       >
         <div className="kb-providers-overlay-card">
           <div className="kb-providers-overlay-icon" aria-hidden="true">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M12 2L2 22h20L12 2z" />
               <path d="M12 9v6M12 18v.01" />
             </svg>

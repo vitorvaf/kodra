@@ -5,10 +5,7 @@ import type {
   SuggestFeatureEntryStatus,
 } from '@kanbots/api';
 import type { CardSummary, CloudClient } from '@kanbots/cloud-client';
-import {
-  createSuggester,
-  type SuggestFeatureInput,
-} from '@kanbots/dispatcher';
+import { createSuggester, type SuggestFeatureInput } from '@kanbots/dispatcher';
 import { CHANNEL_PREFIX } from './ipc/register.js';
 import { toIpcError } from './ipc/errors.js';
 import type { ActiveCloudWorkspaceInfo } from './types.js';
@@ -77,9 +74,7 @@ export interface RegisterCloudComposerOptions {
   onSuggestEvent: (event: PlannerEvent) => void;
 }
 
-export function registerCloudComposerHandlers(
-  opts: RegisterCloudComposerOptions,
-): () => void {
+export function registerCloudComposerHandlers(opts: RegisterCloudComposerOptions): () => void {
   const channel = `${CHANNEL_PREFIX}composer:suggest`;
 
   ipcMain.handle(channel, async (_event, rawArgs) => {

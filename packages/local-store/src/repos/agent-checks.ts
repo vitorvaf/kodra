@@ -59,9 +59,7 @@ export class AgentChecksRepo {
   finish(input: FinishCheckInput): AgentCheck {
     const finishedAt = new Date().toISOString();
     this.db
-      .prepare(
-        `UPDATE agent_checks SET status = ?, finished_at = ?, summary = ? WHERE id = ?`,
-      )
+      .prepare(`UPDATE agent_checks SET status = ?, finished_at = ?, summary = ? WHERE id = ?`)
       .run(input.status, finishedAt, input.summary ?? null, input.id);
     const row = this.db.prepare('SELECT * FROM agent_checks WHERE id = ?').get(input.id) as
       | AgentCheckRow

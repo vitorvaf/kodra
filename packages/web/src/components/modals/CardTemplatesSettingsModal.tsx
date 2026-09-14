@@ -278,10 +278,9 @@ export function CardTemplatesSettingsModal({ onClose }: CardTemplatesSettingsMod
 
         <div className="kb-modal-body kb-sentry-body">
           <div className="kb-sentry-hint">
-            Saved prompt + label + agent presets. Use them from the &ldquo;From
-            template&rdquo; quick-pick at the top of the new-task modal to spawn
-            a card with one click. Drag to reorder; the order surfaces in the
-            quick-pick.
+            Saved prompt + label + agent presets. Use them from the &ldquo;From template&rdquo;
+            quick-pick at the top of the new-task modal to spawn a card with one click. Drag to
+            reorder; the order surfaces in the quick-pick.
           </div>
 
           {loading ? <div className="kb-sentry-row">Loading…</div> : null}
@@ -357,8 +356,8 @@ export function CardTemplatesSettingsModal({ onClose }: CardTemplatesSettingsMod
 
         <div className="kb-modal-foot">
           <span className="hint">
-            Templates live in the workspace database. <code>{'{{cursor}}'}</code>{' '}
-            inside the body marks where the create-task modal places the caret.
+            Templates live in the workspace database. <code>{'{{cursor}}'}</code> inside the body
+            marks where the create-task modal places the caret.
           </span>
           <span className="grow" />
           <button type="button" className="kb-btn ghost" onClick={onClose}>
@@ -395,18 +394,11 @@ function TemplateRow({ template, busy, onEdit, onDelete }: TemplateRowProps) {
             </span>
           ))}
           {template.defaultProvider ? (
-            <span className="kb-card-template-provider">
-              {template.defaultProvider}
-            </span>
+            <span className="kb-card-template-provider">{template.defaultProvider}</span>
           ) : null}
         </div>
       </div>
-      <button
-        type="button"
-        className="kb-btn ghost"
-        onClick={onEdit}
-        disabled={busy}
-      >
+      <button type="button" className="kb-btn ghost" onClick={onEdit} disabled={busy}>
         Edit
       </button>
       <button
@@ -430,13 +422,7 @@ interface TemplateEditorProps {
   onCancel: () => void;
 }
 
-function TemplateEditor({
-  draft,
-  setDraft,
-  saving,
-  onSave,
-  onCancel,
-}: TemplateEditorProps) {
+function TemplateEditor({ draft, setDraft, saving, onSave, onCancel }: TemplateEditorProps) {
   function update<K extends keyof Draft>(key: K, value: Draft[K]): void {
     setDraft({ ...draft, [key]: value });
   }
@@ -458,9 +444,7 @@ function TemplateEditor({
           type="text"
           value={draft.titleTemplate}
           placeholder="Bug: "
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            update('titleTemplate', e.target.value)
-          }
+          onChange={(e: ChangeEvent<HTMLInputElement>) => update('titleTemplate', e.target.value)}
         />
       </label>
       <label className="kb-sentry-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
@@ -470,9 +454,7 @@ function TemplateEditor({
         <textarea
           value={draft.bodyTemplate}
           placeholder={`Steps to reproduce:\n1. {{cursor}}\n\nExpected:\n\nActual:`}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-            update('bodyTemplate', e.target.value)
-          }
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => update('bodyTemplate', e.target.value)}
           rows={6}
           spellCheck={false}
           style={{

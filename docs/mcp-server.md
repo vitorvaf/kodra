@@ -25,10 +25,10 @@ bridge over HTTP with a token, and streams back the response.
 
 Two environment variables wire it up. The preferred names are:
 
-| Var | Value |
-| --- | --- |
-| `KODRA_TOOL_BRIDGE_URL` | `http://127.0.0.1:<port>` — the bridge URL printed by the desktop app |
-| `KODRA_TOOL_BRIDGE_TOKEN` | A bearer token — rotated per Electron session |
+| Var                       | Value                                                                 |
+| ------------------------- | --------------------------------------------------------------------- |
+| `KODRA_TOOL_BRIDGE_URL`   | `http://127.0.0.1:<port>` — the bridge URL printed by the desktop app |
+| `KODRA_TOOL_BRIDGE_TOKEN` | A bearer token — rotated per Electron session                         |
 
 The legacy `KANBOTS_TOOL_BRIDGE_URL` and `KANBOTS_TOOL_BRIDGE_TOKEN` names are
 also accepted as fallbacks, with the same values.

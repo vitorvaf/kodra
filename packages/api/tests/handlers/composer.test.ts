@@ -13,8 +13,8 @@ describe('composer:draft', () => {
 
   it('rejects empty descriptions via validation', async () => {
     const { handlers } = makeHandlerTestKit();
-    await expect(
-      handlers['composer:draft']({ description: '' }),
-    ).rejects.toMatchObject({ name: 'ValidationError' });
+    await expect(handlers['composer:draft']({ description: '' })).rejects.toMatchObject({
+      name: 'ValidationError',
+    });
   });
 });

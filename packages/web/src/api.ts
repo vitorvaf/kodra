@@ -64,11 +64,7 @@ import type {
 } from './types.js';
 
 export type { PostMessageResult, UploadAttachmentResult } from './global.js';
-export type {
-  PrCommentPayload,
-  PrCommentsListResult,
-  ReviewCommentPayload,
-} from './types.js';
+export type { PrCommentPayload, PrCommentsListResult, ReviewCommentPayload } from './types.js';
 
 export interface ResolveCardResult {
   card: Card;
@@ -244,10 +240,7 @@ function buildPostMessageArgs(
   return args;
 }
 
-function buildDispatchArgs(
-  n: IssueRef,
-  input: DispatchIssueInput,
-): ChannelArgs<'issues:dispatch'> {
+function buildDispatchArgs(n: IssueRef, input: DispatchIssueInput): ChannelArgs<'issues:dispatch'> {
   const args: ChannelArgs<'issues:dispatch'> = {
     number: n,
     fromStatus: input.fromStatus,
@@ -359,11 +352,7 @@ export const api = {
       }
       if (patch.title !== undefined) body.title = patch.title;
       if (patch.body !== undefined) body.body = patch.body;
-      if (
-        body.status === undefined &&
-        body.title === undefined &&
-        body.body === undefined
-      ) {
+      if (body.status === undefined && body.title === undefined && body.body === undefined) {
         refuseInCloud(`api.updateIssue (no status/title/body in patch)`);
       }
       const updated = await bridge.cloudCardsUpdate({
@@ -536,9 +525,7 @@ export const api = {
         number: cloudIssueNumber(issueNumber),
       });
       const prompt =
-        (card.body && card.body.trim().length > 0
-          ? card.body
-          : card.title) ||
+        (card.body && card.body.trim().length > 0 ? card.body : card.title) ||
         `Implement #${issueNumber}.`;
       const { runId } = await bridge.cloudStartAgentRun({
         orgSlug: cloudCtx.orgSlug,
@@ -571,8 +558,7 @@ export const api = {
   },
   stopAgent: (runId: number): Promise<AgentRun> => invoke('agent-runs:stop', { runId }),
   getAgentRun: (runId: number): Promise<AgentRun> => invoke('agent-runs:get', { runId }),
-  getAgentRunDiff: (runId: number): Promise<DiffPayload> =>
-    invoke('agent-runs:diff', { runId }),
+  getAgentRunDiff: (runId: number): Promise<DiffPayload> => invoke('agent-runs:diff', { runId }),
   revealAgentRunWorktree: (runId: number): Promise<{ worktreePath: string }> =>
     invoke('agent-runs:reveal-worktree', { runId }),
   getAgentRunStats: (
@@ -585,8 +571,7 @@ export const api = {
     if (cloudCtx !== null) return Promise.resolve([]);
     return invoke('decisions:pending', undefined);
   },
-  getSpec: (issueNumber: IssueRef): Promise<SpecPayload> =>
-    invoke('specs:get', { issueNumber }),
+  getSpec: (issueNumber: IssueRef): Promise<SpecPayload> => invoke('specs:get', { issueNumber }),
   workspace: async (): Promise<Workspace> => {
     if (cloudCtx !== null) {
       // Synthetic — phase 3 ships a real project-config endpoint that will
@@ -599,8 +584,7 @@ export const api = {
     }
     return invoke('workspace:get', undefined);
   },
-  getWorkspaceBudgets: (): Promise<WorkspaceBudgets> =>
-    invoke('workspace:get-budgets', undefined),
+  getWorkspaceBudgets: (): Promise<WorkspaceBudgets> => invoke('workspace:get-budgets', undefined),
   setWorkspaceBudgets: (input: WorkspaceBudgets): Promise<WorkspaceBudgets> =>
     invoke('workspace:set-budgets', input),
   getWorkspaceHouseRules: (): Promise<WorkspaceHouseRules> =>
@@ -620,20 +604,13 @@ export const api = {
     invoke('workspace:get-acp-command', undefined),
   setWorkspaceAcpCommand: (input: {
     acpCommand: string | null;
-  }): Promise<WorkspaceAcpCommandBridgePayload> =>
-    invoke('workspace:set-acp-command', input),
-  getReviewComments: (
-    runId: number,
-    includeConsumed?: boolean,
-  ): Promise<ReviewCommentPayload[]> =>
+  }): Promise<WorkspaceAcpCommandBridgePayload> => invoke('workspace:set-acp-command', input),
+  getReviewComments: (runId: number, includeConsumed?: boolean): Promise<ReviewCommentPayload[]> =>
     invoke('review-comments:list', {
       runId,
       ...(includeConsumed ? { includeConsumed } : {}),
     }),
-  listReviewCommentsForFile: (
-    runId: number,
-    filePath: string,
-  ): Promise<ReviewCommentPayload[]> =>
+  listReviewCommentsForFile: (runId: number, filePath: string): Promise<ReviewCommentPayload[]> =>
     invoke('review-comments:list-for-file', { runId, filePath }),
   addReviewComment: (input: {
     runId: number;
@@ -667,10 +644,7 @@ export const api = {
    * V1 doesn't surface inline-reply targeting — the reply always goes
    * to the PR's main thread on GitHub.
    */
-  replyToPrComment: (
-    issueNumber: IssueRef,
-    body: string,
-  ): Promise<PrCommentPayload> =>
+  replyToPrComment: (issueNumber: IssueRef, body: string): Promise<PrCommentPayload> =>
     invoke('pr-comments:reply', { issueNumber, body }),
   listFolders: (): Promise<WorkspaceFolderPayload[]> => {
     if (cloudCtx !== null) return Promise.resolve([]);
@@ -774,18 +748,12 @@ export const api = {
     }),
   shipStatus: (issueNumber: IssueRef): Promise<ShipStatus> =>
     invoke('ship:status', { issueNumber }),
-  shipCommit: (
-    issueNumber: IssueRef,
-    message?: string,
-  ): Promise<ShipCommitResult> =>
+  shipCommit: (issueNumber: IssueRef, message?: string): Promise<ShipCommitResult> =>
     invoke('ship:commit', {
       issueNumber,
       ...(message !== undefined ? { message } : {}),
     }),
-  shipMerge: (
-    issueNumber: IssueRef,
-    targetBranch: string,
-  ): Promise<ShipMergeResult> =>
+  shipMerge: (issueNumber: IssueRef, targetBranch: string): Promise<ShipMergeResult> =>
     invoke('ship:merge', { issueNumber, targetBranch }),
   shipCreatePR: (input: {
     issueNumber: IssueRef;
@@ -866,9 +834,7 @@ export const api = {
     runId: number,
   ): Promise<{ source: number; run: AgentRun; worktree: string; branch: string }> =>
     invoke('agent-runs:fork', { runId }),
-  promoteCommit: (
-    runId: number,
-  ): Promise<ChannelResult<'agent-runs:promote-commit'>> =>
+  promoteCommit: (runId: number): Promise<ChannelResult<'agent-runs:promote-commit'>> =>
     invoke('agent-runs:promote-commit', { runId }),
   promotePR: (
     runId: number,
@@ -919,8 +885,7 @@ export const api = {
     invoke('analytics:recent-activity', args),
   resolveCard: (cardId: number, value: string): Promise<ResolveCardResult> =>
     invoke('cards:resolve', { cardId, value }),
-  dismissCard: (cardId: number): Promise<DismissCardResult> =>
-    invoke('cards:dismiss', { cardId }),
+  dismissCard: (cardId: number): Promise<DismissCardResult> => invoke('cards:dismiss', { cardId }),
   listCardTemplates: (): Promise<CardTemplatePayload[]> => {
     // Card templates are workspace-scoped local-store rows. Cloud
     // workspaces don't host a Kodra store today, so the list is
@@ -994,18 +959,17 @@ export const api = {
     invoke('autopilot:list-active', undefined),
   getAutopilotByIssue: (issueNumber: IssueRef): Promise<AutopilotSession | null> =>
     invoke('autopilot:get-by-issue', { issueNumber }),
-  getSentryConfig: (): Promise<SentryConfigPayload> =>
-    invoke('sentry:get-config', undefined),
+  getSentryConfig: (): Promise<SentryConfigPayload> => invoke('sentry:get-config', undefined),
   saveSentryConfig: (input: SentryConfigInput): Promise<SentryConfigPayload> =>
     invoke('sentry:save-config', input),
-  testSentryConnection: (input: {
-    token?: string;
-    orgSlug?: string;
-    projectSlug?: string;
-  } = {}): Promise<SentryTestConnectionResult> =>
-    invoke('sentry:test-connection', input),
-  syncSentryNow: (): Promise<SentrySyncResult> =>
-    invoke('sentry:sync-now', undefined),
+  testSentryConnection: (
+    input: {
+      token?: string;
+      orgSlug?: string;
+      projectSlug?: string;
+    } = {},
+  ): Promise<SentryTestConnectionResult> => invoke('sentry:test-connection', input),
+  syncSentryNow: (): Promise<SentrySyncResult> => invoke('sentry:sync-now', undefined),
   analyzeSentryIssue: (issueNumber: IssueRef): Promise<SentrySuggestion> =>
     invoke('sentry:analyze', { issueNumber }),
   applySentrySuggestion: (issueNumber: IssueRef): Promise<Issue> =>
@@ -1013,10 +977,10 @@ export const api = {
   getProviders: (): Promise<ProvidersPayload> => invoke('providers:get', undefined),
   saveProvider: (input: ProviderSaveInput): Promise<ProvidersPayload> =>
     invoke('providers:save', input),
-  testProviderConnection: (
-    input: { id: ProviderId; apiKey?: string },
-  ): Promise<ProviderTestConnectionResult> =>
-    invoke('providers:test-connection', input),
+  testProviderConnection: (input: {
+    id: ProviderId;
+    apiKey?: string;
+  }): Promise<ProviderTestConnectionResult> => invoke('providers:test-connection', input),
   setProviderDefaults: (input: ProviderSettingsInput): Promise<ProvidersPayload> =>
     invoke('providers:set-defaults', input),
   listChats: (): Promise<ChatConversation[]> => {
@@ -1029,8 +993,7 @@ export const api = {
     const args: ChannelArgs<'chat:create'> = title !== undefined ? { title } : {};
     return invoke('chat:create', args);
   },
-  getChat: (conversationId: number): Promise<ChatPayload> =>
-    invoke('chat:get', { conversationId }),
+  getChat: (conversationId: number): Promise<ChatPayload> => invoke('chat:get', { conversationId }),
   renameChat: (conversationId: number, title: string): Promise<ChatConversation> =>
     invoke('chat:rename', { conversationId, title }),
   deleteChat: (conversationId: number): Promise<{ ok: true }> =>
@@ -1071,10 +1034,7 @@ export const api = {
     invoke('chat:sessions:rename', { id, title }),
   deleteChatSession: (id: number): Promise<{ ok: boolean }> =>
     invoke('chat:sessions:delete', { id }),
-  setActiveChatSession: (
-    conversationId: number,
-    sessionId: number,
-  ): Promise<{ ok: boolean }> =>
+  setActiveChatSession: (conversationId: number, sessionId: number): Promise<{ ok: boolean }> =>
     invoke('chat:sessions:set-active', { conversationId, sessionId }),
   // Issue-thread session methods. Same shape as the conversation
   // variants, but keyed on threads.id. Used by TaskDetailModal's
@@ -1095,10 +1055,7 @@ export const api = {
     if (input.title !== undefined) args.title = input.title;
     return invoke('chat:thread-sessions:create', args);
   },
-  renameThreadChatSession: (
-    id: number,
-    title: string | null,
-  ): Promise<ChatSessionPayload> =>
+  renameThreadChatSession: (id: number, title: string | null): Promise<ChatSessionPayload> =>
     invoke('chat:thread-sessions:rename', { id, title }),
   deleteThreadChatSession: (id: number): Promise<{ ok: boolean }> =>
     invoke('chat:thread-sessions:delete', { id }),
@@ -1110,17 +1067,15 @@ export const api = {
    */
   listIssueChildren: (parentNumber: IssueRef): Promise<IssueRelationPayload[]> => {
     if (cloudCtx !== null) return Promise.resolve([]);
-    return invoke(
-      'issue-relations:list-children',
-      { parentNumber } as unknown as ChannelArgs<'issue-relations:list-children'>,
-    );
+    return invoke('issue-relations:list-children', {
+      parentNumber,
+    } as unknown as ChannelArgs<'issue-relations:list-children'>);
   },
   listIssueParents: (childNumber: IssueRef): Promise<IssueRelationPayload[]> => {
     if (cloudCtx !== null) return Promise.resolve([]);
-    return invoke(
-      'issue-relations:list-parents',
-      { childNumber } as unknown as ChannelArgs<'issue-relations:list-parents'>,
-    );
+    return invoke('issue-relations:list-parents', {
+      childNumber,
+    } as unknown as ChannelArgs<'issue-relations:list-parents'>);
   },
   addIssueRelation: (input: {
     parentNumber: IssueRef;
@@ -1129,10 +1084,7 @@ export const api = {
     if (cloudCtx !== null) {
       refuseInCloud('api.addIssueRelation');
     }
-    return invoke(
-      'issue-relations:add',
-      input as unknown as ChannelArgs<'issue-relations:add'>,
-    );
+    return invoke('issue-relations:add', input as unknown as ChannelArgs<'issue-relations:add'>);
   },
   removeIssueRelation: (id: number): Promise<{ ok: boolean }> => {
     if (cloudCtx !== null) {

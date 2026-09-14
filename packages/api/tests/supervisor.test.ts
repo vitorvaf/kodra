@@ -125,7 +125,6 @@ describe('createSupervisor', () => {
     // awaiting_input is left alone.
     expect(store.agentRuns.findById(waiting.id)?.status).toBe('awaiting_input');
   });
-
 });
 
 describe('supervisor.stop', () => {
@@ -310,7 +309,9 @@ describe('supervisor.start one-run-per-thread guard', () => {
 
     expect(startCalls).toHaveLength(1);
     expect(startCalls[0]!.appendSystemPrompt).toContain('Brazilian Portuguese (pt-BR)');
-    expect(startCalls[0]!.appendSystemPrompt).toContain('commit messages, and other technical artifacts in English');
+    expect(startCalls[0]!.appendSystemPrompt).toContain(
+      'commit messages, and other technical artifacts in English',
+    );
 
     handle.emitClose({ exitCode: 0 });
     await handle.done;

@@ -26,11 +26,13 @@ describe('agyCliAdapter', () => {
       '--dangerously-skip-permissions',
       '-p',
     ]);
-    expect(agyCliAdapter.buildArgs({
-      model: 'gemini-3.6-flash-low',
-      resumeFromSessionId: 'conversation-1',
-      extraArgs: ['--verbose'],
-    })).toEqual([
+    expect(
+      agyCliAdapter.buildArgs({
+        model: 'gemini-3.6-flash-low',
+        resumeFromSessionId: 'conversation-1',
+        extraArgs: ['--verbose'],
+      }),
+    ).toEqual([
       '--output-format',
       'stream-json',
       '--dangerously-skip-permissions',
@@ -52,25 +54,28 @@ describe('agyCliAdapter', () => {
   });
 
   it('parses init, step updates, results, ignored output, and malformed JSON', () => {
-    const events = feed([
-      JSON.stringify({ event: 'init', conversation_id: 'conversation-1' }),
-      JSON.stringify({ event: 'step_update', step_update: { text_delta: 'Hello' } }),
-      JSON.stringify({
-        event: 'step_update',
-        step_update: { tool_use: { id: 'tool-1', name: 'Read', input: { path: 'a.ts' } } },
-      }),
-      JSON.stringify({
-        event: 'result',
-        result: {
-          status: 'SUCCESS',
-          response: 'done',
-          duration_seconds: 1.25,
-          usage: { input_tokens: 10, output_tokens: 5 },
-        },
-      }),
-      'status: working',
-      '{malformed',
-    ], (line) => agyCliAdapter.parseLine(line));
+    const events = feed(
+      [
+        JSON.stringify({ event: 'init', conversation_id: 'conversation-1' }),
+        JSON.stringify({ event: 'step_update', step_update: { text_delta: 'Hello' } }),
+        JSON.stringify({
+          event: 'step_update',
+          step_update: { tool_use: { id: 'tool-1', name: 'Read', input: { path: 'a.ts' } } },
+        }),
+        JSON.stringify({
+          event: 'result',
+          result: {
+            status: 'SUCCESS',
+            response: 'done',
+            duration_seconds: 1.25,
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        }),
+        'status: working',
+        '{malformed',
+      ],
+      (line) => agyCliAdapter.parseLine(line),
+    );
 
     expect(events.map((event) => event.kind)).toEqual([
       'session',
@@ -91,17 +96,23 @@ describe('agyCliAdapter', () => {
   });
 
   it('maps a non-success result to an error result', () => {
-    expect(agyCliAdapter.parseLine(JSON.stringify({
-      event: 'result',
-      result: { status: 'ERROR', response: 'failed' },
-    }))).toEqual([{
-      kind: 'result',
-      isError: true,
-      text: 'failed',
-      tokenUsage: null,
-      durationMs: null,
-      totalCostUsd: null,
-    }]);
+    expect(
+      agyCliAdapter.parseLine(
+        JSON.stringify({
+          event: 'result',
+          result: { status: 'ERROR', response: 'failed' },
+        }),
+      ),
+    ).toEqual([
+      {
+        kind: 'result',
+        isError: true,
+        text: 'failed',
+        tokenUsage: null,
+        durationMs: null,
+        totalCostUsd: null,
+      },
+    ]);
   });
 });
 
@@ -553,12 +564,7 @@ describe('copilotCliAdapter + ACP parser', () => {
       }),
     ];
     const events = feed(lines, (l) => copilotCliAdapter.parseLine(l));
-    expect(events.map((e) => e.kind)).toEqual([
-      'text',
-      'tool_use',
-      'tool_result',
-      'result',
-    ]);
+    expect(events.map((e) => e.kind)).toEqual(['text', 'tool_use', 'tool_result', 'result']);
   });
 });
 

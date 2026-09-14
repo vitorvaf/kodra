@@ -66,9 +66,7 @@ export function PersonaPickerModal({
   const [draftPrompt, setDraftPrompt] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const [configuredProviders, setConfiguredProviders] = useState<Set<ProviderId>>(
-    () => new Set(),
-  );
+  const [configuredProviders, setConfiguredProviders] = useState<Set<ProviderId>>(() => new Set());
   const [provider, setProvider] = useState<ProviderId>('claude-code');
   const [userNotes, setUserNotes] = useState('');
 
@@ -83,9 +81,7 @@ export function PersonaPickerModal({
       try {
         const payload = await api.getProviders();
         if (cancelled) return;
-        const configured = payload.providers
-          .filter((p) => p.hasKey)
-          .map((p) => p.id);
+        const configured = payload.providers.filter((p) => p.hasKey).map((p) => p.id);
         setConfiguredProviders(new Set(configured));
         if (configured.length > 0) {
           const preferred =
@@ -139,7 +135,9 @@ export function PersonaPickerModal({
       return;
     }
     if (prompt.length < 20) {
-      setError('Prompt should be at least 20 characters — describe the perspective in a sentence or two.');
+      setError(
+        'Prompt should be at least 20 characters — describe the perspective in a sentence or two.',
+      );
       return;
     }
     const emoji = draftEmoji.trim();
@@ -234,7 +232,11 @@ export function PersonaPickerModal({
               }}
             >
               <span style={{ color: 'var(--ink-2)' }}>Run with:</span>
-              <div role="radiogroup" aria-label="Suggestion agent" style={{ display: 'flex', gap: 6 }}>
+              <div
+                role="radiogroup"
+                aria-label="Suggestion agent"
+                style={{ display: 'flex', gap: 6 }}
+              >
                 {ALL_PROVIDERS.map((id) => {
                   const isConfigured = configuredProviders.has(id);
                   const isSelected = provider === id;
@@ -249,7 +251,11 @@ export function PersonaPickerModal({
                       onClick={() => {
                         if (isConfigured) setProvider(id);
                       }}
-                      title={isConfigured ? PROVIDER_LABELS[id] : `${PROVIDER_LABELS[id]} — not configured. Add an API key in Settings.`}
+                      title={
+                        isConfigured
+                          ? PROVIDER_LABELS[id]
+                          : `${PROVIDER_LABELS[id]} — not configured. Add an API key in Settings.`
+                      }
                       style={{
                         padding: '4px 10px',
                         fontSize: 12,
@@ -289,55 +295,55 @@ export function PersonaPickerModal({
               {personas.map((p) => {
                 const isSelected = multiSelect && selectedIds.has(p.id);
                 return (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`kb-persona-card${isSelected ? ' selected' : ''}`}
-                  onClick={() => handleCardClick(p)}
-                  title={p.prompt}
-                  aria-pressed={multiSelect ? isSelected : undefined}
-                >
-                  <div className="kb-persona-emoji" aria-hidden>
-                    {p.emoji}
-                  </div>
-                  <div className="kb-persona-name">{p.name}</div>
-                  <div className="kb-persona-tagline">{p.tagline}</div>
-                  {multiSelect && isSelected ? (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: 8,
-                        right: 10,
-                        fontSize: 11,
-                        color: 'var(--accent)',
-                      }}
-                      aria-hidden
-                    >
-                      ✓
-                    </span>
-                  ) : null}
-                  {!p.builtIn ? (
-                    <span
-                      className="kb-persona-del"
-                      role="button"
-                      aria-label={`Delete ${p.name}`}
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeCustom(p.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`kb-persona-card${isSelected ? ' selected' : ''}`}
+                    onClick={() => handleCardClick(p)}
+                    title={p.prompt}
+                    aria-pressed={multiSelect ? isSelected : undefined}
+                  >
+                    <div className="kb-persona-emoji" aria-hidden>
+                      {p.emoji}
+                    </div>
+                    <div className="kb-persona-name">{p.name}</div>
+                    <div className="kb-persona-tagline">{p.tagline}</div>
+                    {multiSelect && isSelected ? (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 10,
+                          fontSize: 11,
+                          color: 'var(--accent)',
+                        }}
+                        aria-hidden
+                      >
+                        ✓
+                      </span>
+                    ) : null}
+                    {!p.builtIn ? (
+                      <span
+                        className="kb-persona-del"
+                        role="button"
+                        aria-label={`Delete ${p.name}`}
+                        tabIndex={0}
+                        onClick={(e) => {
                           e.stopPropagation();
-                          e.preventDefault();
                           removeCustom(p.id);
-                        }
-                      }}
-                    >
-                      ×
-                    </span>
-                  ) : null}
-                </button>
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            removeCustom(p.id);
+                          }
+                        }}
+                      >
+                        ×
+                      </span>
+                    ) : null}
+                  </button>
                 );
               })}
 
@@ -439,9 +445,7 @@ export function PersonaPickerModal({
         </div>
 
         <div className="kb-modal-foot">
-          <span className="hint">
-            Custom personas are stored locally on this machine.
-          </span>
+          <span className="hint">Custom personas are stored locally on this machine.</span>
           <span className="grow" />
           <button type="button" className="kb-btn ghost" onClick={onClose}>
             Cancel

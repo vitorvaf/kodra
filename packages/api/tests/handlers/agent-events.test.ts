@@ -17,9 +17,9 @@ describe('agent-runs:events:subscribe', () => {
 
   it('throws NotFound when the run does not exist', async () => {
     const { handlers } = makeHandlerTestKit();
-    await expect(
-      handlers['agent-runs:events:subscribe']({ runId: 9999 }),
-    ).rejects.toMatchObject({ name: 'NotFound' });
+    await expect(handlers['agent-runs:events:subscribe']({ runId: 9999 })).rejects.toMatchObject({
+      name: 'NotFound',
+    });
   });
 });
 

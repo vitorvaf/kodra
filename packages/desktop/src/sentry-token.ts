@@ -20,7 +20,10 @@ export function encryptToken(plaintext: string): EncryptedToken {
   return { buffer: Buffer.from(plaintext, 'utf8'), encryption: 'plain' };
 }
 
-export function decryptToken(buffer: Buffer | null, encryption: SentryTokenEncryption): string | null {
+export function decryptToken(
+  buffer: Buffer | null,
+  encryption: SentryTokenEncryption,
+): string | null {
   if (!buffer || buffer.length === 0) return null;
   if (encryption === 'safe') {
     if (!safeStorage.isEncryptionAvailable()) return null;
@@ -33,7 +36,10 @@ export function decryptToken(buffer: Buffer | null, encryption: SentryTokenEncry
   return buffer.toString('utf8');
 }
 
-export function resolveSentryToken(buffer: Buffer | null, encryption: SentryTokenEncryption): string | null {
+export function resolveSentryToken(
+  buffer: Buffer | null,
+  encryption: SentryTokenEncryption,
+): string | null {
   return envTokenOverride() ?? decryptToken(buffer, encryption);
 }
 

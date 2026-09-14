@@ -172,8 +172,8 @@ export class CardsRepo {
          ORDER BY c.id`,
       )
       .all(repoOwner, repoName) as Array<
-        CardRow & { run_id_alias: number; issue_number_alias: IssueRef }
-      >;
+      CardRow & { run_id_alias: number; issue_number_alias: IssueRef }
+    >;
     return rows.map((row) => ({
       card: rowToCard(row),
       agentRunId: row.run_id_alias,

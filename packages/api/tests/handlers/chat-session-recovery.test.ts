@@ -14,13 +14,19 @@ function makeChatSession(provider: 'claude-code' | 'agy-cli' = 'claude-code') {
 describe('chat session recovery', () => {
   it('grafts an older same-provider session onto the latest dead run', async () => {
     const { handlers, store, supervisor, conversation, session } = makeChatSession();
-    const older = store.agentRuns.create({ threadId: conversation.threadId, chatSessionId: session.id });
+    const older = store.agentRuns.create({
+      threadId: conversation.threadId,
+      chatSessionId: session.id,
+    });
     store.agentRuns.update(older.id, {
       provider: 'claude-code',
       sessionId: 'claude-session',
       status: 'failed',
     });
-    const latest = store.agentRuns.create({ threadId: conversation.threadId, chatSessionId: session.id });
+    const latest = store.agentRuns.create({
+      threadId: conversation.threadId,
+      chatSessionId: session.id,
+    });
     store.agentRuns.update(latest.id, { provider: 'claude-code', status: 'failed' });
 
     await handlers['chat:post-message']({ conversationId: conversation.id, body: 'continue' });
@@ -36,9 +42,19 @@ describe('chat session recovery', () => {
 
   it('resumes the provider-matching older row instead of crossing providers', async () => {
     const { handlers, store, supervisor, conversation, session } = makeChatSession('agy-cli');
-    const older = store.agentRuns.create({ threadId: conversation.threadId, chatSessionId: session.id });
-    store.agentRuns.update(older.id, { provider: 'agy-cli', sessionId: 'agy-session', status: 'failed' });
-    const latest = store.agentRuns.create({ threadId: conversation.threadId, chatSessionId: session.id });
+    const older = store.agentRuns.create({
+      threadId: conversation.threadId,
+      chatSessionId: session.id,
+    });
+    store.agentRuns.update(older.id, {
+      provider: 'agy-cli',
+      sessionId: 'agy-session',
+      status: 'failed',
+    });
+    const latest = store.agentRuns.create({
+      threadId: conversation.threadId,
+      chatSessionId: session.id,
+    });
     store.agentRuns.update(latest.id, { provider: 'claude-code', status: 'failed' });
 
     await handlers['chat:post-message']({ conversationId: conversation.id, body: 'continue' });
@@ -52,7 +68,10 @@ describe('chat session recovery', () => {
 
   it('starts a new run when no resumable session exists', async () => {
     const { handlers, store, supervisor, conversation, session } = makeChatSession();
-    const latest = store.agentRuns.create({ threadId: conversation.threadId, chatSessionId: session.id });
+    const latest = store.agentRuns.create({
+      threadId: conversation.threadId,
+      chatSessionId: session.id,
+    });
     store.agentRuns.update(latest.id, { provider: 'claude-code', status: 'failed' });
 
     await handlers['chat:post-message']({ conversationId: conversation.id, body: 'start over' });
@@ -77,7 +96,10 @@ describe('chat session recovery', () => {
 
   it('stops an active run before switching providers and starts with recovery context', async () => {
     const { handlers, store, supervisor, conversation, session } = makeChatSession();
-    const active = store.agentRuns.create({ threadId: conversation.threadId, chatSessionId: session.id });
+    const active = store.agentRuns.create({
+      threadId: conversation.threadId,
+      chatSessionId: session.id,
+    });
     store.agentRuns.update(active.id, { provider: 'claude-code', status: 'running' });
 
     await handlers['chat:post-message']({
@@ -102,7 +124,10 @@ describe('chat session recovery', () => {
 
   it('rejects a provider-less message while an active run is running', async () => {
     const { handlers, store, supervisor, conversation, session } = makeChatSession();
-    const active = store.agentRuns.create({ threadId: conversation.threadId, chatSessionId: session.id });
+    const active = store.agentRuns.create({
+      threadId: conversation.threadId,
+      chatSessionId: session.id,
+    });
     store.agentRuns.update(active.id, { provider: 'claude-code', status: 'running' });
 
     await expect(

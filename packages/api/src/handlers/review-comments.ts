@@ -110,10 +110,7 @@ export async function add(
   return toPayload(created);
 }
 
-export async function remove(
-  deps: HandlerDeps,
-  args: { id: number },
-): Promise<{ ok: boolean }> {
+export async function remove(deps: HandlerDeps, args: { id: number }): Promise<{ ok: boolean }> {
   const parsed = parseArgs(removeSchema, args);
   const existing = deps.store.reviewComments.findById(parsed.id);
   if (!existing) throw notFound(`review comment ${parsed.id} not found`);

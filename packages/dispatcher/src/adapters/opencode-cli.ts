@@ -1,12 +1,5 @@
-import {
-  detectRateLimit as detectRateLimitFromText,
-  type StreamEvent,
-} from '../stream-parser.js';
-import type {
-  AgentCliAdapter,
-  BuildArgsInput,
-  ComposePromptInput,
-} from './types.js';
+import { detectRateLimit as detectRateLimitFromText, type StreamEvent } from '../stream-parser.js';
+import type { AgentCliAdapter, BuildArgsInput, ComposePromptInput } from './types.js';
 
 /**
  * SST OpenCode CLI adapter. Spawns `opencode` and parses its
@@ -106,7 +99,11 @@ function mapEvent(event: OpencodeEvent): StreamEvent[] {
 
   // The adapter is a module singleton. A changed session indicates a new
   // process stream, so discard any totals left by the previous one.
-  if (incomingSessionId !== null && accum.sessionId !== null && incomingSessionId !== accum.sessionId) {
+  if (
+    incomingSessionId !== null &&
+    accum.sessionId !== null &&
+    incomingSessionId !== accum.sessionId
+  ) {
     resetAccum();
   }
   switch (event.type) {

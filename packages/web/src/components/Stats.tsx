@@ -2,11 +2,7 @@ import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import { Logo } from './Logo.js';
-import type {
-  CostBreakdownItem,
-  CostTimeSeriesPoint,
-  PersonaModelRollupRow,
-} from '@kanbots/api';
+import type { CostBreakdownItem, CostTimeSeriesPoint, PersonaModelRollupRow } from '@kanbots/api';
 
 export interface StatsProps {
   onClose?: () => void;
@@ -110,7 +106,14 @@ export function Stats({ onClose }: StatsProps) {
             aria-label="Close (Esc)"
             title="Close"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M6 6l12 12M18 6l-12 12" />
             </svg>
           </button>
@@ -156,10 +159,7 @@ function StatsContent({ data }: { data: StatsData }): React.ReactElement {
     () => breakdown.reduce((acc, item) => acc + item.totalUsd, 0),
     [breakdown],
   );
-  const totalRuns = useMemo(
-    () => rollup.reduce((acc, row) => acc + row.runs, 0),
-    [rollup],
-  );
+  const totalRuns = useMemo(() => rollup.reduce((acc, row) => acc + row.runs, 0), [rollup]);
 
   if (allTimeUsd === 0 && breakdown.length === 0 && rollup.length === 0) {
     return (
@@ -174,12 +174,7 @@ function StatsContent({ data }: { data: StatsData }): React.ReactElement {
     <>
       {/* Top-line summary */}
       <div className="kb-stats-summary">
-        <SummaryCard
-          label="Today"
-          value={fmtUsd(todayUsd)}
-          sub="since midnight"
-          accent
-        />
+        <SummaryCard label="Today" value={fmtUsd(todayUsd)} sub="since midnight" accent />
         <SummaryCard label="Last 7 days" value={fmtUsd(last7d)} sub={fmtRunsHint(series, 7)} />
         <SummaryCard label="Last 14 days" value={fmtUsd(last14d)} sub={fmtRunsHint(series, 14)} />
         <SummaryCard
@@ -207,7 +202,9 @@ function StatsContent({ data }: { data: StatsData }): React.ReactElement {
         <section className="kb-stats-section">
           <div className="kb-stats-section-head">
             <span className="kb-stats-section-title">By workspace × provider</span>
-            <span className="kb-stats-section-meta">{breakdown.length} pair{breakdown.length === 1 ? '' : 's'}</span>
+            <span className="kb-stats-section-meta">
+              {breakdown.length} pair{breakdown.length === 1 ? '' : 's'}
+            </span>
           </div>
           <BreakdownRows items={breakdown} />
         </section>
@@ -218,9 +215,13 @@ function StatsContent({ data }: { data: StatsData }): React.ReactElement {
         <section className="kb-stats-section">
           <div className="kb-stats-section-head">
             <span className="kb-stats-section-title">Top personas × models</span>
-            <span className="kb-stats-section-meta">{rollup.length} combination{rollup.length === 1 ? '' : 's'}</span>
+            <span className="kb-stats-section-meta">
+              {rollup.length} combination{rollup.length === 1 ? '' : 's'}
+            </span>
           </div>
-          <RollupTable rows={[...rollup].sort((a, b) => b.totalCostUsd - a.totalCostUsd).slice(0, 8)} />
+          <RollupTable
+            rows={[...rollup].sort((a, b) => b.totalCostUsd - a.totalCostUsd).slice(0, 8)}
+          />
         </section>
       ) : null}
     </>

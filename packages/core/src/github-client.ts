@@ -260,9 +260,7 @@ export class GitHubClient implements IssueSource {
     return rawPullToPullRequest(list[0]!);
   }
 
-  async listPullReviewComments(
-    pullNumber: number,
-  ): Promise<PullRequestReviewComment[]> {
+  async listPullReviewComments(pullNumber: number): Promise<PullRequestReviewComment[]> {
     const data = (await this.octokit.paginate(
       'GET /repos/{owner}/{repo}/pulls/{pull_number}/comments',
       {
@@ -276,34 +274,25 @@ export class GitHubClient implements IssueSource {
   }
 
   async approvePullRequest(input: { pullNumber: number; body?: string }): Promise<void> {
-    await this.octokit.request(
-      'POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
-      {
-        owner: this.owner,
-        repo: this.repo,
-        pull_number: input.pullNumber,
-        // GitHub's runtime API accepts the review event used by the bridge
-        // contract; Octokit's generated type omits this spelling.
-        event: 'APPROVED' as unknown as 'APPROVE',
-        ...(input.body !== undefined ? { body: input.body } : {}),
-      },
-    );
+    await this.octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
+      owner: this.owner,
+      repo: this.repo,
+      pull_number: input.pullNumber,
+      // GitHub's runtime API accepts the review event used by the bridge
+      // contract; Octokit's generated type omits this spelling.
+      event: 'APPROVED' as unknown as 'APPROVE',
+      ...(input.body !== undefined ? { body: input.body } : {}),
+    });
   }
 
-  async requestChangesPullRequest(input: {
-    pullNumber: number;
-    body: string;
-  }): Promise<void> {
-    await this.octokit.request(
-      'POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
-      {
-        owner: this.owner,
-        repo: this.repo,
-        pull_number: input.pullNumber,
-        event: 'REQUEST_CHANGES',
-        body: input.body,
-      },
-    );
+  async requestChangesPullRequest(input: { pullNumber: number; body: string }): Promise<void> {
+    await this.octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
+      owner: this.owner,
+      repo: this.repo,
+      pull_number: input.pullNumber,
+      event: 'REQUEST_CHANGES',
+      body: input.body,
+    });
   }
 
   async openDraftPR(input: OpenPRInput): Promise<PullRequest> {

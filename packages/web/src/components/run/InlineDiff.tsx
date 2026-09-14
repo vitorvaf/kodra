@@ -156,9 +156,7 @@ export function InlineDiff({
               oldGutter={oldGutter}
               newGutter={newGutter}
               commentsEnabled={commentsEnabled}
-              {...(commentsEnabled
-                ? { runId: runId!, filePath: filePath! }
-                : {})}
+              {...(commentsEnabled ? { runId: runId!, filePath: filePath! } : {})}
               commentsByKey={commentsByKey}
               onMutated={refresh}
             />
@@ -217,10 +215,8 @@ function UnifiedDiffRow({
   }
   const side = unifiedSideForRow(row);
   const lineNumber = unifiedLineForRow(row, side);
-  const lookupKey =
-    commentsEnabled && lineNumber !== null ? commentKey(lineNumber, side) : null;
-  const lineComments =
-    lookupKey !== null ? (commentsByKey.get(lookupKey) ?? []) : [];
+  const lookupKey = commentsEnabled && lineNumber !== null ? commentKey(lineNumber, side) : null;
+  const lineComments = lookupKey !== null ? (commentsByKey.get(lookupKey) ?? []) : [];
 
   return (
     <>
@@ -250,10 +246,7 @@ function UnifiedDiffRow({
         ) : null}
       </div>
       {lineComments.length > 0 ? (
-        <CommentList
-          comments={lineComments}
-          onRemoved={onMutated}
-        />
+        <CommentList comments={lineComments} onRemoved={onMutated} />
       ) : null}
     </>
   );
@@ -286,18 +279,13 @@ function SplitDiffRow({
   // to each — most people will click the right one but either is fine.
   const leftLine = row.left?.oldLine ?? null;
   const rightLine = row.right?.newLine ?? null;
-  const leftKey =
-    commentsEnabled && leftLine !== null
-      ? commentKey(leftLine, 'old')
-      : null;
+  const leftKey = commentsEnabled && leftLine !== null ? commentKey(leftLine, 'old') : null;
   const rightKey =
     commentsEnabled && rightLine !== null
       ? commentKey(rightLine, row.kind === 'context' ? 'context' : 'new')
       : null;
-  const leftComments =
-    leftKey !== null ? (commentsByKey.get(leftKey) ?? []) : [];
-  const rightComments =
-    rightKey !== null ? (commentsByKey.get(rightKey) ?? []) : [];
+  const leftComments = leftKey !== null ? (commentsByKey.get(leftKey) ?? []) : [];
+  const rightComments = rightKey !== null ? (commentsByKey.get(rightKey) ?? []) : [];
   return (
     <>
       <div className="kb-idiff-split-row">
@@ -306,9 +294,7 @@ function SplitDiffRow({
           side="old"
           gutter={oldGutter}
           commentsEnabled={commentsEnabled}
-          {...(commentsEnabled
-            ? { runId: runId!, filePath: filePath! }
-            : {})}
+          {...(commentsEnabled ? { runId: runId!, filePath: filePath! } : {})}
           onMutated={onMutated}
           isContext={row.kind === 'context'}
         />
@@ -317,9 +303,7 @@ function SplitDiffRow({
           side="new"
           gutter={newGutter}
           commentsEnabled={commentsEnabled}
-          {...(commentsEnabled
-            ? { runId: runId!, filePath: filePath! }
-            : {})}
+          {...(commentsEnabled ? { runId: runId!, filePath: filePath! } : {})}
           onMutated={onMutated}
           isContext={row.kind === 'context'}
         />
@@ -370,11 +354,7 @@ function SplitHalfCell({
   }
   const lineNum = side === 'old' ? row.oldLine : row.newLine;
   const sign = row.kind === 'add' ? '+' : row.kind === 'del' ? '-' : ' ';
-  const commentSide: ReviewCommentSide = isContext
-    ? 'context'
-    : side === 'old'
-      ? 'old'
-      : 'new';
+  const commentSide: ReviewCommentSide = isContext ? 'context' : side === 'old' ? 'old' : 'new';
   return (
     <div className={`kb-idiff-line ${row.kind}`}>
       <span className="kb-idiff-num" aria-hidden>
@@ -405,13 +385,7 @@ interface CommentTriggerProps {
   onAdded: () => Promise<void> | void;
 }
 
-function CommentTrigger({
-  runId,
-  filePath,
-  lineNumber,
-  side,
-  onAdded,
-}: CommentTriggerProps) {
+function CommentTrigger({ runId, filePath, lineNumber, side, onAdded }: CommentTriggerProps) {
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState('');
   const [posting, setPosting] = useState(false);
@@ -488,16 +462,9 @@ function CommentTrigger({
             }}
           />
           <div className="kb-idiff-comment-actions">
-            {error !== null ? (
-              <span className="kb-idiff-comment-err">{error}</span>
-            ) : null}
+            {error !== null ? <span className="kb-idiff-comment-err">{error}</span> : null}
             <span className="kb-idiff-comment-hint">⌘⏎ to add</span>
-            <button
-              type="button"
-              className="kb-btn"
-              onClick={cancel}
-              disabled={posting}
-            >
+            <button type="button" className="kb-btn" onClick={cancel} disabled={posting}>
               Cancel
             </button>
             <button
@@ -550,9 +517,7 @@ function CommentCard({ comment, onRemoved }: CommentCardProps) {
 
   const consumed = comment.consumedAt !== null;
   return (
-    <div
-      className={`kb-idiff-comment-card${consumed ? ' kb-idiff-comment-consumed' : ''}`}
-    >
+    <div className={`kb-idiff-comment-card${consumed ? ' kb-idiff-comment-consumed' : ''}`}>
       <div className="kb-idiff-comment-body">{comment.body}</div>
       <div className="kb-idiff-comment-meta">
         {consumed ? (
@@ -683,20 +648,35 @@ function buildDiffRows(
         continue;
       }
       if (pendingHunkBreak) {
-        rows.push({ kind: 'hunk', oldLine: null, newLine: null, text: `@@ -${oldNum} +${newNum} @@` });
+        rows.push({
+          kind: 'hunk',
+          oldLine: null,
+          newLine: null,
+          text: `@@ -${oldNum} +${newNum} @@`,
+        });
         pendingHunkBreak = false;
       }
       rows.push({ kind: 'context', oldLine: oldNum, newLine: newNum, text: op.text });
     } else if (op.kind === 'del') {
       if (pendingHunkBreak) {
-        rows.push({ kind: 'hunk', oldLine: null, newLine: null, text: `@@ -${oldNum + 1} +${newNum + 1} @@` });
+        rows.push({
+          kind: 'hunk',
+          oldLine: null,
+          newLine: null,
+          text: `@@ -${oldNum + 1} +${newNum + 1} @@`,
+        });
         pendingHunkBreak = false;
       }
       oldNum++;
       rows.push({ kind: 'del', oldLine: oldNum, newLine: null, text: op.text });
     } else {
       if (pendingHunkBreak) {
-        rows.push({ kind: 'hunk', oldLine: null, newLine: null, text: `@@ -${oldNum + 1} +${newNum + 1} @@` });
+        rows.push({
+          kind: 'hunk',
+          oldLine: null,
+          newLine: null,
+          text: `@@ -${oldNum + 1} +${newNum + 1} @@`,
+        });
         pendingHunkBreak = false;
       }
       newNum++;

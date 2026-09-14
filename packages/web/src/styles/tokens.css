@@ -53,7 +53,8 @@
 
   --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 0 0 1px var(--hairline-soft);
   --shadow-2:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 0 0 1px var(--hairline), 0 8px 30px rgba(0, 0, 0, 0.45);
+    0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 0 0 1px var(--hairline),
+    0 8px 30px rgba(0, 0, 0, 0.45);
   --shadow-pop: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--hairline);
 
   /* Font families */
@@ -63,9 +64,15 @@
      instead of whatever the OS happens to have, so the UI renders the
      same on every machine. Their @font-face unicode-ranges keep them
      from touching normal text. */
-  --ff-sans: 'Inter Tight', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  --ff-mono: 'JetBrains Mono', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', ui-monospace, 'SF Mono', Menlo, monospace;
-  --ff-serif: 'Instrument Serif', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', 'Times New Roman', Georgia, serif;
+  --ff-sans:
+    'Inter Tight', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji',
+    -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --ff-mono:
+    'JetBrains Mono', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math',
+    'Noto Color Emoji', ui-monospace, 'SF Mono', Menlo, monospace;
+  --ff-serif:
+    'Instrument Serif', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math',
+    'Noto Color Emoji', 'Times New Roman', Georgia, serif;
 
   /* Tell the OS native form controls (select dropdowns, date pickers,
      scrollbars) to render in dark mode. Without this, expanded <select>
@@ -115,9 +122,15 @@
      instead of whatever the OS happens to have, so the UI renders the
      same on every machine. Their @font-face unicode-ranges keep them
      from touching normal text. */
-  --ff-sans: 'Inter Tight', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  --ff-mono: 'JetBrains Mono', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', ui-monospace, 'SF Mono', Menlo, monospace;
-  --ff-serif: 'Instrument Serif', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji', 'Times New Roman', Georgia, serif;
+  --ff-sans:
+    'Inter Tight', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', 'Noto Color Emoji',
+    -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --ff-mono:
+    'JetBrains Mono', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math',
+    'Noto Color Emoji', ui-monospace, 'SF Mono', Menlo, monospace;
+  --ff-serif:
+    'Instrument Serif', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math',
+    'Noto Color Emoji', 'Times New Roman', Georgia, serif;
 }
 
 /* Typography utilities — opt-in. Don't restyle html/body globally so that
@@ -164,14 +177,19 @@
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%),
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-3) 50%),
     linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
   background-position:
     calc(100% - 14px) 50%,
     calc(100% - 9px) 50%;
-  background-size: 5px 5px, 5px 5px;
+  background-size:
+    5px 5px,
+    5px 5px;
   background-repeat: no-repeat;
-  transition: border-color 120ms ease, background-color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
 }
 .kb-app select:hover {
   border-color: var(--ink-4);

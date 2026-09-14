@@ -1,10 +1,7 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { KANBOTS_TOOLS } from './index.js';
 import { CLOUD_SIGNIN_HINT, readCloudSession } from './auth.js';
 
@@ -54,10 +51,7 @@ async function callBridge(name: string, args: unknown): Promise<unknown> {
   }
 }
 
-const server = new Server(
-  { name: 'kodra', version: '0.0.0' },
-  { capabilities: { tools: {} } },
-);
+const server = new Server({ name: 'kodra', version: '0.0.0' }, { capabilities: { tools: {} } });
 
 server.setRequestHandler(ListToolsRequestSchema, () =>
   Promise.resolve({ tools: KANBOTS_TOOLS as unknown as never[] }),
@@ -95,11 +89,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 const transport = new StdioServerTransport();
-server
-  .connect(transport)
-  .catch((err: unknown) => {
-    process.stderr.write(
-      `[kodra-mcp] failed to start: ${err instanceof Error ? err.message : String(err)}\n`,
-    );
-    process.exit(1);
-  });
+server.connect(transport).catch((err: unknown) => {
+  process.stderr.write(
+    `[kodra-mcp] failed to start: ${err instanceof Error ? err.message : String(err)}\n`,
+  );
+  process.exit(1);
+});

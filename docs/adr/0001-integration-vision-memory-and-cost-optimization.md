@@ -13,7 +13,7 @@ less expensive. Two external projects were candidates, with very different
 shapes than initially assumed:
 
 **agentmemory** (`rohitg00/agentmemory`, ~26.9k★, Apache-2.0) is a persistent
-*memory server* for coding agents. It runs a local daemon (REST on `:3111`,
+_memory server_ for coding agents. It runs a local daemon (REST on `:3111`,
 stream on `:3112`, web viewer on `:3113`, iii-engine WebSocket on `:49134`),
 exposes a stdio MCP shim (`@agentmemory/mcp`) that proxies to the REST API,
 and offers hybrid search (BM25 + vector via local `all-MiniLM-L6-v2` +
@@ -22,8 +22,8 @@ namespaces. Data lives in SQLite via the iii engine; no external DB, no cloud
 account, no LLM key required (provider keys only unlock richer
 auto-summarization).
 
-**rtk** (`rtk-ai/rtk`, ~75.8k★, Apache-2.0, "Rust Token Killer") is a *CLI
-output compressor* — a single Rust binary that intercepts verbose command
+**rtk** (`rtk-ai/rtk`, ~75.8k★, Apache-2.0, "Rust Token Killer") is a _CLI
+output compressor_ — a single Rust binary that intercepts verbose command
 output (`git status`, `cargo test`, `pytest`, …) and replaces it with compact
 summaries before the agent reads it. It is **not** an agent framework, **not**
 an MCP server, and **not** a memory/context system. It integrates via a
@@ -82,6 +82,7 @@ cost win with no dependency on the memory work.
 ## Alternatives Considered
 
 ### Option A — The original three-tier model (rtk as toolkit/orchestration layer)
+
 Rejected. Based on a misidentification of rtk. rtk exposes no orchestration,
 no SDK adapters, no pipeline runner. Forcing it into a layer it doesn't occupy
 would mean building that layer ourselves and bolting rtk on as a tenant —
@@ -89,12 +90,14 @@ scope creep with no payoff. The two-axis model captures the real value of both
 projects at lower integration cost.
 
 ### Option B — agentmemory only; defer rtk indefinitely
+
 Considered and rejected for now. rtk's hook-based integration is cheap enough
 (document-only at first, per ADR-0006) that excluding it removes a real cost
 savings for trivial reasons. We keep it in scope but sequenced last and
 decoupled.
 
 ### Option C — Build an in-house memory + output compression instead of integrating
+
 Rejected. agentmemory already solves memory (hybrid search, knowledge graph,
 54 MCP tools, 12 lifecycle hooks, mature codebase). rtk already solves output
 compression (64 command filters, mature Rust binary). Re-implementing either
@@ -104,6 +107,7 @@ diverts effort from the parts of the fork that are genuinely kanbots-specific
 ## Consequences
 
 **Positive:**
+
 - One coherent frame for the next five ADRs; no false dependencies between
   them.
 - agentmemory and rtk can be integrated, tested, and rolled back
@@ -112,6 +116,7 @@ diverts effort from the parts of the fork that are genuinely kanbots-specific
   rtk and a quality complement in agentmemory, without the two competing.
 
 **Negative:**
+
 - Two external dependencies instead of one cohesive "platform." Each carries
   its own upgrade cycle, port/footprint, and failure modes (agentmemory's
   iii-engine pinning and port conflicts; rtk's transparent-rewrite surface
@@ -120,8 +125,9 @@ diverts effort from the parts of the fork that are genuinely kanbots-specific
   needs to unlearn the three-tier picture.
 
 **Neutral:**
+
 - ADR-0002 through ADR-0006 are now unblocked and can be drafted in any order.
-- This ADR says nothing about *how* either tool is wired; that is the job of
+- This ADR says nothing about _how_ either tool is wired; that is the job of
   the component ADRs.
 
 ## References

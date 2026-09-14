@@ -119,9 +119,7 @@ function requireTemplate(deps: HandlerDeps, workspaceId: string, id: number): Ca
 export async function list(deps: HandlerDeps): Promise<CardTemplatePayload[]> {
   if (!deps.config.repoPath) return [];
   const workspaceId = requireWorkspaceId(deps);
-  return deps.store.cardTemplates
-    .listByWorkspace(workspaceId)
-    .map(templateToPayload);
+  return deps.store.cardTemplates.listByWorkspace(workspaceId).map(templateToPayload);
 }
 
 export async function create(
@@ -136,9 +134,7 @@ export async function create(
     titleTemplate: parsed.titleTemplate,
     ...(parsed.bodyTemplate !== undefined ? { bodyTemplate: parsed.bodyTemplate } : {}),
     ...(parsed.labels !== undefined ? { labels: parsed.labels } : {}),
-    ...(parsed.defaultProvider !== undefined
-      ? { defaultProvider: parsed.defaultProvider }
-      : {}),
+    ...(parsed.defaultProvider !== undefined ? { defaultProvider: parsed.defaultProvider } : {}),
   });
   return templateToPayload(t);
 }
@@ -152,14 +148,10 @@ export async function update(
   requireTemplate(deps, workspaceId, parsed.id);
   const next = deps.store.cardTemplates.update(parsed.id, {
     ...(parsed.name !== undefined ? { name: parsed.name } : {}),
-    ...(parsed.titleTemplate !== undefined
-      ? { titleTemplate: parsed.titleTemplate }
-      : {}),
+    ...(parsed.titleTemplate !== undefined ? { titleTemplate: parsed.titleTemplate } : {}),
     ...(parsed.bodyTemplate !== undefined ? { bodyTemplate: parsed.bodyTemplate } : {}),
     ...(parsed.labels !== undefined ? { labels: parsed.labels } : {}),
-    ...(parsed.defaultProvider !== undefined
-      ? { defaultProvider: parsed.defaultProvider }
-      : {}),
+    ...(parsed.defaultProvider !== undefined ? { defaultProvider: parsed.defaultProvider } : {}),
   });
   return templateToPayload(next);
 }
@@ -182,9 +174,7 @@ export async function reorder(
   const parsed = parseArgs(reorderSchema, args);
   const workspaceId = requireWorkspaceId(deps);
   deps.store.cardTemplates.reorder(workspaceId, parsed.ids);
-  return deps.store.cardTemplates
-    .listByWorkspace(workspaceId)
-    .map(templateToPayload);
+  return deps.store.cardTemplates.listByWorkspace(workspaceId).map(templateToPayload);
 }
 
 /**

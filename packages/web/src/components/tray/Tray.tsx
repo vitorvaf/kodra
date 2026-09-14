@@ -55,9 +55,7 @@ export function Tray({ onJump }: TrayProps) {
 
   // Re-poll when an awaiting/blocked issue changes — gives a near-real-time
   // experience without a dedicated SSE channel (Phase 12 may centralize).
-  const blockedIssueNumbers = issues
-    .filter((i) => i.agent === 'blocked')
-    .map((i) => i.number);
+  const blockedIssueNumbers = issues.filter((i) => i.agent === 'blocked').map((i) => i.number);
   const blockedKey = blockedIssueNumbers.join(',');
   useEffect(() => {
     void refresh();

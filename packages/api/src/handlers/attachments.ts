@@ -38,20 +38,14 @@ function attachmentsDir(repoPath: string): string {
   return join(describeKanbotsDir(repoPath).root, 'attachments');
 }
 
-export async function upload(
-  deps: HandlerDeps,
-  args: UploadArgs,
-): Promise<UploadAttachmentResult> {
+export async function upload(deps: HandlerDeps, args: UploadArgs): Promise<UploadAttachmentResult> {
   if (!deps.config.repoPath) {
     throw badRequest('no active workspace; cannot save attachments');
   }
   const parsed = parseArgs(uploadSchema, args);
   const ext = MIME_EXT[parsed.contentType.toLowerCase()];
   if (!ext) {
-    throw namedError(
-      'UnsupportedMediaType',
-      `unsupported content type ${parsed.contentType}`,
-    );
+    throw namedError('UnsupportedMediaType', `unsupported content type ${parsed.contentType}`);
   }
   if (parsed.data.byteLength === 0) throw badRequest('empty payload');
   if (parsed.data.byteLength > MAX_BYTES) {

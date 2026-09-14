@@ -62,9 +62,7 @@ export async function getWorkspace(deps: HandlerDeps): Promise<Workspace> {
   };
 }
 
-export async function listFolders(
-  deps: HandlerDeps,
-): Promise<WorkspaceFolderPayload[]> {
+export async function listFolders(deps: HandlerDeps): Promise<WorkspaceFolderPayload[]> {
   if (!deps.config.repoPath) return [];
   const { workspace, currentFolder } = bootstrapWorkspace(
     deps.store,
@@ -390,20 +388,14 @@ export async function addFolder(
   if (!deps.config.repoPath) {
     throw badRequest('host has no active workspace');
   }
-  const { workspace } = bootstrapWorkspace(
-    deps.store,
-    deps.config,
-    deps.config.repoPath,
-  );
+  const { workspace } = bootstrapWorkspace(deps.store, deps.config, deps.config.repoPath);
   const id = `manual-${Date.now()}`;
   const folder = deps.store.folders.ensure({
     id,
     workspaceId: workspace.id,
     name: parsed.name,
     path: parsed.path,
-    ...(parsed.defaultBranch !== undefined
-      ? { defaultBranch: parsed.defaultBranch }
-      : {}),
+    ...(parsed.defaultBranch !== undefined ? { defaultBranch: parsed.defaultBranch } : {}),
   });
   return {
     id: folder.id,
@@ -426,11 +418,7 @@ export async function removeFolder(
   if (!deps.config.repoPath) {
     throw badRequest('host has no active workspace');
   }
-  const { workspace } = bootstrapWorkspace(
-    deps.store,
-    deps.config,
-    deps.config.repoPath,
-  );
+  const { workspace } = bootstrapWorkspace(deps.store, deps.config, deps.config.repoPath);
   const folder = deps.store.folders.findById(parsed.id);
   if (!folder || folder.workspaceId !== workspace.id) {
     throw notFound(`folder ${parsed.id} not found`);
@@ -489,19 +477,11 @@ function requireWorkspaceId(deps: HandlerDeps): string {
   if (!deps.config.repoPath) {
     throw badRequest('host has no active workspace');
   }
-  const { workspace } = bootstrapWorkspace(
-    deps.store,
-    deps.config,
-    deps.config.repoPath,
-  );
+  const { workspace } = bootstrapWorkspace(deps.store, deps.config, deps.config.repoPath);
   return workspace.id;
 }
 
-function requireRepoBelongsTo(
-  deps: HandlerDeps,
-  workspaceId: string,
-  id: number,
-): WorkspaceRepo {
+function requireRepoBelongsTo(deps: HandlerDeps, workspaceId: string, id: number): WorkspaceRepo {
   const repo = deps.store.workspaceRepos.findById(id);
   if (!repo) throw notFound(`workspace repo ${id} not found`);
   if (repo.workspaceId !== workspaceId) {
@@ -510,9 +490,7 @@ function requireRepoBelongsTo(
   return repo;
 }
 
-export async function listRepos(
-  deps: HandlerDeps,
-): Promise<WorkspaceRepoPayload[]> {
+export async function listRepos(deps: HandlerDeps): Promise<WorkspaceRepoPayload[]> {
   if (!deps.config.repoPath) return [];
   const workspaceId = requireWorkspaceId(deps);
   // bootstrapWorkspace ran during requireWorkspaceId, so the workspace's
@@ -584,9 +562,7 @@ export async function setPrimaryRepo(
   const workspaceId = requireWorkspaceId(deps);
   requireRepoBelongsTo(deps, workspaceId, parsed.id);
   deps.store.workspaceRepos.setPrimary(workspaceId, parsed.id);
-  return deps.store.workspaceRepos
-    .listByWorkspace(workspaceId)
-    .map(toRepoPayload);
+  return deps.store.workspaceRepos.listByWorkspace(workspaceId).map(toRepoPayload);
 }
 
 export async function setRepoTargetBranch(
@@ -644,16 +620,12 @@ export async function repoStatus(
       timeout: 5_000,
       maxBuffer: 64 * 1024,
     }),
-    execFileAsync(
-      'git',
-      ['rev-list', '--left-right', '--count', `${targetBranch}...HEAD`],
-      {
-        cwd,
-        encoding: 'utf8',
-        timeout: 5_000,
-        maxBuffer: 64 * 1024,
-      },
-    ),
+    execFileAsync('git', ['rev-list', '--left-right', '--count', `${targetBranch}...HEAD`], {
+      cwd,
+      encoding: 'utf8',
+      timeout: 5_000,
+      maxBuffer: 64 * 1024,
+    }),
     execFileAsync('git', ['status', '--porcelain'], {
       cwd,
       encoding: 'utf8',
@@ -678,9 +650,7 @@ export async function repoStatus(
 
   let dirtyCount = 0;
   if (dirtyResult.status === 'fulfilled') {
-    dirtyCount = dirtyResult.value.stdout
-      .split('\n')
-      .filter((l) => l.trim().length > 0).length;
+    dirtyCount = dirtyResult.value.stdout.split('\n').filter((l) => l.trim().length > 0).length;
   }
 
   return { branch, aheadCount, behindCount, dirtyCount };
@@ -700,10 +670,7 @@ const openRepoInIdeSchema = z
  * `null` when the binary isn't on PATH (any other spawn error bubbles
  * up).
  */
-function spawnIde(
-  ide: 'vscode' | 'cursor',
-  cwd: string,
-): { ok: boolean; error?: string } {
+function spawnIde(ide: 'vscode' | 'cursor', cwd: string): { ok: boolean; error?: string } {
   const bin = ide === 'vscode' ? 'code' : 'cursor';
   try {
     const child = spawn(bin, [cwd], {

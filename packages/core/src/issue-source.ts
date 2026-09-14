@@ -31,14 +31,8 @@ export interface IssueSource {
    * because local-only sources have no notion of PRs.
    */
   findOpenPullForBranch?(branch: string): Promise<PullRequest | null>;
-  approvePullRequest?(input: {
-    pullNumber: number;
-    body?: string;
-  }): Promise<void>;
-  requestChangesPullRequest?(input: {
-    pullNumber: number;
-    body: string;
-  }): Promise<void>;
+  approvePullRequest?(input: { pullNumber: number; body?: string }): Promise<void>;
+  requestChangesPullRequest?(input: { pullNumber: number; body: string }): Promise<void>;
   /**
    * List inline review comments on a PR. These are the file/line-anchored
    * comments shown alongside the diff on github.com; they are distinct

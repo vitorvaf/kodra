@@ -167,7 +167,10 @@ export function parseStreamLine(line: string): StreamEvent[] {
 
 const RATE_LIMIT_PATTERNS: Array<{ kind: RateLimitKind; re: RegExp }> = [
   { kind: 'overloaded', re: /overloaded[_ ]error|"overloaded"|\boverloaded\b/i },
-  { kind: 'rate_limit', re: /rate[_ ]limit[_ ]?error|\brate[- ]?limit(ed|ing)?\b|\b429\b|too[_ ]many[_ ]requests/i },
+  {
+    kind: 'rate_limit',
+    re: /rate[_ ]limit[_ ]?error|\brate[- ]?limit(ed|ing)?\b|\b429\b|too[_ ]many[_ ]requests/i,
+  },
   { kind: 'quota', re: /quota[_ ]exceeded|\bquota\b/i },
   { kind: 'quota', re: /\bsession[ _-]?limit\b|\busage[ _-]?limit\b/i },
 ];
@@ -217,10 +220,7 @@ function buildRateLimitHaystack(
   return parts.join('\n');
 }
 
-function extractRetryAfterMs(
-  haystack: string,
-  raw?: { error?: unknown },
-): number | null {
+function extractRetryAfterMs(haystack: string, raw?: { error?: unknown }): number | null {
   // Prefer a structured retry_after on the error object if present.
   if (raw && isObject(raw.error)) {
     const errObj = raw.error as Record<string, unknown>;

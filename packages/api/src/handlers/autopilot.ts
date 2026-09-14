@@ -85,9 +85,7 @@ const stopSchema = z
   })
   .strict();
 
-const getByIssueSchema = z
-  .object({ issueNumber: issueRefSchema })
-  .strict();
+const getByIssueSchema = z.object({ issueNumber: issueRefSchema }).strict();
 
 export interface StartArgs {
   kind: 'feature-dev' | 'qa';
@@ -101,9 +99,7 @@ export async function start(
 ): Promise<{ sessionId: number; issueNumber: IssueRef }> {
   const parsed = parseArgs(startSchema, args);
   if (parsed.kind === 'qa') {
-    throw badRequest(
-      'QA autopilot ships in a follow-up release. Use Feature Dev for now.',
-    );
+    throw badRequest('QA autopilot ships in a follow-up release. Use Feature Dev for now.');
   }
   const startInput: Parameters<HandlerDeps['autopilot']['start']>[0] = {
     kind: parsed.kind,
@@ -119,10 +115,7 @@ export interface StopArgs {
   stopChildren: boolean;
 }
 
-export async function stop(
-  deps: HandlerDeps,
-  args: StopArgs,
-): Promise<{ sessionId: number }> {
+export async function stop(deps: HandlerDeps, args: StopArgs): Promise<{ sessionId: number }> {
   const parsed = parseArgs(stopSchema, args);
   await deps.autopilot.stop(parsed.sessionId, { stopChildren: parsed.stopChildren });
   return { sessionId: parsed.sessionId };

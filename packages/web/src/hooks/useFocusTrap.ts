@@ -10,9 +10,8 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean): RefObject<
 
   useEffect(() => {
     if (!active) return undefined;
-    previousFocusRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const dialog = rootRef.current;
     if (dialog === null) return undefined;
     const root: T = dialog;

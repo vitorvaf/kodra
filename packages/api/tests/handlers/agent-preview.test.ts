@@ -13,8 +13,8 @@ describe('agent-runs:preview:get', () => {
 
   it('throws NotFound when the run does not exist', async () => {
     const { handlers } = makeHandlerTestKit();
-    await expect(
-      handlers['agent-runs:preview:get']({ runId: 9999 }),
-    ).rejects.toMatchObject({ name: 'NotFound' });
+    await expect(handlers['agent-runs:preview:get']({ runId: 9999 })).rejects.toMatchObject({
+      name: 'NotFound',
+    });
   });
 });

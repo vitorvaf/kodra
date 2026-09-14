@@ -9,11 +9,11 @@ the chat panel and a few drafting/analysis flows.
 
 ## Agent CLIs
 
-| Provider | What it does | How to authenticate |
-| --- | --- | --- |
-| **Claude Code subscription** | Runs agents through your existing Claude Code session. The default; best for agentic runs. | `claude /login` once. Kodra inherits your CLI session. |
-| **Codex CLI (OpenAI)** | Runs agent tasks through OpenAI's `codex` CLI. Requires `codex` on `PATH`. | Click **Sign in with codex** (spawns `codex login` and opens auth.openai.com), or set `OPENAI_API_KEY` in your environment. |
-| **Antigravity CLI** | Runs agent tasks through Google's `agy` CLI. Requires `agy` on `PATH` (version 1.1.1+ for piped output). | Browser OAuth on first launch, or `GEMINI_API_KEY` with `modelProvider "gemini"` in `~/.gemini/antigravity-cli/settings.json`. |
+| Provider                     | What it does                                                                                             | How to authenticate                                                                                                            |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Claude Code subscription** | Runs agents through your existing Claude Code session. The default; best for agentic runs.               | `claude /login` once. Kodra inherits your CLI session.                                                                         |
+| **Codex CLI (OpenAI)**       | Runs agent tasks through OpenAI's `codex` CLI. Requires `codex` on `PATH`.                               | Click **Sign in with codex** (spawns `codex login` and opens auth.openai.com), or set `OPENAI_API_KEY` in your environment.    |
+| **Antigravity CLI**          | Runs agent tasks through Google's `agy` CLI. Requires `agy` on `PATH` (version 1.1.1+ for piped output). | Browser OAuth on first launch, or `GEMINI_API_KEY` with `modelProvider "gemini"` in `~/.gemini/antigravity-cli/settings.json`. |
 
 Per dispatch you can route to either — when you set the assignee to
 `claude (auto)`, Kodra uses whichever CLI is enabled and signed in.
@@ -28,21 +28,21 @@ The chat panel (a separate surface from the kanban) and a couple of
 drafting flows can talk to HTTP-only backends. The full set of
 provider IDs in the codebase:
 
-| `id` | Vendor | Use |
-| --- | --- | --- |
-| `claude-code` | Anthropic via `claude` CLI | Agents + chat |
-| `agy-cli` | Google via `agy` CLI | Agents |
-| `openai` | OpenAI API (Codex CLI maps here) | Agents (Codex) + chat |
-| `anthropic` | Anthropic API | Chat |
-| `google` | Gemini API | Chat |
-| `deepseek` | DeepSeek API | Chat |
-| `xai` | xAI (Grok) | Chat |
+| `id`          | Vendor                           | Use                   |
+| ------------- | -------------------------------- | --------------------- |
+| `claude-code` | Anthropic via `claude` CLI       | Agents + chat         |
+| `agy-cli`     | Google via `agy` CLI             | Agents                |
+| `openai`      | OpenAI API (Codex CLI maps here) | Agents (Codex) + chat |
+| `anthropic`   | Anthropic API                    | Chat                  |
+| `google`      | Gemini API                       | Chat                  |
+| `deepseek`    | DeepSeek API                     | Chat                  |
+| `xai`         | xAI (Grok)                       | Chat                  |
 
 ![Chat panel with the general-purpose agent](assets/chat-panel.png)
 
-*The chat panel runs alongside the board — handy for one-off questions
+_The chat panel runs alongside the board — handy for one-off questions
 ("how many changed files do I have in main?", "remove the worktree
-discard all changes for issue-51-54") that don't deserve a card.*
+discard all changes for issue-51-54") that don't deserve a card._
 
 ## Where keys live
 

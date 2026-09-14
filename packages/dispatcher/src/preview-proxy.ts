@@ -196,7 +196,7 @@ function filterResponseHeaders(
 
 function isHtmlContentType(contentType: string | string[] | undefined): boolean {
   if (!contentType) return false;
-  const v = Array.isArray(contentType) ? contentType[0] ?? '' : contentType;
+  const v = Array.isArray(contentType) ? (contentType[0] ?? '') : contentType;
   return v.toLowerCase().includes('text/html');
 }
 
@@ -278,7 +278,12 @@ export async function startPreviewProxy(
       return;
     }
     if (inject && reqUrl === '/__kanbots/eruda-init.js') {
-      void serveAsset('eruda-init.js', 'application/javascript; charset=utf-8', res, assetCandidates);
+      void serveAsset(
+        'eruda-init.js',
+        'application/javascript; charset=utf-8',
+        res,
+        assetCandidates,
+      );
       return;
     }
     if (inject && reqUrl === '/__kanbots/inspect.js') {

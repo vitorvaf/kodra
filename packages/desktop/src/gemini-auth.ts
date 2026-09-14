@@ -31,8 +31,7 @@ export async function startGeminiLogin(): Promise<GeminiLoginNotImplemented> {
   // an actionable message so the user reaches for the CLI command directly.
   return {
     ok: false,
-    error:
-      'Run `gemini /login` in your terminal to authorize Gemini CLI, then reopen this dialog.',
+    error: 'Run `gemini /login` in your terminal to authorize Gemini CLI, then reopen this dialog.',
   };
 }
 

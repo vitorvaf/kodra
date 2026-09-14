@@ -82,10 +82,7 @@ export function CloudFirstRunPrompt({ onSignedIn, onDismissed }: CloudFirstRunPr
 
   if (showSettings) {
     return (
-      <CloudSettingsModal
-        onClose={() => setShowSettings(false)}
-        onChanged={handleStatusChange}
-      />
+      <CloudSettingsModal onClose={() => setShowSettings(false)} onChanged={handleStatusChange} />
     );
   }
 
@@ -105,9 +102,8 @@ export function CloudFirstRunPrompt({ onSignedIn, onDismissed }: CloudFirstRunPr
             </div>
             <h2 className="kb-cloud-hero-title">Sign in to Kodra Cloud?</h2>
             <p className="kb-cloud-hero-tagline">
-              Kodra works fully offline on your machine. Kodra Cloud is
-              optional and adds team sync, cross-device boards, and shared
-              run history.
+              Kodra works fully offline on your machine. Kodra Cloud is optional and adds team sync,
+              cross-device boards, and shared run history.
             </p>
           </div>
 

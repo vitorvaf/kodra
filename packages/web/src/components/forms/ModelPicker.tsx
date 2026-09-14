@@ -49,9 +49,7 @@ export const MODELS: Record<ProviderId, ModelEntry[]> = {
     { id: 'claude-opus-4-6-thinking', label: 'Claude Opus 4.6 Thinking (Antigravity)' },
     { id: 'gpt-oss-120b-medium', label: 'GPT-OSS 120B (Antigravity)' },
   ],
-  'amp-cli': [
-    { id: 'default', label: 'Amp (default)' },
-  ],
+  'amp-cli': [{ id: 'default', label: 'Amp (default)' }],
   'cursor-cli': [
     { id: 'auto', label: 'Cursor (auto)' },
     { id: 'composer-2.5', label: 'Composer 2.5 (Cursor)' },

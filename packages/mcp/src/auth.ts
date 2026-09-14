@@ -32,8 +32,7 @@ export interface CloudSession {
   signedIn: boolean;
 }
 
-export const CLOUD_SIGNIN_HINT =
-  'Sign in via the Kanbots desktop app to enable cloud features.';
+export const CLOUD_SIGNIN_HINT = 'Sign in via the Kanbots desktop app to enable cloud features.';
 
 /**
  * Read the cloud session status from `cloud-config.json`. Never throws and

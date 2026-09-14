@@ -44,7 +44,9 @@ export function ToolUseCard({ toolUse, result, isLive }: ToolUseCardProps) {
   const hasInlineEdit = header.body === 'edit' || header.body === 'write';
   const hasContent =
     hasInlineEdit ||
-    (header.body === 'bash' && typeof bodyInput.command === 'string' && bodyInput.command.length > 160) ||
+    (header.body === 'bash' &&
+      typeof bodyInput.command === 'string' &&
+      bodyInput.command.length > 160) ||
     (header.body === 'todo' && Array.isArray(bodyInput.todos) && bodyInput.todos.length > 0) ||
     resultText !== null;
 
@@ -76,13 +78,19 @@ export function ToolUseCard({ toolUse, result, isLive }: ToolUseCardProps) {
         }
         aria-expanded={collapsible ? expanded : undefined}
       >
-        <span className="kb-tool-glyph" aria-hidden>●</span>
+        <span className="kb-tool-glyph" aria-hidden>
+          ●
+        </span>
         <span className="kb-tool-verb">{header.verb}</span>
         {header.arg ? (
           <>
-            <span className="kb-tool-paren" aria-hidden>(</span>
+            <span className="kb-tool-paren" aria-hidden>
+              (
+            </span>
             <span className="kb-tool-arg">{header.arg}</span>
-            <span className="kb-tool-paren" aria-hidden>)</span>
+            <span className="kb-tool-paren" aria-hidden>
+              )
+            </span>
           </>
         ) : null}
         <span className="kb-tool-spacer" />

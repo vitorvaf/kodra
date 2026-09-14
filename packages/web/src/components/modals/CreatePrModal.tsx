@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type MouseEvent,
-} from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type MouseEvent } from 'react';
 import { Logo } from '../Logo.js';
 import { api } from '../../api.js';
 import { MarkdownEditor } from '../forms/MarkdownEditor.js';
@@ -95,10 +89,7 @@ export function CreatePrModal({ runId, onCreated, onClose }: CreatePrModalProps)
     e.stopPropagation();
   }
 
-  function updateField<K extends keyof DraftState>(
-    key: K,
-    value: DraftState[K],
-  ): void {
+  function updateField<K extends keyof DraftState>(key: K, value: DraftState[K]): void {
     setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
   }
 
@@ -163,9 +154,8 @@ export function CreatePrModal({ runId, onCreated, onClose }: CreatePrModalProps)
 
         <div className="kb-modal-body kb-sentry-body">
           <div className="kb-sentry-hint">
-            We drafted a title and body from this run's diff to save you a
-            round-trip. Edit before submitting — your text is what lands on
-            GitHub.
+            We drafted a title and body from this run's diff to save you a round-trip. Edit before
+            submitting — your text is what lands on GitHub.
           </div>
 
           {drafting ? (
@@ -179,9 +169,7 @@ export function CreatePrModal({ runId, onCreated, onClose }: CreatePrModalProps)
               }}
             >
               <SpinnerDot />
-              <span style={{ color: 'var(--ink-2)' }}>
-                Drafting PR description…
-              </span>
+              <span style={{ color: 'var(--ink-2)' }}>Drafting PR description…</span>
             </div>
           ) : null}
 
@@ -230,23 +218,16 @@ export function CreatePrModal({ runId, onCreated, onClose }: CreatePrModalProps)
               </div>
 
               {draft.diffTruncated ? (
-                <div
-                  className="kb-sentry-hint"
-                  style={{ marginTop: 6, color: 'var(--ink-3)' }}
-                >
-                  Heads up: the diff was truncated before drafting — the
-                  body may miss work from later files. Edit before submitting.
+                <div className="kb-sentry-hint" style={{ marginTop: 6, color: 'var(--ink-3)' }}>
+                  Heads up: the diff was truncated before drafting — the body may miss work from
+                  later files. Edit before submitting.
                 </div>
               ) : null}
             </>
           ) : null}
 
           {error ? (
-            <div
-              className="kb-sentry-error"
-              role="alert"
-              style={{ marginTop: 12 }}
-            >
+            <div className="kb-sentry-error" role="alert" style={{ marginTop: 12 }}>
               {error}
             </div>
           ) : null}
@@ -257,21 +238,14 @@ export function CreatePrModal({ runId, onCreated, onClose }: CreatePrModalProps)
             Pre-filling costs about $0.01-0.05 of agent budget per draft.
           </span>
           <span className="grow" />
-          <button
-            type="button"
-            className="kb-btn ghost"
-            onClick={onClose}
-            disabled={submitting}
-          >
+          <button type="button" className="kb-btn ghost" onClick={onClose} disabled={submitting}>
             Cancel
           </button>
           <button
             type="button"
             className="kb-btn primary"
             onClick={() => void handleSubmit()}
-            disabled={
-              drafting || submitting || (draft?.title.trim().length ?? 0) === 0
-            }
+            disabled={drafting || submitting || (draft?.title.trim().length ?? 0) === 0}
           >
             {submitting ? 'Opening…' : 'Create draft PR'}
           </button>

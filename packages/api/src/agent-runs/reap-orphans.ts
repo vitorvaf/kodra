@@ -53,7 +53,10 @@ function defaultReadComm(pid: number): string | null {
   return null;
 }
 
-function isAlive(pid: number, kill: (pid: number, signal: number | NodeJS.Signals) => void): boolean {
+function isAlive(
+  pid: number,
+  kill: (pid: number, signal: number | NodeJS.Signals) => void,
+): boolean {
   try {
     kill(pid, 0);
     return true;
@@ -75,10 +78,7 @@ function isAlive(pid: number, kill: (pid: number, signal: number | NodeJS.Signal
  * guard against PID reuse — without this check, a recycled PID owned by an
  * unrelated process would be killed.
  */
-export async function reapOrphanProcess(
-  pid: number,
-  opts: ReapOptions,
-): Promise<ReapOutcome> {
+export async function reapOrphanProcess(pid: number, opts: ReapOptions): Promise<ReapOutcome> {
   const kill = opts.kill ?? defaultKill;
   const readComm = opts.readComm ?? defaultReadComm;
   const sleep = opts.sleep ?? delay;

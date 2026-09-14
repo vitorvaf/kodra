@@ -142,11 +142,7 @@ export interface KanbotsBridge {
     body: UpdateCardRequest;
     ifMatch?: string;
   }): Promise<CardSummary>;
-  cloudCardsArchive(args: {
-    orgSlug: string;
-    projectSlug: string;
-    number: number;
-  }): Promise<void>;
+  cloudCardsArchive(args: { orgSlug: string; projectSlug: string; number: number }): Promise<void>;
   cloudCardsUnarchive(args: {
     orgSlug: string;
     projectSlug: string;
@@ -205,13 +201,8 @@ export interface KanbotsBridge {
     rootPath: string;
     relPath: string;
   }): Promise<Array<{ name: string; path: string; type: 'file' | 'dir' }>>;
-  workspaceWorktreeStatus(args: {
-    rootPath: string;
-  }): Promise<{
-    files: Record<
-      string,
-      { status: 'M' | 'A' | 'D' | 'R' | '??' | 'U'; worktrees: string[] }
-    >;
+  workspaceWorktreeStatus(args: { rootPath: string }): Promise<{
+    files: Record<string, { status: 'M' | 'A' | 'D' | 'R' | '??' | 'U'; worktrees: string[] }>;
     worktrees: string[];
   }>;
   workspaceSubscribeTouched(
@@ -268,27 +259,17 @@ export interface KanbotsBridge {
     projectSlug: string;
     localRepoPath: string;
   }): Promise<{ localRepoPath: string; updatedAt: string }>;
-  cloudProjectBindingClear(args: {
-    orgSlug: string;
-    projectSlug: string;
-  }): Promise<void>;
+  cloudProjectBindingClear(args: { orgSlug: string; projectSlug: string }): Promise<void>;
   openCloudWorkspace(args: {
     orgSlug: string;
     projectSlug: string;
   }): Promise<{ ok: true } | { ok: false; error: string }>;
   closeCloudWorkspace(): Promise<void>;
   recentCloudWorkspaces(): Promise<RecentCloudWorkspace[]>;
-  setNotifyOnRunComplete(
-    enabled: boolean,
-  ): Promise<{ ok: true } | { ok: false; error: string }>;
-  openChat?(
-    conversationId: number | null,
-  ): Promise<{ ok: true } | { ok: false; error: string }>;
+  setNotifyOnRunComplete(enabled: boolean): Promise<{ ok: true } | { ok: false; error: string }>;
+  openChat?(conversationId: number | null): Promise<{ ok: true } | { ok: false; error: string }>;
 
-  invoke<C extends ChannelName>(
-    channel: C,
-    args: ChannelArgs<C>,
-  ): Promise<ChannelResult<C>>;
+  invoke<C extends ChannelName>(channel: C, args: ChannelArgs<C>): Promise<ChannelResult<C>>;
   subscribe(eventName: string, listener: (payload: unknown) => void): () => void;
 }
 

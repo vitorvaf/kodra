@@ -27,11 +27,7 @@ interface Entry {
   readyTimer: ReturnType<typeof setTimeout> | null;
 }
 
-const ACTIVE_STATUSES: ReadonlyArray<AgentRunStatus> = [
-  'starting',
-  'running',
-  'awaiting_input',
-];
+const ACTIVE_STATUSES: ReadonlyArray<AgentRunStatus> = ['starting', 'running', 'awaiting_input'];
 const READY_TIMEOUT_MS = 5000;
 
 function isTerminal(status: AgentRunStatus): boolean {
@@ -72,11 +68,10 @@ export function createSubscriptionRegistry(
     forward(payload, entry.ownerId);
   }
 
-  function register(input: {
-    runId: number;
-    sinceSeq?: number;
-    ownerId?: number;
-  }): { subscriptionId: string; runStatus: AgentRunStatus } {
+  function register(input: { runId: number; sinceSeq?: number; ownerId?: number }): {
+    subscriptionId: string;
+    runStatus: AgentRunStatus;
+  } {
     const run = supervisor.getRun(input.runId);
     if (!run) throw notFound(input.runId);
 

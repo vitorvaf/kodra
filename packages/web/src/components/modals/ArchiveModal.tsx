@@ -1,21 +1,9 @@
 import { Logo } from '../Logo.js';
 import type { IssueRef } from '@kanbots/core';
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type MouseEvent,
-} from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from 'react';
 import { api } from '../../api.js';
 import { dispatchIssuesRefetch } from '../../hooks/useIssues.js';
-import {
-  ageString,
-  areaLabels,
-  priorityFromLabels,
-  tagFromLabels,
-} from '../../labels.js';
+import { ageString, areaLabels, priorityFromLabels, tagFromLabels } from '../../labels.js';
 import type { Issue } from '../../types.js';
 
 export interface ArchiveModalProps {

@@ -33,7 +33,8 @@ export interface QwenLoginNotImplemented {
 export async function startQwenLogin(): Promise<QwenLoginNotImplemented> {
   return {
     ok: false,
-    error: 'Run `qwen-code login` in your terminal to authorize Qwen Code, then reopen this dialog.',
+    error:
+      'Run `qwen-code login` in your terminal to authorize Qwen Code, then reopen this dialog.',
   };
 }
 

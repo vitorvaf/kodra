@@ -73,9 +73,9 @@ export class IssueRelationsRepo {
   }
 
   findById(id: number): IssueRelation | null {
-    const row = this.db
-      .prepare('SELECT * FROM issue_relations WHERE id = ?')
-      .get(id) as IssueRelationRow | undefined;
+    const row = this.db.prepare('SELECT * FROM issue_relations WHERE id = ?').get(id) as
+      | IssueRelationRow
+      | undefined;
     return row ? rowToRelation(row) : null;
   }
 

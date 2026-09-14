@@ -176,15 +176,7 @@ export function useBoardViews(workspaceId: string | null): BoardViewsAPI {
       deleteView,
       reorderViews,
     }),
-    [
-      views,
-      activeViewId,
-      setActiveView,
-      saveView,
-      updateView,
-      deleteView,
-      reorderViews,
-    ],
+    [views, activeViewId, setActiveView, saveView, updateView, deleteView, reorderViews],
   );
 }
 

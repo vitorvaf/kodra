@@ -9,12 +9,7 @@ import type {
   UpdateIssuePatch,
 } from '@kanbots/core';
 import { DuplicateIssueNumberError, InvalidIssueIdError } from '@kanbots/local-store';
-import type {
-  AgentEvent,
-  AgentRunStatus,
-  Card,
-  Store,
-} from '@kanbots/local-store';
+import type { AgentEvent, AgentRunStatus, Card, Store } from '@kanbots/local-store';
 import type { AgentSupervisor } from '../../src/agent-runs/supervisor.js';
 
 interface ApiError extends Error {
@@ -152,7 +147,9 @@ export class FakeIssueSource implements IssueSource {
         number = numeric;
       } else if (
         [...this.issuesByNumber.keys()].some(
-          (existing) => typeof existing === 'string' && existing.toLowerCase() === requestedNumber.toLowerCase(),
+          (existing) =>
+            typeof existing === 'string' &&
+            existing.toLowerCase() === requestedNumber.toLowerCase(),
         )
       ) {
         throw new DuplicateIssueNumberError(requestedNumber);

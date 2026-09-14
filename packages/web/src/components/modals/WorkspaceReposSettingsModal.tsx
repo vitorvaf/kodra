@@ -31,9 +31,7 @@ const EMPTY_ADD_DRAFT: AddDraft = {
   targetBranch: '',
 };
 
-export function WorkspaceReposSettingsModal({
-  onClose,
-}: WorkspaceReposSettingsModalProps) {
+export function WorkspaceReposSettingsModal({ onClose }: WorkspaceReposSettingsModalProps) {
   const inCloudMode = getCloudCtx() !== null;
   const [repos, setRepos] = useState<WorkspaceRepoPayload[]>([]);
   const [loading, setLoading] = useState(!inCloudMode);
@@ -97,9 +95,7 @@ export function WorkspaceReposSettingsModal({
   async function handlePickFolder(): Promise<void> {
     const bridge = getBridge();
     if (!bridge) {
-      setAddError(
-        'Desktop bridge not available — open the desktop app instead.',
-      );
+      setAddError('Desktop bridge not available — open the desktop app instead.');
       return;
     }
     setAddError(null);
@@ -179,10 +175,7 @@ export function WorkspaceReposSettingsModal({
     }
   }
 
-  async function handleRenameRepo(
-    repo: WorkspaceRepoPayload,
-    next: string,
-  ): Promise<void> {
+  async function handleRenameRepo(repo: WorkspaceRepoPayload, next: string): Promise<void> {
     const trimmed = next.trim();
     const current = (repo.displayName ?? '').trim();
     if (trimmed === current) return;
@@ -202,10 +195,7 @@ export function WorkspaceReposSettingsModal({
     }
   }
 
-  async function handleRetargetBranch(
-    repo: WorkspaceRepoPayload,
-    next: string,
-  ): Promise<void> {
+  async function handleRetargetBranch(repo: WorkspaceRepoPayload, next: string): Promise<void> {
     const trimmed = next.trim();
     const current = (repo.targetBranch ?? '').trim();
     if (trimmed === current) return;
@@ -272,16 +262,15 @@ export function WorkspaceReposSettingsModal({
 
         <div className="kb-modal-body kb-sentry-body kb-repos-body">
           <div className="kb-sentry-hint">
-            Local repos mounted into this workspace. Agent runs target the
-            primary repo by default; add more so the same board can dispatch
-            runs across sibling checkouts (e.g. monorepos split into separate
-            git folders, paired client+server repos).
+            Local repos mounted into this workspace. Agent runs target the primary repo by default;
+            add more so the same board can dispatch runs across sibling checkouts (e.g. monorepos
+            split into separate git folders, paired client+server repos).
           </div>
 
           {inCloudMode ? (
             <div className="kb-sentry-warn" role="status">
-              Multi-repo workspaces are a local feature; cloud projects use the
-              binding configured in Cloud Settings.
+              Multi-repo workspaces are a local feature; cloud projects use the binding configured
+              in Cloud Settings.
             </div>
           ) : null}
 
@@ -307,25 +296,18 @@ export function WorkspaceReposSettingsModal({
                       repo={repo}
                       busy={busyId === repo.id}
                       removing={removingId === repo.id}
-                      canSetPrimary={
-                        !repo.isPrimary && busyId === null && removingId === null
-                      }
+                      canSetPrimary={!repo.isPrimary && busyId === null && removingId === null}
                       onSetPrimary={() => void handleSetPrimary(repo.id)}
                       onRemove={() => void handleRemove(repo)}
                       onRename={(next) => void handleRenameRepo(repo, next)}
-                      onRetargetBranch={(next) =>
-                        void handleRetargetBranch(repo, next)
-                      }
+                      onRetargetBranch={(next) => void handleRetargetBranch(repo, next)}
                     />
                   ))}
                 </div>
               )}
 
               {addOpen ? (
-                <form
-                  className="kb-repos-add"
-                  onSubmit={(e) => void handleAddSubmit(e)}
-                >
+                <form className="kb-repos-add" onSubmit={(e) => void handleAddSubmit(e)}>
                   <div className="kb-sentry-label">Add repo</div>
                   <div className="kb-repos-add-pickrow">
                     <input
@@ -423,9 +405,8 @@ export function WorkspaceReposSettingsModal({
 
         <div className="kb-modal-foot">
           <span className="hint">
-            Repos are stored locally in <code>.kanbots/</code>. The target
-            branch is a free-text input for v1; a real branch picker is a
-            follow-up.
+            Repos are stored locally in <code>.kanbots/</code>. The target branch is a free-text
+            input for v1; a real branch picker is a follow-up.
           </span>
           <span className="grow" />
           <button type="button" className="kb-btn ghost" onClick={onClose}>
@@ -501,9 +482,7 @@ function RepoCard({
             className="kb-repos-card-name-input"
             value={nameDraft}
             placeholder={repo.repoPath.split('/').filter(Boolean).pop() ?? ''}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setNameDraft(e.target.value)
-            }
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setNameDraft(e.target.value)}
             onBlur={commitName}
             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
               if (e.key === 'Enter') {
@@ -563,9 +542,7 @@ function RepoCard({
           value={branchDraft}
           placeholder="main"
           spellCheck={false}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            setBranchDraft(e.target.value)
-          }
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setBranchDraft(e.target.value)}
           onBlur={commitBranch}
           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
             if (e.key === 'Enter') {

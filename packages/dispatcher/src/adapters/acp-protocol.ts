@@ -1,7 +1,4 @@
-import {
-  detectRateLimit as detectRateLimitFromText,
-  type StreamEvent,
-} from '../stream-parser.js';
+import { detectRateLimit as detectRateLimitFromText, type StreamEvent } from '../stream-parser.js';
 
 /**
  * Agent Client Protocol (ACP) wire-shape parser.
@@ -193,7 +190,7 @@ function mapSessionUpdate(params: SessionUpdateParams): StreamEvent[] {
         {
           kind: 'tool_use',
           toolUseId: tc.tool_call_id,
-          name: typeof tc.title === 'string' ? tc.title : tc.kind ?? 'tool',
+          name: typeof tc.title === 'string' ? tc.title : (tc.kind ?? 'tool'),
           input: tc.raw_input ?? null,
         },
       ];

@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  getBridge,
-  UPDATER_CHANGED_CHANNEL,
-  type UpdaterState,
-} from '../../desktop-bridge.js';
+import { getBridge, UPDATER_CHANGED_CHANNEL, type UpdaterState } from '../../desktop-bridge.js';
 
 // Auto-updater notices — renderer side.
 //

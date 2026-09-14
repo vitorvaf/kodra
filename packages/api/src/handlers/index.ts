@@ -1,9 +1,4 @@
-import type {
-  BridgeChannels,
-  ChannelArgs,
-  ChannelName,
-  ChannelResult,
-} from '../bridge.js';
+import type { BridgeChannels, ChannelArgs, ChannelName, ChannelResult } from '../bridge.js';
 import * as agentActions from './agent-actions.js';
 import * as agentChecks from './agent-checks.js';
 import * as agentCli from './agent-cli.js';
@@ -49,12 +44,7 @@ export type {
   SubscriptionRegistry,
 };
 export type { ProvidersHandlerDeps };
-export type {
-  Config,
-  DraftIssueFn,
-  SentryAnalyzerFn,
-  SuggestFeatureFn,
-} from './types.js';
+export type { Config, DraftIssueFn, SentryAnalyzerFn, SuggestFeatureFn } from './types.js';
 export type { RunCheckImpl } from './agent-checks.js';
 export type { StartPreviewImpl } from './agent-preview.js';
 
@@ -66,9 +56,7 @@ export type Handlers = {
     | 'updater:download'
     | 'updater:install'
     | 'agent-runs:events:ready'
-  >]: (
-    args: ChannelArgs<C>,
-  ) => Promise<ChannelResult<C>>;
+  >]: (args: ChannelArgs<C>) => Promise<ChannelResult<C>>;
 };
 
 export type { BridgeChannels, ChannelArgs, ChannelName, ChannelResult };
@@ -77,11 +65,12 @@ export function createHandlers(opts: CreateHandlersOptions): Handlers {
   const { deps } = opts;
   const map: Handlers = {
     'config:get': () => config.getConfig(deps),
-    'memory:status': async () => deps.memoryStatus?.() ?? {
-      available: false,
-      version: null,
-      url: 'http://localhost:3111',
-    },
+    'memory:status': async () =>
+      deps.memoryStatus?.() ?? {
+        available: false,
+        version: null,
+        url: 'http://localhost:3111',
+      },
     'issues:list': (args) => issues.list(deps, args),
     'issues:list-archived': () => issues.listArchived(deps),
     'issues:get': (args) => issues.get(deps, args),
@@ -118,18 +107,15 @@ export function createHandlers(opts: CreateHandlersOptions): Handlers {
     'agent-runs:checks:commands': () => agentChecks.commands(deps),
     'agent-cli:slash-commands': (args) => agentCli.slashCommands(deps, args),
     'agent-runs:preview:get': (args) => agentPreview.getPreview(deps, args),
-    'agent-runs:preview:start': (args) =>
-      agentPreview.startRunPreview(deps, args),
+    'agent-runs:preview:start': (args) => agentPreview.startRunPreview(deps, args),
     'agent-runs:preview:stop': (args) => agentPreview.stopRunPreview(deps, args),
     'agent-runs:fork': (args) => agentRuns.fork(deps, args),
     'agent-runs:promote-commit': (args) => agentRuns.promoteCommit(deps, args),
     'agent-runs:promote-pr': (args) => agentRuns.promotePr(deps, args),
-    'agent-runs:draft-pr-description': (args) =>
-      agentRuns.draftPrDescription(deps, args),
+    'agent-runs:draft-pr-description': (args) => agentRuns.draftPrDescription(deps, args),
     'agent-runs:hunks:list': (args) => agentRuns.listHunks(deps, args),
     'agent-runs:events:subscribe': (args) => agentEvents.subscribe(opts, args),
-    'agent-runs:events:unsubscribe': (args) =>
-      agentEvents.unsubscribe(opts, args),
+    'agent-runs:events:unsubscribe': (args) => agentEvents.unsubscribe(opts, args),
     'cards:resolve': (args) => cards.resolve(deps, args),
     'cards:dismiss': (args) => cards.dismiss(deps, args),
     'card-templates:list': () => cardTemplates.list(deps),
@@ -160,10 +146,8 @@ export function createHandlers(opts: CreateHandlersOptions): Handlers {
     'workspace:repos-add': (args) => workspace.addRepo(deps, args),
     'workspace:repos-remove': (args) => workspace.removeRepo(deps, args),
     'workspace:repos-set-primary': (args) => workspace.setPrimaryRepo(deps, args),
-    'workspace:repos-set-target-branch': (args) =>
-      workspace.setRepoTargetBranch(deps, args),
-    'workspace:repos-set-display-name': (args) =>
-      workspace.setRepoDisplayName(deps, args),
+    'workspace:repos-set-target-branch': (args) => workspace.setRepoTargetBranch(deps, args),
+    'workspace:repos-set-display-name': (args) => workspace.setRepoDisplayName(deps, args),
     'workspace:repo-status': (args) => workspace.repoStatus(deps, args),
     'workspace:open-repo-in-ide': (args) => workspace.openRepoInIde(deps, args),
     'pr-comments:list': (args) => prComments.list(deps, args),
@@ -172,8 +156,7 @@ export function createHandlers(opts: CreateHandlersOptions): Handlers {
     'review-comments:list-for-file': (args) => reviewComments.listForFile(deps, args),
     'review-comments:add': (args) => reviewComments.add(deps, args),
     'review-comments:remove': (args) => reviewComments.remove(deps, args),
-    'review-comments:consume-pending': (args) =>
-      reviewComments.consumePending(deps, args),
+    'review-comments:consume-pending': (args) => reviewComments.consumePending(deps, args),
     'folders:list': () => workspace.listFolders(deps),
     'folders:add': (args) => workspace.addFolder(deps, args),
     'folders:remove': (args) => workspace.removeFolder(deps, args),

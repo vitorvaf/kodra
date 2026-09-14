@@ -163,13 +163,11 @@ export interface PrRequestChangesArgs {
   body?: string;
 }
 
-export async function startAgent(
-  deps: HandlerDeps,
-  args: StartAgentArgs,
-): Promise<AgentRun> {
+export async function startAgent(deps: HandlerDeps, args: StartAgentArgs): Promise<AgentRun> {
   const parsed = parseArgs(startAgentSchema, args);
   const dispatchProvider = resolveDispatchProvider(deps, parsed.provider);
-  let toolPrep: Awaited<ReturnType<NonNullable<typeof deps.chatTools>['prepareForRun']>> | null = null;
+  let toolPrep: Awaited<ReturnType<NonNullable<typeof deps.chatTools>['prepareForRun']>> | null =
+    null;
   if (deps.chatTools) {
     try {
       toolPrep = await deps.chatTools.prepareForRun({ provider: dispatchProvider });
@@ -202,10 +200,7 @@ export async function startAgent(
   }
 }
 
-export async function archive(
-  deps: HandlerDeps,
-  args: NumberArgs,
-): Promise<DecoratedIssue> {
+export async function archive(deps: HandlerDeps, args: NumberArgs): Promise<DecoratedIssue> {
   const parsed = parseArgs(issueNumberSchema, args);
   const issue = await deps.source.getIssue(parsed.number);
 
@@ -224,18 +219,14 @@ export async function archive(
     const runs = deps.store.agentRuns
       .listByThread(thread.id)
       .filter(
-        (r) =>
-          r.status === 'starting' ||
-          r.status === 'running' ||
-          r.status === 'awaiting_input',
+        (r) => r.status === 'starting' || r.status === 'running' || r.status === 'awaiting_input',
       );
     for (const run of runs) {
       await deps.supervisor.stop(run.id);
     }
   }
   const labels = issue.labels.filter(
-    (l) =>
-      !l.startsWith('status:') && !l.startsWith('agent:') && l !== 'archived',
+    (l) => !l.startsWith('status:') && !l.startsWith('agent:') && l !== 'archived',
   );
   labels.push('archived');
   const updated = await deps.source.updateIssue(parsed.number, {
@@ -245,17 +236,12 @@ export async function archive(
   return decorateIssue(updated);
 }
 
-export async function unarchive(
-  deps: HandlerDeps,
-  args: NumberArgs,
-): Promise<DecoratedIssue> {
+export async function unarchive(deps: HandlerDeps, args: NumberArgs): Promise<DecoratedIssue> {
   const parsed = parseArgs(issueNumberSchema, args);
   const issue = await deps.source.getIssue(parsed.number);
   // Drop the 'archived' marker, keep all other labels, and restore a sensible
   // status so the card appears on the board instead of falling into Inbox.
-  const stripped = issue.labels.filter(
-    (l) => l !== 'archived' && !l.startsWith('status:'),
-  );
+  const stripped = issue.labels.filter((l) => l !== 'archived' && !l.startsWith('status:'));
   const labels = [...stripped, 'status:backlog'];
   const updated = await deps.source.updateIssue(parsed.number, {
     labels,
@@ -264,15 +250,10 @@ export async function unarchive(
   return decorateIssue(updated);
 }
 
-export async function approve(
-  deps: HandlerDeps,
-  args: NumberArgs,
-): Promise<DecoratedIssue> {
+export async function approve(deps: HandlerDeps, args: NumberArgs): Promise<DecoratedIssue> {
   const parsed = parseArgs(issueNumberSchema, args);
   const issue = await deps.source.getIssue(parsed.number);
-  const labels = issue.labels.filter(
-    (l) => !l.startsWith('status:') && !l.startsWith('agent:'),
-  );
+  const labels = issue.labels.filter((l) => !l.startsWith('status:') && !l.startsWith('agent:'));
   labels.push('status:done', 'agent:idle');
   const updated = await deps.source.updateIssue(parsed.number, {
     labels,
@@ -281,17 +262,11 @@ export async function approve(
   return decorateIssue(updated);
 }
 
-export async function prApprove(
-  deps: HandlerDeps,
-  args: NumberArgs,
-): Promise<DecoratedIssue> {
+export async function prApprove(deps: HandlerDeps, args: NumberArgs): Promise<DecoratedIssue> {
   const parsed = parseArgs(issueNumberSchema, args);
   const issue = await deps.source.getIssue(parsed.number);
   const pull = await findPullForIssueBranch(deps, parsed.number);
-  if (
-    pull !== null &&
-    typeof deps.source.approvePullRequest === 'function'
-  ) {
+  if (pull !== null && typeof deps.source.approvePullRequest === 'function') {
     await deps.source.approvePullRequest({
       pullNumber: pull.number,
       body: 'Approved via Kodra.',
@@ -300,15 +275,10 @@ export async function prApprove(
   return updateApprovedIssue(deps, issue);
 }
 
-export async function requestChanges(
-  deps: HandlerDeps,
-  args: NumberArgs,
-): Promise<DecoratedIssue> {
+export async function requestChanges(deps: HandlerDeps, args: NumberArgs): Promise<DecoratedIssue> {
   const parsed = parseArgs(issueNumberSchema, args);
   const issue = await deps.source.getIssue(parsed.number);
-  const labels = issue.labels.filter(
-    (l) => !l.startsWith('status:') && !l.startsWith('agent:'),
-  );
+  const labels = issue.labels.filter((l) => !l.startsWith('status:') && !l.startsWith('agent:'));
   labels.push('status:in-progress', 'agent:blocked');
   const updated = await deps.source.updateIssue(parsed.number, { labels });
   return decorateIssue(updated);
@@ -321,10 +291,7 @@ export async function prRequestChanges(
   const parsed = parseArgs(prRequestChangesSchema, args);
   const issue = await deps.source.getIssue(parsed.number);
   const pull = await findPullForIssueBranch(deps, parsed.number);
-  if (
-    pull !== null &&
-    typeof deps.source.requestChangesPullRequest === 'function'
-  ) {
+  if (pull !== null && typeof deps.source.requestChangesPullRequest === 'function') {
     await deps.source.requestChangesPullRequest({
       pullNumber: pull.number,
       body: parsed.body ?? 'Changes requested via Kodra.',
@@ -333,10 +300,7 @@ export async function prRequestChanges(
   return updateRequestedChangesIssue(deps, issue);
 }
 
-export async function split(
-  deps: HandlerDeps,
-  args: SplitArgs,
-): Promise<SplitResult> {
+export async function split(deps: HandlerDeps, args: SplitArgs): Promise<SplitResult> {
   const parsed = parseArgs(splitSchema, args);
   const parent = await deps.source.getIssue(parsed.number);
   const labels = (parent.labels ?? []).filter(
@@ -376,10 +340,7 @@ export async function split(
   return { parent: parsed.number, children: decoratedChildren };
 }
 
-export async function reviewer(
-  deps: HandlerDeps,
-  args: ReviewerArgs,
-): Promise<AgentRun> {
+export async function reviewer(deps: HandlerDeps, args: ReviewerArgs): Promise<AgentRun> {
   const parsed = parseArgs(reviewerSchema, args);
   const issue = await deps.source.getIssue(parsed.number);
   let threadId = parsed.threadId;
@@ -397,16 +358,14 @@ export async function reviewer(
     parsed.prompt ??
     `Review the implementation against the issue:\n\n${issue.title}\n\n${issue.body ?? ''}`;
   const runs = deps.store.agentRuns.listByThread(threadId);
-  const sourceRun = [...runs].reverse().find(
-    (run) => run.worktreePath !== null && run.branchName !== null,
-  );
+  const sourceRun = [...runs]
+    .reverse()
+    .find((run) => run.worktreePath !== null && run.branchName !== null);
   let reviewWorktreePath: string | undefined;
   if (sourceRun?.worktreePath && sourceRun.branchName) {
-    const { stdout: headSha } = await execFileAsync(
-      'git',
-      ['rev-parse', 'HEAD'],
-      { cwd: sourceRun.worktreePath },
-    );
+    const { stdout: headSha } = await execFileAsync('git', ['rev-parse', 'HEAD'], {
+      cwd: sourceRun.worktreePath,
+    });
     const stamp = Date.now().toString(36);
     reviewWorktreePath = `${sourceRun.worktreePath}-review-${stamp}`;
     await mkdir(dirname(reviewWorktreePath), { recursive: true });
@@ -456,13 +415,8 @@ async function findPullForIssueBranch(
   }
 }
 
-async function updateApprovedIssue(
-  deps: HandlerDeps,
-  issue: Issue,
-): Promise<DecoratedIssue> {
-  const labels = issue.labels.filter(
-    (l) => !l.startsWith('status:') && !l.startsWith('agent:'),
-  );
+async function updateApprovedIssue(deps: HandlerDeps, issue: Issue): Promise<DecoratedIssue> {
+  const labels = issue.labels.filter((l) => !l.startsWith('status:') && !l.startsWith('agent:'));
   labels.push('status:done', 'agent:idle');
   const updated = await deps.source.updateIssue(issue.number, {
     labels,
@@ -475,9 +429,7 @@ async function updateRequestedChangesIssue(
   deps: HandlerDeps,
   issue: Issue,
 ): Promise<DecoratedIssue> {
-  const labels = issue.labels.filter(
-    (l) => !l.startsWith('status:') && !l.startsWith('agent:'),
-  );
+  const labels = issue.labels.filter((l) => !l.startsWith('status:') && !l.startsWith('agent:'));
   labels.push('status:in-progress', 'agent:blocked');
   const updated = await deps.source.updateIssue(issue.number, { labels });
   return decorateIssue(updated);

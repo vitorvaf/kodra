@@ -63,7 +63,15 @@ describe('worktree path resolution', () => {
     execFileSync('git', ['add', 'file.txt'], { cwd: repo });
     execFileSync(
       'git',
-      ['-c', 'user.name=tester', '-c', 'user.email=tester@example.test', 'commit', '-qm', 'initial'],
+      [
+        '-c',
+        'user.name=tester',
+        '-c',
+        'user.email=tester@example.test',
+        'commit',
+        '-qm',
+        'initial',
+      ],
       { cwd: repo },
     );
 
@@ -72,11 +80,10 @@ describe('worktree path resolution', () => {
     execFileSync('git', ['add', 'file.txt'], { cwd: repo });
     execFileSync('git', ['commit', '-qm', 'update'], { cwd: repo });
 
-    const trailers = execFileSync(
-      'git',
-      ['show', '-s', '--format=%B', 'HEAD'],
-      { cwd: repo, encoding: 'utf8' },
-    );
+    const trailers = execFileSync('git', ['show', '-s', '--format=%B', 'HEAD'], {
+      cwd: repo,
+      encoding: 'utf8',
+    });
     expect(trailers).toContain('Kodra-Issue: FEAT-42');
   });
 });

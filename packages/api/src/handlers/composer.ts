@@ -14,10 +14,7 @@ export interface DraftArgs {
   description: string;
 }
 
-export async function draft(
-  deps: HandlerDeps,
-  args: DraftArgs,
-): Promise<DraftedIssue> {
+export async function draft(deps: HandlerDeps, args: DraftArgs): Promise<DraftedIssue> {
   const parsed = parseArgs(draftSchema, args);
   return deps.draftIssue({ description: parsed.description });
 }
@@ -63,10 +60,7 @@ export interface SuggestArgs {
   userNotes?: string;
 }
 
-export async function suggest(
-  deps: HandlerDeps,
-  args: SuggestArgs,
-): Promise<DraftedIssue> {
+export async function suggest(deps: HandlerDeps, args: SuggestArgs): Promise<DraftedIssue> {
   const parsed = parseArgs(suggestSchema, args);
   const issues = await deps.source.listIssues({ state: 'all' });
   const backlog = collectSuggestionEntries(issues);

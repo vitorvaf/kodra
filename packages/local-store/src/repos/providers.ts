@@ -98,9 +98,7 @@ export class ProvidersRepo {
     }
     fields.push("updated_at = datetime('now')");
     values.push(id);
-    this.db
-      .prepare(`UPDATE provider_config SET ${fields.join(', ')} WHERE id = ?`)
-      .run(...values);
+    this.db.prepare(`UPDATE provider_config SET ${fields.join(', ')} WHERE id = ?`).run(...values);
     return this.get(id);
   }
 

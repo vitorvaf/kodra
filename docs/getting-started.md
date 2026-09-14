@@ -27,13 +27,13 @@ symlink and enable auto-updates.
 
 Artifact names, if you prefer to download manually:
 
-| Platform | Artifact | Notes |
-| --- | --- | --- |
-| Linux x64 | `kodra-<version>-linux-x64.AppImage` | `chmod +x` and run, or use the installer above. |
-| Linux x64 | `kodra-<version>-linux-x64.tar.xz` | Extract anywhere, run `./kodra`. |
-| macOS Apple Silicon | `kodra-<version>-mac-arm64.dmg` | Drag to `/Applications`. See [unsigned-builds](#unsigned-builds). |
-| macOS Intel | `kodra-<version>-mac-x64.dmg` | Drag to `/Applications`. See [unsigned-builds](#unsigned-builds). |
-| Windows x64 | `kodra-<version>-win-x64.exe` | NSIS installer. See [unsigned-builds](#unsigned-builds). |
+| Platform            | Artifact                             | Notes                                                             |
+| ------------------- | ------------------------------------ | ----------------------------------------------------------------- |
+| Linux x64           | `kodra-<version>-linux-x64.AppImage` | `chmod +x` and run, or use the installer above.                   |
+| Linux x64           | `kodra-<version>-linux-x64.tar.xz`   | Extract anywhere, run `./kodra`.                                  |
+| macOS Apple Silicon | `kodra-<version>-mac-arm64.dmg`      | Drag to `/Applications`. See [unsigned-builds](#unsigned-builds). |
+| macOS Intel         | `kodra-<version>-mac-x64.dmg`        | Drag to `/Applications`. See [unsigned-builds](#unsigned-builds). |
+| Windows x64         | `kodra-<version>-win-x64.exe`        | NSIS installer. See [unsigned-builds](#unsigned-builds).          |
 
 The releasing pipeline lives in
 [docs/releasing.md](releasing.md); to run from source instead, see

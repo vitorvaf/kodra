@@ -67,9 +67,9 @@ export interface FrontierPoint {
   successRate: number;
 }
 
-function buildRollupOpts(parsed: RollupArgs): Parameters<
-  HandlerDeps['store']['agentRuns']['personaModelRollup']
->[0] {
+function buildRollupOpts(
+  parsed: RollupArgs,
+): Parameters<HandlerDeps['store']['agentRuns']['personaModelRollup']>[0] {
   const opts: Parameters<HandlerDeps['store']['agentRuns']['personaModelRollup']>[0] = {};
   if (parsed.repoOwner !== undefined) opts.repoOwner = parsed.repoOwner;
   if (parsed.repoName !== undefined) opts.repoName = parsed.repoName;
@@ -102,10 +102,7 @@ export async function timeSeries(
   return deps.store.agentRuns.costTimeSeries(opts);
 }
 
-export async function frontier(
-  deps: HandlerDeps,
-  args: FrontierArgs,
-): Promise<FrontierPoint[]> {
+export async function frontier(deps: HandlerDeps, args: FrontierArgs): Promise<FrontierPoint[]> {
   const parsed = parseArgs(frontierSchema, args);
   const opts: Parameters<HandlerDeps['store']['agentRuns']['frontierData']>[0] = {};
   if (parsed.repoOwner !== undefined) opts.repoOwner = parsed.repoOwner;
@@ -136,22 +133,13 @@ function classifyEvent(
 ): { kind: RecentActivityKind; summary: string } {
   if (type === 'tool_use') {
     const p = payload as { name?: unknown; input?: unknown } | null;
-    const toolName =
-      p && typeof p.name === 'string' && p.name.length > 0 ? p.name : 'Tool';
+    const toolName = p && typeof p.name === 'string' && p.name.length > 0 ? p.name : 'Tool';
     // Pull a useful one-arg tail when present so the row shows
     // "Edit src/api.ts" instead of just "Edit".
     let arg: string | null = null;
     if (p && p.input !== null && typeof p.input === 'object') {
       const input = p.input as Record<string, unknown>;
-      const candidates = [
-        'file_path',
-        'path',
-        'command',
-        'query',
-        'pattern',
-        'url',
-        'description',
-      ];
+      const candidates = ['file_path', 'path', 'command', 'query', 'pattern', 'url', 'description'];
       for (const key of candidates) {
         const v = input[key];
         if (typeof v === 'string' && v.length > 0) {

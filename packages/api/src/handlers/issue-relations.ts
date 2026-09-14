@@ -15,13 +15,9 @@ import type { HandlerDeps } from './types.js';
  */
 const MAX_CYCLE_DEPTH = 16;
 
-const listChildrenSchema = z
-  .object({ parentNumber: issueRefSchema })
-  .strict();
+const listChildrenSchema = z.object({ parentNumber: issueRefSchema }).strict();
 
-const listParentsSchema = z
-  .object({ childNumber: issueRefSchema })
-  .strict();
+const listParentsSchema = z.object({ childNumber: issueRefSchema }).strict();
 
 const addSchema = z
   .object({
@@ -53,11 +49,7 @@ function requireWorkspaceId(deps: HandlerDeps): string {
   if (!deps.config.repoPath) {
     throw badRequest('host has no active workspace');
   }
-  const { workspace } = bootstrapWorkspace(
-    deps.store,
-    deps.config,
-    deps.config.repoPath,
-  );
+  const { workspace } = bootstrapWorkspace(deps.store, deps.config, deps.config.repoPath);
   return workspace.id;
 }
 
@@ -68,10 +60,7 @@ function requireWorkspaceId(deps: HandlerDeps): string {
  * still surface the relation row (with a placeholder title) rather
  * than fail to render the whole sub-issues section.
  */
-async function tryGetIssue(
-  deps: HandlerDeps,
-  number: IssueRef,
-): Promise<Issue | null> {
+async function tryGetIssue(deps: HandlerDeps, number: IssueRef): Promise<Issue | null> {
   try {
     return await deps.source.getIssue(number);
   } catch {
@@ -105,9 +94,7 @@ async function enrich(
   // sub-issues list is typically small (single digits) so this stays
   // cheap; if a particular issue resolves to null the row is rendered
   // with a placeholder.
-  const issues = await Promise.all(
-    relations.map((r) => tryGetIssue(deps, r[numberKey])),
-  );
+  const issues = await Promise.all(relations.map((r) => tryGetIssue(deps, r[numberKey])));
   return relations.map((rel, i) => {
     // For the "list children" call the child issue lives at index i.
     // For "list parents" we still want to display the *parent's* title
@@ -162,10 +149,7 @@ export async function listParents(
   return enrich(deps, rels, 'parentNumber');
 }
 
-export async function add(
-  deps: HandlerDeps,
-  args: AddRelationArgs,
-): Promise<IssueRelationPayload> {
+export async function add(deps: HandlerDeps, args: AddRelationArgs): Promise<IssueRelationPayload> {
   const parsed = parseArgs(addSchema, args);
   if (parsed.parentNumber === parsed.childNumber) {
     throw badRequest('an issue cannot be its own sub-issue');
@@ -218,9 +202,7 @@ export async function add(
     // in quick succession — surface a friendlier error than the raw
     // SQLITE_CONSTRAINT message.
     if (err instanceof Error && /UNIQUE/i.test(err.message)) {
-      throw badRequest(
-        `#${parsed.childNumber} is already a sub-issue of #${parsed.parentNumber}`,
-      );
+      throw badRequest(`#${parsed.childNumber} is already a sub-issue of #${parsed.parentNumber}`);
     }
     throw err;
   }

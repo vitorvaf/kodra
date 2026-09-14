@@ -1,12 +1,5 @@
-import {
-  detectRateLimit as detectRateLimitFromText,
-  type StreamEvent,
-} from '../stream-parser.js';
-import type {
-  AgentCliAdapter,
-  BuildArgsInput,
-  ComposePromptInput,
-} from './types.js';
+import { detectRateLimit as detectRateLimitFromText, type StreamEvent } from '../stream-parser.js';
+import type { AgentCliAdapter, BuildArgsInput, ComposePromptInput } from './types.js';
 
 /**
  * Factory Droid CLI adapter. Spawns `droid exec` and parses its
@@ -87,12 +80,7 @@ export const droidCliAdapter: AgentCliAdapter = {
     // autonomy level — equivalent to gemini's `--yolo` and claude's
     // bypass mode. The dispatcher's worktree isolation is the same
     // trust envelope.
-    const args: string[] = [
-      'exec',
-      '--output-format',
-      'stream-json',
-      '--skip-permissions-unsafe',
-    ];
+    const args: string[] = ['exec', '--output-format', 'stream-json', '--skip-permissions-unsafe'];
     if (opts.model) {
       args.push('--model', opts.model);
     }

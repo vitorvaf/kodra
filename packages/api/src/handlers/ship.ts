@@ -18,12 +18,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { z } from 'zod';
 import type { IssueRef, PullRequest } from '@kanbots/core';
-import {
-  detectLocalBase,
-  isWorktreeClean,
-  locateBaseCheckout,
-  runGit,
-} from './agent-runs.js';
+import { detectLocalBase, isWorktreeClean, locateBaseCheckout, runGit } from './agent-runs.js';
 import type { HandlerDeps } from './types.js';
 import { badRequest, notFound, parseArgs } from './errors.js';
 import { issueRefSchema } from '../issue-ref.js';
@@ -94,11 +89,7 @@ async function resolveRun(
 }> {
   const repoPath = deps.config.repoPath;
   if (!repoPath) throw badRequest('repoPath is not configured');
-  const thread = deps.store.threads.findByIssue(
-    deps.config.owner,
-    deps.config.repo,
-    issueNumber,
-  );
+  const thread = deps.store.threads.findByIssue(deps.config.owner, deps.config.repo, issueNumber);
   if (!thread) throw notFound(`no thread for issue #${issueNumber}`);
   const active = deps.store.agentRuns.findActiveForThread(thread.id);
   const run = active ?? deps.store.agentRuns.findLatestForThread(thread.id);
@@ -118,27 +109,18 @@ async function listLocalBranches(repoPath: string): Promise<string[]> {
     .filter((line) => line.length > 0);
 }
 
-async function commitsAhead(
-  repoPath: string,
-  base: string,
-  branch: string,
-): Promise<number> {
+async function commitsAhead(repoPath: string, base: string, branch: string): Promise<number> {
   try {
-    const { stdout } = await execFileAsync(
-      'git',
-      ['rev-list', '--count', `${base}..${branch}`],
-      { cwd: repoPath },
-    );
+    const { stdout } = await execFileAsync('git', ['rev-list', '--count', `${base}..${branch}`], {
+      cwd: repoPath,
+    });
     return Number.parseInt(stdout.trim(), 10) || 0;
   } catch {
     return 0;
   }
 }
 
-export async function status(
-  deps: HandlerDeps,
-  args: unknown,
-): Promise<ShipStatus> {
+export async function status(deps: HandlerDeps, args: unknown): Promise<ShipStatus> {
   const parsed = parseArgs(numberSchema, args);
   const { run, repoPath } = await resolveRun(deps, parsed.issueNumber);
 
@@ -172,10 +154,7 @@ export async function status(
   };
 }
 
-export async function commit(
-  deps: HandlerDeps,
-  args: unknown,
-): Promise<ShipCommitResult> {
+export async function commit(deps: HandlerDeps, args: unknown): Promise<ShipCommitResult> {
   const parsed = parseArgs(commitSchema, args);
   const { run } = await resolveRun(deps, parsed.issueNumber);
   if (run.worktreePath === null) {
@@ -194,10 +173,7 @@ export async function commit(
   return { commitSha: stdout.trim() };
 }
 
-export async function merge(
-  deps: HandlerDeps,
-  args: unknown,
-): Promise<ShipMergeResult> {
+export async function merge(deps: HandlerDeps, args: unknown): Promise<ShipMergeResult> {
   const parsed = parseArgs(mergeSchema, args);
   const { run, repoPath } = await resolveRun(deps, parsed.issueNumber);
   if (run.branchName === null) {
@@ -209,9 +185,7 @@ export async function merge(
   // here as a stable error lets the UI present a "Commit pending changes?"
   // prompt without race conditions.
   if (run.worktreePath !== null && !(await isWorktreeClean(run.worktreePath))) {
-    throw badRequest(
-      'worktree has uncommitted changes — commit or discard them first',
-    );
+    throw badRequest('worktree has uncommitted changes — commit or discard them first');
   }
 
   const baseLocation = await locateBaseCheckout(repoPath, parsed.targetBranch);
@@ -230,10 +204,7 @@ export async function merge(
   const mergeMessage = `Merge #${issue.number}: ${issue.title}`;
   let commitSha: string;
   try {
-    await runGit(
-      ['merge', '--no-ff', '-m', mergeMessage, run.branchName],
-      baseLocation,
-    );
+    await runGit(['merge', '--no-ff', '-m', mergeMessage, run.branchName], baseLocation);
     const { stdout } = await runGit(['rev-parse', 'HEAD'], baseLocation);
     commitSha = stdout.trim();
   } catch (err) {
@@ -253,15 +224,10 @@ export async function merge(
   };
 }
 
-export async function createPR(
-  deps: HandlerDeps,
-  args: unknown,
-): Promise<ShipPRResult> {
+export async function createPR(deps: HandlerDeps, args: unknown): Promise<ShipPRResult> {
   const parsed = parseArgs(prSchema, args);
   if (deps.source.openDraftPR === undefined) {
-    throw badRequest(
-      'PR creation is only supported on GitHub-backed workspaces',
-    );
+    throw badRequest('PR creation is only supported on GitHub-backed workspaces');
   }
   const { run } = await resolveRun(deps, parsed.issueNumber);
   if (run.branchName === null) {

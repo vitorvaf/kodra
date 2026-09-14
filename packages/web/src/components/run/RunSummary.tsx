@@ -185,9 +185,7 @@ export function RunSummary({ run, layout = 'inspector', onRunChecks }: RunSummar
               type="button"
               className="kb-pill"
               style={{ marginLeft: 'auto', cursor: 'pointer' }}
-              onClick={() =>
-                window.dispatchEvent(new CustomEvent('kanbots:open-house-rules'))
-              }
+              onClick={() => window.dispatchEvent(new CustomEvent('kanbots:open-house-rules'))}
               title="House rules from .kanbots/config.json are prepended to this run's system prompt. Click to edit."
               aria-label="House rules in effect"
             >
@@ -203,8 +201,8 @@ export function RunSummary({ run, layout = 'inspector', onRunChecks }: RunSummar
           k="Tokens"
           v={
             <>
-              {fmtTokens(run.tokenUsageInput)} <small>in</small>{' '}
-              {fmtTokens(run.tokenUsageOutput)} <small>out</small>
+              {fmtTokens(run.tokenUsageInput)} <small>in</small> {fmtTokens(run.tokenUsageOutput)}{' '}
+              <small>out</small>
             </>
           }
         />
@@ -256,7 +254,8 @@ function CheckPill({
   command: string | undefined;
 }) {
   const status = check?.status ?? 'idle';
-  const cls = status === 'pass' ? 'pass' : status === 'fail' ? 'fail' : status === 'running' ? 'run' : '';
+  const cls =
+    status === 'pass' ? 'pass' : status === 'fail' ? 'fail' : status === 'running' ? 'run' : '';
   const icon = status === 'pass' ? '✓' : status === 'fail' ? '×' : status === 'running' ? '⟳' : '·';
   const meta =
     check && check.finishedAt
@@ -267,11 +266,7 @@ function CheckPill({
   const baseTitle = check?.summary ?? `${kind} ${status}`;
   const title = command ? `${baseTitle}\n$ ${command}` : baseTitle;
   return (
-    <span
-      className={`kb-check-pill ${cls}`}
-      title={title}
-      aria-label={`${kind} ${status}`}
-    >
+    <span className={`kb-check-pill ${cls}`} title={title} aria-label={`${kind} ${status}`}>
       <span className="ico">{icon}</span>
       <span className="lbl">{kind}</span>
       {meta ? <span className="meta">{meta}</span> : null}

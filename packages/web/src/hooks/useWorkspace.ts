@@ -48,7 +48,9 @@ export function useWorkspace(): WorkspaceState {
   const selectedFolderId =
     (persistedFolderId !== null && list.some((f) => f.id === persistedFolderId)
       ? persistedFolderId
-      : list.find((f) => f.current)?.id) ?? list[0]?.id ?? workspace.currentFolderId;
+      : list.find((f) => f.current)?.id) ??
+    list[0]?.id ??
+    workspace.currentFolderId;
 
   useEffect(() => {
     if (selectedFolderId !== 'unknown' && selectedFolderId !== persistedFolderId) {
@@ -58,9 +60,7 @@ export function useWorkspace(): WorkspaceState {
 
   // `useIssues` follows the persisted current-folder selection, so these
   // counts describe the folder shown by the board rather than the whole DB.
-  const activeAgents = issues.filter(
-    (i) => i.agent === 'running' || i.agent === 'blocked',
-  ).length;
+  const activeAgents = issues.filter((i) => i.agent === 'running' || i.agent === 'blocked').length;
 
   const decorated: WorkspaceFolder[] = list.map((f) => ({
     id: f.id,

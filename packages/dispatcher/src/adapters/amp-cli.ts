@@ -1,9 +1,5 @@
 import { detectRateLimit, parseStreamLine, type StreamEvent } from '../stream-parser.js';
-import type {
-  AgentCliAdapter,
-  BuildArgsInput,
-  ComposePromptInput,
-} from './types.js';
+import type { AgentCliAdapter, BuildArgsInput, ComposePromptInput } from './types.js';
 
 /**
  * Sourcegraph Amp CLI adapter. Spawns `amp` and parses its stream-JSON

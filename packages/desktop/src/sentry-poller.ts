@@ -221,6 +221,8 @@ function formatSentryBody(issue: SentryIssueSummary): string {
   lines.push(`**First seen:** ${issue.firstSeen}`);
   lines.push(`**Last seen:** ${issue.lastSeen}`);
   lines.push('');
-  lines.push('_Click **Analyze** to have an agent review this error and propose a task description._');
+  lines.push(
+    '_Click **Analyze** to have an agent review this error and propose a task description._',
+  );
   return lines.join('\n');
 }

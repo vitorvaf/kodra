@@ -86,9 +86,7 @@ export function BoardFilters({ stats, controls }: BoardFiltersProps) {
               }
             >
               {controls.includeBacklog ? <span className="kb-pill-x" /> : null}
-              {controls.includeBacklog
-                ? 'Backlog'
-                : `Backlog (${controls.backlogCount})`}
+              {controls.includeBacklog ? 'Backlog' : `Backlog (${controls.backlogCount})`}
             </button>
           ) : null}
           <button

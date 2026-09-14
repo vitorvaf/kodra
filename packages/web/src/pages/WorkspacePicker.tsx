@@ -127,11 +127,7 @@ export function WorkspacePicker({
                 <span className="muted">Signed in to Kodra Cloud.</span>{' '}
                 {onBrowseCloud !== undefined ? (
                   <>
-                    <button
-                      type="button"
-                      className="picker-cloud-link"
-                      onClick={onBrowseCloud}
-                    >
+                    <button type="button" className="picker-cloud-link" onClick={onBrowseCloud}>
                       Browse cloud projects
                     </button>
                     <span className="muted"> · </span>

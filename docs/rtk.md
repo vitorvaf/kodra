@@ -74,8 +74,8 @@ available:
 ```jsonc
 {
   "rtk": {
-    "assumeInstalled": true
-  }
+    "assumeInstalled": true,
+  },
 }
 ```
 

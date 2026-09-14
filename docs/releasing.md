@@ -41,16 +41,16 @@ Each build runner:
 Artifacts use a stable, predictable scheme so direct download links from
 the marketing site keep working across versions:
 
-| Platform | File | Notes |
-| --- | --- | --- |
-| Linux x64 | `kodra-<version>-linux-x64.AppImage` | Make executable: `chmod +x kodra-<v>-linux-x64.AppImage`. |
-| Linux x64 | `kodra-<version>-linux-x64.tar.xz` | Extract anywhere; run `./kodra`. |
-| macOS arm64 | `kodra-<version>-mac-arm64.dmg` | Apple Silicon (M1+). |
-| macOS arm64 | `kodra-<version>-mac-arm64.zip` | For auto-update use; same payload as `.dmg`. |
-| macOS x64 | `kodra-<version>-mac-x64.dmg` | Intel Macs. |
-| macOS x64 | `kodra-<version>-mac-x64.zip` | For auto-update use; same payload as `.dmg`. |
-| Windows x64 | `kodra-<version>-win-x64.exe` | NSIS installer (recommended). |
-| Windows x64 | `kodra-<version>-win-x64.exe` | Portable build (different artifact ID). |
+| Platform    | File                                 | Notes                                                     |
+| ----------- | ------------------------------------ | --------------------------------------------------------- |
+| Linux x64   | `kodra-<version>-linux-x64.AppImage` | Make executable: `chmod +x kodra-<v>-linux-x64.AppImage`. |
+| Linux x64   | `kodra-<version>-linux-x64.tar.xz`   | Extract anywhere; run `./kodra`.                          |
+| macOS arm64 | `kodra-<version>-mac-arm64.dmg`      | Apple Silicon (M1+).                                      |
+| macOS arm64 | `kodra-<version>-mac-arm64.zip`      | For auto-update use; same payload as `.dmg`.              |
+| macOS x64   | `kodra-<version>-mac-x64.dmg`        | Intel Macs.                                               |
+| macOS x64   | `kodra-<version>-mac-x64.zip`        | For auto-update use; same payload as `.dmg`.              |
+| Windows x64 | `kodra-<version>-win-x64.exe`        | NSIS installer (recommended).                             |
+| Windows x64 | `kodra-<version>-win-x64.exe`        | Portable build (different artifact ID).                   |
 
 `releases/latest/download/<file>` resolves to the newest published
 release, so the marketing site can hardcode these names.
@@ -126,7 +126,7 @@ Implemented via `electron-updater` (see `packages/desktop/src/updater.ts`):
   `latest*.yml` + artifacts) — see the note below.
 - Platform notes: Windows NSIS and Linux AppImage update fully
   automatically (differential downloads via blockmap). macOS can only
-  *detect* updates while builds are unsigned — Squirrel.Mac requires a
+  _detect_ updates while builds are unsigned — Squirrel.Mac requires a
   signed bundle to install; signing is the prerequisite for silent mac
   updates. `tar.xz` is a portable target with no self-update.
 

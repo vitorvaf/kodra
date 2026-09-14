@@ -112,7 +112,9 @@ describe('agentmemory client', () => {
     expect(await client.getSession('s1')).toEqual({ hasContent: true });
     expect(fetchMock.mock.calls[0]?.[0]).toBe(`${baseUrl}/agentmemory/sessions`);
 
-    fetchMock.mockResolvedValueOnce(jsonResponse({ sessions: [{ id: 's1', observationCount: 5 }] }));
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ sessions: [{ id: 's1', observationCount: 5 }] }),
+    );
     expect(await client.getSession('missing')).toBeNull();
 
     fetchMock.mockResolvedValueOnce(
@@ -278,15 +280,19 @@ describe('agentmemory client', () => {
     await expect(client.smartSearch({ query: 'x' })).resolves.toEqual([]);
     await expect(client.getSession('x')).resolves.toBeNull();
     await expect(client.save({ content: 'x' })).resolves.toBe(false);
-    await expect(client.sessionStart({ sessionId: 's', project: 'p', cwd: '/tmp' })).resolves.toBe(false);
-    await expect(client.observe({ hookType: 'x', sessionId: 's', project: 'p', cwd: '/tmp' })).resolves.toBe(false);
+    await expect(client.sessionStart({ sessionId: 's', project: 'p', cwd: '/tmp' })).resolves.toBe(
+      false,
+    );
+    await expect(
+      client.observe({ hookType: 'x', sessionId: 's', project: 'p', cwd: '/tmp' }),
+    ).resolves.toBe(false);
     await expect(client.sessionEnd('s')).resolves.toBe(false);
   });
 
   it('builds the ADR-0004 memory scopes', () => {
     expect(memoryNamespace({ workspaceId: 'w', repoId: 'r' })).toBe('kanbots:w:r');
-    expect(
-      memorySessionId({ workspaceId: 'w', repoId: 'r', issueNumber: 7, runId: 3 }),
-    ).toBe('kanbots:w:r:7:3');
+    expect(memorySessionId({ workspaceId: 'w', repoId: 'r', issueNumber: 7, runId: 3 })).toBe(
+      'kanbots:w:r:7:3',
+    );
   });
 });

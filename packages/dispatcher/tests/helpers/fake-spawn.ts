@@ -70,18 +70,39 @@ export function makeFakeSpawn(opts: FakeSpawnOptions = {}): FakeSpawn {
 
     if (opts.errorOnSpawn) {
       queueMicrotask(() => child.emit('error', opts.errorOnSpawn));
-      calls.push({ command, args, cwd: options.cwd, stdin: stdinBuffer, detached: options.detached, env: options.env });
+      calls.push({
+        command,
+        args,
+        cwd: options.cwd,
+        stdin: stdinBuffer,
+        detached: options.detached,
+        env: options.env,
+      });
       return child;
     }
 
     const finalize = (): void => {
-      calls.push({ command, args, cwd: options.cwd, stdin: stdinBuffer, detached: options.detached, env: options.env });
+      calls.push({
+        command,
+        args,
+        cwd: options.cwd,
+        stdin: stdinBuffer,
+        detached: options.detached,
+        env: options.env,
+      });
       emitClose(opts.exitCode ?? 0);
     };
 
     if (opts.hangs) {
       stdin.on('finish', () => {
-      calls.push({ command, args, cwd: options.cwd, stdin: stdinBuffer, detached: options.detached, env: options.env });
+        calls.push({
+          command,
+          args,
+          cwd: options.cwd,
+          stdin: stdinBuffer,
+          detached: options.detached,
+          env: options.env,
+        });
       });
     } else {
       stdin.on('finish', () => {

@@ -17,10 +17,10 @@ projetos, cards, runs e custos hospedados na nuvem, compartilháveis com um time
 Existem **três camadas de autenticação independentes** no sistema, e confundi-las é a
 fonte mais comum de mal-entendido:
 
-| Camada | O que autentica | Onde vive | Efeito |
-| --- | --- | --- | --- |
-| **Kodra Cloud** (este relatório) | Conta do próprio sistema | `cloud-config.json` cifrado | Workspaces/cards/runs remotos |
-| **GitHub** (`gh auth login`) | Token do GitHub | Credenciais do `gh`/ambiente | Habilita o *modo GitHub* (issues reais, PRs) |
+| Camada                                     | O que autentica              | Onde vive                               | Efeito                                         |
+| ------------------------------------------ | ---------------------------- | --------------------------------------- | ---------------------------------------------- |
+| **Kodra Cloud** (este relatório)           | Conta do próprio sistema     | `cloud-config.json` cifrado             | Workspaces/cards/runs remotos                  |
+| **GitHub** (`gh auth login`)               | Token do GitHub              | Credenciais do `gh`/ambiente            | Habilita o _modo GitHub_ (issues reais, PRs)   |
 | **CLIs de agentes** (`claude login`, etc.) | Credenciais de cada provedor | Arquivos dos próp CLIs (`~/.claude`, …) | Apenas disponibilidade do provedor no dispatch |
 
 Cada camada é verificada de forma isolada; estar logado em uma não afeta as outras.
@@ -124,11 +124,13 @@ Inventário completo por grupo (canais em `main.ts:1139-1171`, handlers registra
 em `main.ts:1475-1906`):
 
 ### 4.1 Identidade, organizações e projetos
+
 - `cloud:users-me` — identidade da conta.
 - `cloud:orgs-list` / `cloud:orgs-create` — navegar/criar organizações.
 - `cloud:projects-list` / `cloud:projects-create` — listar/criar projetos cloud.
 
 ### 4.2 Boards remotos (cards)
+
 - CRUD completo de cards cloud: `cards-list/create/get/update`,
   `cards-archive/unarchive`.
 - Comentários: `comments-list/add`.
@@ -138,12 +140,14 @@ em `main.ts:1475-1906`):
   muda.
 
 ### 4.3 Runs de agentes na nuvem
+
 - `runs-list-for-card`, `runs-create/get`, `runs-stop`, `start-agent-run`.
 - Streaming de eventos via SSE: `runs-stream-start/stop`
   (`main.ts:1706-1906`).
 - **Custo**: `cloud:cost-today` — consumo agregado do projeto cloud.
 
 ### 4.4 Workspaces cloud e binding com repositório local
+
 - `open-cloud-workspace` / `close-cloud-workspace` /
   `recent-cloud-workspaces` — ciclo de vida de workspaces remotos.
 - `project-binding-get/set/clear` — associa um projeto cloud a um checkout
@@ -151,6 +155,7 @@ em `main.ts:1475-1906`):
   (armazenamento em `desktop/src/cloud-bindings.ts`).
 
 ### 4.5 Compartilhamento com time
+
 - A UI descreve projetos cloud como armazenamento remoto de tasks/runs
   compartilhado com o time (`CloudWorkspacePicker.tsx:124-126`,
   `CloudSettingsModal.tsx:349-351`). Importante: a implementação atual é
@@ -159,6 +164,7 @@ em `main.ts:1475-1906`):
   (`docs/architecture.md:148-151`).
 
 ### 4.6 O que NÃO existe
+
 - **Nenhuma lógica de entitlement/plano/cota** vinculada ao login foi encontrada.
   Não há tier de assinatura, limite de uso ou feature-flag de plano no cliente;
   o gate é binário (sessão válida ou não).
@@ -185,14 +191,14 @@ Sem sessão Cloud, tudo isto continua disponível (canais fora do gate +
 
 ## 6. Mudanças de UI/UX entre estados
 
-| Estado | Comportamento |
-| --- | --- |
-| **Primeira execução** | Prompt opcional único; "Continue locally" dispensa permanentemente (`App.tsx:413-429`). Nunca bloqueia. |
-| **Deslogado (picker)** | Picker local por padrão; rodapé "Want team sync? Sign in to Kodra Cloud"; sem opção "Browse cloud projects" (`WorkspacePicker.tsx:118-153`). |
-| **Logado (picker)** | Mostra "Signed in to Kodra Cloud", "Browse cloud projects" e "Sign out" (`App.tsx:433-457`). |
-| **Cloud picker** (só logado) | Projetos recentes, listagem de org/projeto, criação inline de org e projeto, retorno ao modo local (`CloudWorkspacePicker.tsx:21-115`). |
-| **Settings Cloud** | Deslogado: controles de sign-in, "Local-first. Cloud is optional." Logado: metadados da sessão, sign-out, controles de binding, "Your work syncs to the cloud while signed in." (`CloudSettingsModal.tsx:338-404`). |
-| **Workspace cloud aberto** | `App.tsx:397-403` instala o contexto org/projeto em `api.ts`; o board renderiza normalmente via `cloud-adapter.ts` (modo "cloud" no `api.ts:113-134,221-251`). |
+| Estado                       | Comportamento                                                                                                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Primeira execução**        | Prompt opcional único; "Continue locally" dispensa permanentemente (`App.tsx:413-429`). Nunca bloqueia.                                                                                                             |
+| **Deslogado (picker)**       | Picker local por padrão; rodapé "Want team sync? Sign in to Kodra Cloud"; sem opção "Browse cloud projects" (`WorkspacePicker.tsx:118-153`).                                                                        |
+| **Logado (picker)**          | Mostra "Signed in to Kodra Cloud", "Browse cloud projects" e "Sign out" (`App.tsx:433-457`).                                                                                                                        |
+| **Cloud picker** (só logado) | Projetos recentes, listagem de org/projeto, criação inline de org e projeto, retorno ao modo local (`CloudWorkspacePicker.tsx:21-115`).                                                                             |
+| **Settings Cloud**           | Deslogado: controles de sign-in, "Local-first. Cloud is optional." Logado: metadados da sessão, sign-out, controles de binding, "Your work syncs to the cloud while signed in." (`CloudSettingsModal.tsx:338-404`). |
+| **Workspace cloud aberto**   | `App.tsx:397-403` instala o contexto org/projeto em `api.ts`; o board renderiza normalmente via `cloud-adapter.ts` (modo "cloud" no `api.ts:113-134,221-251`).                                                      |
 
 ---
 
@@ -205,8 +211,8 @@ Sem sessão Cloud, tudo isto continua disponível (canais fora do gate +
 - **MCP** (`packages/mcp`): servidor sempre sobe local-only. Detecta sessão pela
   config do desktop (`mcp/src/auth.ts:38-56`); ferramentas cloud chamam
   `requireCloudSession()` e falham com `CloudAuthRequiredError` quando
-  deslogado, com dica anexada: *"Sign in via the Kanbots desktop app to enable
-  cloud features."* (`mcp/src/auth.ts:58-75`, `server.ts:66-93`). O login não
+  deslogado, com dica anexada: _"Sign in via the Kanbots desktop app to enable
+  cloud features."_ (`mcp/src/auth.ts:58-75`, `server.ts:66-93`). O login não
   "liga" o MCP — apenas destrava as tools dependentes de cloud.
 
 ---

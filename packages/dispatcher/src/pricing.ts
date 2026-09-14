@@ -167,7 +167,10 @@ export interface TokenUsage {
  * null when the model is unknown — callers should leave totalCostUsd null in
  * that case rather than recording $0, which would corrupt rollups.
  */
-export function computeCostUsd(modelId: string | null | undefined, usage: TokenUsage): number | null {
+export function computeCostUsd(
+  modelId: string | null | undefined,
+  usage: TokenUsage,
+): number | null {
   if (!modelId) return null;
   const price = getModelPricing(modelId);
   if (!price) return null;

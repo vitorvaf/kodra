@@ -111,26 +111,22 @@ export class AutopilotSessionsRepo {
   }
 
   findById(id: number): AutopilotSession | null {
-    const row = this.db
-      .prepare('SELECT * FROM autopilot_sessions WHERE id = ?')
-      .get(id) as AutopilotSessionRow | undefined;
+    const row = this.db.prepare('SELECT * FROM autopilot_sessions WHERE id = ?').get(id) as
+      | AutopilotSessionRow
+      | undefined;
     return row ? rowToSession(row) : null;
   }
 
   findByIssueNumber(issueNumber: IssueRef): AutopilotSession | null {
     const row = this.db
-      .prepare(
-        'SELECT * FROM autopilot_sessions WHERE issue_number = ? ORDER BY id DESC LIMIT 1',
-      )
+      .prepare('SELECT * FROM autopilot_sessions WHERE issue_number = ? ORDER BY id DESC LIMIT 1')
       .get(issueNumber) as AutopilotSessionRow | undefined;
     return row ? rowToSession(row) : null;
   }
 
   listActive(): AutopilotSession[] {
     const rows = this.db
-      .prepare(
-        `SELECT * FROM autopilot_sessions WHERE status IN (${ACTIVE_STATUS}) ORDER BY id`,
-      )
+      .prepare(`SELECT * FROM autopilot_sessions WHERE status IN (${ACTIVE_STATUS}) ORDER BY id`)
       .all() as AutopilotSessionRow[];
     return rows.map(rowToSession);
   }

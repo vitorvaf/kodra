@@ -33,8 +33,7 @@ export function ClaudeLoginGate({ onAuthed }: { onAuthed: () => void }) {
       <div className="picker-card">
         <h1 className="picker-title">Sign in to Claude</h1>
         <p className="picker-sub">
-          Kodra needs a Claude account to run agents. We&rsquo;ll open your browser to
-          authorize.
+          Kodra needs a Claude account to run agents. We&rsquo;ll open your browser to authorize.
         </p>
         <button
           type="button"

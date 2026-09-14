@@ -1,12 +1,5 @@
-import {
-  detectRateLimit as detectRateLimitFromText,
-  type StreamEvent,
-} from '../stream-parser.js';
-import type {
-  AgentCliAdapter,
-  BuildArgsInput,
-  ComposePromptInput,
-} from './types.js';
+import { detectRateLimit as detectRateLimitFromText, type StreamEvent } from '../stream-parser.js';
+import type { AgentCliAdapter, BuildArgsInput, ComposePromptInput } from './types.js';
 
 const SYSTEM_PROMPT_DELIMITER = '\n\n---\n\n';
 
@@ -25,11 +18,7 @@ export const agyCliAdapter: AgentCliAdapter = {
     // value. With `-p` first, `--output-format` was swallowed as the prompt
     // and the CLI aborted with exit 2. Keeping `-p` adjacent to the appended
     // prompt is the form the CLI's own error guidance recommends.
-    const args: string[] = [
-      '--output-format',
-      'stream-json',
-      '--dangerously-skip-permissions',
-    ];
+    const args: string[] = ['--output-format', 'stream-json', '--dangerously-skip-permissions'];
     // `default` is the catalogue placeholder for "let agy pick" — the CLI
     // has no such slug and rejects it with exit 1, so it must not reach argv.
     if (opts.model && opts.model !== 'default') {
@@ -167,11 +156,7 @@ function mapResult(value: unknown): StreamEvent[] {
 function tokenUsageFrom(
   usage: Record<string, unknown> | undefined,
 ): { input: number; output: number } | null {
-  if (
-    !usage ||
-    typeof usage.input_tokens !== 'number' ||
-    typeof usage.output_tokens !== 'number'
-  ) {
+  if (!usage || typeof usage.input_tokens !== 'number' || typeof usage.output_tokens !== 'number') {
     return null;
   }
   return { input: usage.input_tokens, output: usage.output_tokens };

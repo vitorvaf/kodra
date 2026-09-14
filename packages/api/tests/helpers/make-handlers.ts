@@ -1,16 +1,15 @@
 import type { Config, HandlerDeps } from '../../src/handlers/types.js';
 import type { AutopilotManager } from '../../src/autopilot/orchestrator.js';
-import {
-  createHandlers,
-  type Handlers,
-  type SubscriptionRegistry,
-} from '../../src/index.js';
+import { createHandlers, type Handlers, type SubscriptionRegistry } from '../../src/index.js';
 import { FakeIssueSource, makeStubSupervisor } from './fakes.js';
 import { openStoreInMemory, type Store } from '@kanbots/local-store';
 
 export interface FakeRegistry extends SubscriptionRegistry {
   calls: Array<{ kind: 'register' | 'unregister'; args: unknown }>;
-  next: { subscriptionId: string; runStatus: 'starting' | 'running' | 'awaiting_input' | 'complete' | 'failed' | 'stopped' };
+  next: {
+    subscriptionId: string;
+    runStatus: 'starting' | 'running' | 'awaiting_input' | 'complete' | 'failed' | 'stopped';
+  };
 }
 
 export function makeFakeRegistry(): FakeRegistry {

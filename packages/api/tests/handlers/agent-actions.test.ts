@@ -63,7 +63,9 @@ describe('issues:pr-approve', () => {
     store.agentRuns.update(run.id, { branchName: 'kodra/issue-7-1' });
     const findOpenPullForBranch = vi.fn().mockImplementation(async (branch: string) => {
       expect(branch).toBe('kodra/issue-7-1');
-      return { number: 42 } as Awaited<ReturnType<NonNullable<typeof source.findOpenPullForBranch>>>;
+      return { number: 42 } as Awaited<
+        ReturnType<NonNullable<typeof source.findOpenPullForBranch>>
+      >;
     });
     const approvePullRequest = vi.fn().mockResolvedValue(undefined);
     source.findOpenPullForBranch = findOpenPullForBranch;
@@ -94,9 +96,9 @@ describe('issues:split', () => {
   it('rejects empty subtasks via validation', async () => {
     const { handlers, source } = makeHandlerTestKit();
     source.setIssue(issueFixture(7, 'parent'));
-    await expect(
-      handlers['issues:split']({ number: 7, subtasks: [] }),
-    ).rejects.toMatchObject({ name: 'ValidationError' });
+    await expect(handlers['issues:split']({ number: 7, subtasks: [] })).rejects.toMatchObject({
+      name: 'ValidationError',
+    });
   });
 });
 
@@ -104,9 +106,9 @@ describe('issues:reviewer', () => {
   it('throws BadRequest when no thread exists for the issue', async () => {
     const { handlers, source } = makeHandlerTestKit();
     source.setIssue(issueFixture(7, 'lucky'));
-    await expect(
-      handlers['issues:reviewer']({ number: 7 }),
-    ).rejects.toMatchObject({ name: 'BadRequest' });
+    await expect(handlers['issues:reviewer']({ number: 7 })).rejects.toMatchObject({
+      name: 'BadRequest',
+    });
   });
 
   it('starts with a detached review worktree from the latest run', async () => {

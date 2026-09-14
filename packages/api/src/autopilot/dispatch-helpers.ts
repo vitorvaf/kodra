@@ -71,7 +71,8 @@ function inferCardKindFromLabels(labels: readonly string[] | undefined): string 
 
 const EFFORT_GUIDANCE: Record<AutopilotEffort, string> = {
   low: 'Effort: low. Aim to ship within minutes — pick the simplest viable change, skip nonessential investigation, and avoid refactors.',
-  medium: 'Effort: medium. Balance speed and quality — investigate enough to make a sound change, run the obvious checks, and ship.',
+  medium:
+    'Effort: medium. Balance speed and quality — investigate enough to make a sound change, run the obvious checks, and ship.',
   high: 'Effort: high. Be thorough — handle edge cases, validate carefully, run all available checks (typecheck, tests, lint), and add tests where they materially help.',
   xhigh:
     'Effort: very high. Take extensive care — investigate deeply, refactor when warranted by what you find, write thorough tests, and verify behavior end-to-end before finishing.',

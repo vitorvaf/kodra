@@ -58,20 +58,12 @@ const SUCCESS_SIGNAL_RANK: Record<SuccessSignal, number> = {
 };
 
 /** True if `next` is a valid forward transition from `prev` (monotonic). */
-export function canUpgradeSuccessSignal(
-  prev: SuccessSignal | null,
-  next: SuccessSignal,
-): boolean {
+export function canUpgradeSuccessSignal(prev: SuccessSignal | null, next: SuccessSignal): boolean {
   if (prev === null) return true;
   return SUCCESS_SIGNAL_RANK[next] > SUCCESS_SIGNAL_RANK[prev];
 }
 
-export type AgentEventType =
-  | 'tool_use'
-  | 'tool_result'
-  | 'text'
-  | 'error'
-  | 'containment_warning';
+export type AgentEventType = 'tool_use' | 'tool_result' | 'text' | 'error' | 'containment_warning';
 
 export type PromotionKind = 'comment' | 'pull_request';
 
@@ -96,12 +88,7 @@ export interface ChatConversation {
 /** Lifecycle states a chat session can occupy. Mirrors the underlying
  *  agent_run state where applicable, plus terminal flags the supervisor
  *  promotes to when a run finishes. */
-export type ChatSessionStatus =
-  | 'idle'
-  | 'running'
-  | 'awaiting_input'
-  | 'completed'
-  | 'failed';
+export type ChatSessionStatus = 'idle' | 'running' | 'awaiting_input' | 'completed' | 'failed';
 
 /**
  * One parallel agent thread inside either a chat conversation (standalone

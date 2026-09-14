@@ -115,9 +115,7 @@ export function installUpdate(): void {
   }
 }
 
-export function initUpdater(
-  getMainWindow: () => BrowserWindow | null | undefined,
-): void {
+export function initUpdater(getMainWindow: () => BrowserWindow | null | undefined): void {
   if (!app.isPackaged) return;
   if (initialized) return;
   initialized = true;
@@ -159,9 +157,7 @@ export function initUpdater(
               : undefined;
         setState('available', {
           availableVersion: info.version,
-          ...(normalizedReleaseNotes !== undefined
-            ? { releaseNotes: normalizedReleaseNotes }
-            : {}),
+          ...(normalizedReleaseNotes !== undefined ? { releaseNotes: normalizedReleaseNotes } : {}),
           canInstall: process.platform !== 'darwin',
         });
       } catch (error) {

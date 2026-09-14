@@ -159,8 +159,6 @@ describe('agent-runs:promote-pr', () => {
       branchName: 'kodra/issue-FEAT-42',
     });
     await handlers['agent-runs:promote-pr']({ runId: numericRun.id });
-    expect(openDraftPR).toHaveBeenLastCalledWith(
-      expect.objectContaining({ issueNumber: 7 }),
-    );
+    expect(openDraftPR).toHaveBeenLastCalledWith(expect.objectContaining({ issueNumber: 7 }));
   });
 });

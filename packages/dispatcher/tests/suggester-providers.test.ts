@@ -12,7 +12,12 @@ function opencodeStream(finalJson: string): string {
     JSON.stringify({ type: 'text', part: { type: 'text', text: finalJson, sessionID: 'sess-1' } }),
     JSON.stringify({
       type: 'step_finish',
-      part: { type: 'finish', reason: 'stop', sessionID: 'sess-1', tokens: { input: 10, output: 5 } },
+      part: {
+        type: 'finish',
+        reason: 'stop',
+        sessionID: 'sess-1',
+        tokens: { input: 10, output: 5 },
+      },
     }),
     '',
   ].join('\n');
@@ -24,7 +29,12 @@ function agyResult(finalJson: string): string {
     JSON.stringify({ event: 'init', conversation_id: 'c-1' }),
     JSON.stringify({
       event: 'result',
-      result: { status: 'SUCCESS', response: finalJson, usage: { input_tokens: 3, output_tokens: 4 }, duration_seconds: 1 },
+      result: {
+        status: 'SUCCESS',
+        response: finalJson,
+        usage: { input_tokens: 3, output_tokens: 4 },
+        duration_seconds: 1,
+      },
     }),
     '',
   ].join('\n');
@@ -153,16 +163,32 @@ describe('createSuggester generic adapter path', () => {
       JSON.stringify({ type: 'step_start', sessionID: 'sess-2' }),
       JSON.stringify({
         type: 'tool_use',
-        part: { type: 'tool', callID: 't1', tool: 'read', sessionID: 'sess-2', state: { input: { path: '/r/x.ts' } } },
+        part: {
+          type: 'tool',
+          callID: 't1',
+          tool: 'read',
+          sessionID: 'sess-2',
+          state: { input: { path: '/r/x.ts' } },
+        },
       }),
-      JSON.stringify({ type: 'text', part: { type: 'text', text: 'thinking aloud', sessionID: 'sess-2' } }),
+      JSON.stringify({
+        type: 'text',
+        part: { type: 'text', text: 'thinking aloud', sessionID: 'sess-2' },
+      }),
       JSON.stringify({
         type: 'step_finish',
-        part: { type: 'finish', reason: 'stop', sessionID: 'sess-2', tokens: { input: 1, output: 1 } },
+        part: {
+          type: 'finish',
+          reason: 'stop',
+          sessionID: 'sess-2',
+          tokens: { input: 1, output: 1 },
+        },
       }),
       '',
     ].join('\n');
-    const fake = makeFakeSpawn({ stdout: opencodeStream(JSON.stringify({ title: 't', body: 'b' })) });
+    const fake = makeFakeSpawn({
+      stdout: opencodeStream(JSON.stringify({ title: 't', body: 'b' })),
+    });
     const events: Array<{ kind: string }> = [];
     const suggest = createSuggester({ cwd: '/r', spawn: fake.fn });
 

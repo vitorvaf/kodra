@@ -143,16 +143,16 @@ export class LocalIssuesRepo {
   findByNumber(number: IssueRef): Issue | null {
     const row = this.db
       .prepare('SELECT * FROM local_issues WHERE number = ?')
-      .get(bindIssueRef(number)) as
-      | IssueRow
-      | undefined;
+      .get(bindIssueRef(number)) as IssueRow | undefined;
     return row ? rowToIssue(row) : null;
   }
 
   create(input: CreateLocalIssueInput): Issue {
     const now = new Date().toISOString();
     const tx = this.db.transaction((args: CreateLocalIssueInput): Issue => {
-      const rows = this.db.prepare('SELECT number FROM local_issues').all() as Array<{ number: string }>;
+      const rows = this.db.prepare('SELECT number FROM local_issues').all() as Array<{
+        number: string;
+      }>;
       const numericNumbers = rows
         .map((row) => row.number)
         .filter((number) => /^\d+$/.test(number))

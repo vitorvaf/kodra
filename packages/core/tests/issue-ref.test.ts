@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  isValidCustomIssueId,
-  issueBranchSlug,
-  parseIssueRef,
-} from '../src/issue-ref.js';
+import { isValidCustomIssueId, issueBranchSlug, parseIssueRef } from '../src/issue-ref.js';
 
 describe('issue refs', () => {
   describe('isValidCustomIssueId', () => {
@@ -25,12 +21,9 @@ describe('issue refs', () => {
       'a b',
       'a/b',
       'é',
-    ])(
-      'rejects %s',
-      (value) => {
-        expect(isValidCustomIssueId(value)).toBe(false);
-      },
-    );
+    ])('rejects %s', (value) => {
+      expect(isValidCustomIssueId(value)).toBe(false);
+    });
   });
 
   it('keeps slugs injective for representative valid ids', () => {

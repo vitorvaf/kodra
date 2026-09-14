@@ -20,7 +20,9 @@ async function pickFreePort(): Promise<number> {
   });
 }
 
-async function startEchoHtmlServer(body: string): Promise<{ port: number; close: () => Promise<void> }> {
+async function startEchoHtmlServer(
+  body: string,
+): Promise<{ port: number; close: () => Promise<void> }> {
   const port = await pickFreePort();
   const server: HttpServer = createHttpServer((req, res) => {
     if (req.url === '/json') {

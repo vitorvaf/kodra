@@ -125,18 +125,13 @@ export function ActivitySection({ onSelectIssue }: ActivitySectionProps) {
       label="Activity"
       trailing={
         items !== null ? (
-          <span
-            className="kb-rail-label-count"
-            aria-label={`${items.length} recent events`}
-          >
+          <span className="kb-rail-label-count" aria-label={`${items.length} recent events`}>
             {items.length}
           </span>
         ) : null
       }
     >
-      {error !== null ? (
-        <div className="kb-rail-activity-error">{error}</div>
-      ) : null}
+      {error !== null ? <div className="kb-rail-activity-error">{error}</div> : null}
       {items !== null ? (
         <div className="kb-rail-activity-list">
           {items.map((ev) => (

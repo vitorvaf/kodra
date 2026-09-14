@@ -39,10 +39,7 @@ export function mapIssueError(err: unknown): NamedError | null {
   return null;
 }
 
-export function alreadyActive(
-  message: string,
-  run: unknown,
-): NamedError {
+export function alreadyActive(message: string, run: unknown): NamedError {
   return namedError('AlreadyActive', message, { run });
 }
 

@@ -211,7 +211,9 @@ export function SplitModal({ parentNumber, parentTitle, onClose, onSplit }: Spli
         </div>
 
         <div className="kb-modal-foot">
-          <span className="hint">{filled.length} sub-task{filled.length === 1 ? '' : 's'} ready</span>
+          <span className="hint">
+            {filled.length} sub-task{filled.length === 1 ? '' : 's'} ready
+          </span>
           {error ? (
             <span style={{ color: 'var(--failed)', fontSize: 11.5 }} role="alert">
               {error}

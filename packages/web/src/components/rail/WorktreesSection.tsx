@@ -152,11 +152,15 @@ export function WorktreesSection() {
       <div className="kb-rail-worktree-list" ref={menuRef}>
         {worktrees.map((w) => {
           const label = w.branch ?? (w.detached ? `(detached ${w.head ?? ''})` : '(unknown)');
-          const dirtyLabel = w.dirtyCount === 0 ? 'clean' : `${w.dirtyCount} change${w.dirtyCount === 1 ? '' : 's'}`;
+          const dirtyLabel =
+            w.dirtyCount === 0 ? 'clean' : `${w.dirtyCount} change${w.dirtyCount === 1 ? '' : 's'}`;
           const menuOpen = openMenu === w.path;
           const busy = busyPath === w.path;
           return (
-            <div key={w.path} className={`kb-worktree-row${w.isMain ? ' is-main' : ''}${busy ? ' is-busy' : ''}`}>
+            <div
+              key={w.path}
+              className={`kb-worktree-row${w.isMain ? ' is-main' : ''}${busy ? ' is-busy' : ''}`}
+            >
               <div className="kb-worktree-meta">
                 <div className="kb-worktree-branch">
                   <span className="kb-worktree-glyph" aria-hidden>
@@ -169,7 +173,9 @@ export function WorktreesSection() {
                 <div className="kb-worktree-path" title={w.path}>
                   {shortenPath(w.path)}
                 </div>
-                <div className={`kb-worktree-dirty ${w.dirtyCount === 0 ? 'is-clean' : 'is-dirty'}`}>
+                <div
+                  className={`kb-worktree-dirty ${w.dirtyCount === 0 ? 'is-clean' : 'is-dirty'}`}
+                >
                   {dirtyLabel}
                 </div>
               </div>

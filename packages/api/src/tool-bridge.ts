@@ -20,11 +20,7 @@ interface ToolBridgeOptions {
   dispatch: ToolDispatcher;
 }
 
-export type ToolDispatcher = (
-  name: string,
-  args: unknown,
-  handlers: Handlers,
-) => Promise<unknown>;
+export type ToolDispatcher = (name: string, args: unknown, handlers: Handlers) => Promise<unknown>;
 
 export interface ToolBridge {
   baseUrl(): string;
@@ -37,10 +33,7 @@ export async function startToolBridge(opts: ToolBridgeOptions): Promise<ToolBrid
   const { handlers, dispatch } = opts;
   const tokens = new Set<string>();
 
-  const handleRequest = async (
-    req: IncomingMessage,
-    res: ServerResponse,
-  ): Promise<void> => {
+  const handleRequest = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     if (req.method !== 'POST') {
       res.writeHead(405, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ error: 'method not allowed' }));

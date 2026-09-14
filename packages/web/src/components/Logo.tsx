@@ -142,12 +142,7 @@ export function Logo({
             strokeLinecap="round"
           />
           {/* launch spokes from the core */}
-          <path
-            d="M11 12 L16.8 6.2"
-            stroke={accent}
-            strokeWidth={sw.spoke}
-            strokeLinecap="round"
-          />
+          <path d="M11 12 L16.8 6.2" stroke={accent} strokeWidth={sw.spoke} strokeLinecap="round" />
           <path
             d="M11 12 L16.8 17.8"
             stroke={spokeAlt}

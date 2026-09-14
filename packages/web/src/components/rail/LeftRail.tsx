@@ -29,7 +29,6 @@ export interface LeftRailProps {
   onOpenCardTemplates?: () => void;
 }
 
-
 function LiveAgentRow({
   issue,
   selected,
@@ -47,7 +46,7 @@ function LiveAgentRow({
         : '';
   const tool = issue.activeRun?.currentTool ?? null;
   const arg = issue.activeRun?.currentArg ?? null;
-  const argTail = arg ? arg.split('/').pop() ?? arg : '';
+  const argTail = arg ? (arg.split('/').pop() ?? arg) : '';
   return (
     <button
       type="button"
@@ -77,10 +76,11 @@ function LiveAgentRow({
 
 function ChatList() {
   const bridge = getBridge();
-  const { data: chats, loading, refetch } = useFetch<ChatConversation[]>(
-    bridge ? 'chats' : null,
-    () => api.listChats(),
-  );
+  const {
+    data: chats,
+    loading,
+    refetch,
+  } = useFetch<ChatConversation[]>(bridge ? 'chats' : null, () => api.listChats());
   const [filter, setFilter] = useState('');
   const [expanded, setExpanded] = useState(false);
 
@@ -146,9 +146,7 @@ function ChatList() {
         {loading && (chats === null || chats.length === 0) ? (
           <div className="kb-rail-chats-empty">Loading…</div>
         ) : filtered.length === 0 ? (
-          <div className="kb-rail-chats-empty">
-            {filter ? 'No matches' : 'No chats yet'}
-          </div>
+          <div className="kb-rail-chats-empty">{filter ? 'No matches' : 'No chats yet'}</div>
         ) : (
           visible.map((c) => (
             <button
@@ -162,27 +160,17 @@ function ChatList() {
               }}
             >
               <div className="kb-rail-chat-title">{c.title}</div>
-              <div className="kb-rail-chat-time">
-                {ageString(c.lastMessageAt)} ago
-              </div>
+              <div className="kb-rail-chat-time">{ageString(c.lastMessageAt)} ago</div>
             </button>
           ))
         )}
         {!expanded && filtered.length > visible.length ? (
-          <button
-            type="button"
-            className="kb-rail-chats-more"
-            onClick={() => setExpanded(true)}
-          >
+          <button type="button" className="kb-rail-chats-more" onClick={() => setExpanded(true)}>
             Show {filtered.length - visible.length} more
           </button>
         ) : null}
         {expanded && filtered.length > 6 ? (
-          <button
-            type="button"
-            className="kb-rail-chats-more"
-            onClick={() => setExpanded(false)}
-          >
+          <button type="button" className="kb-rail-chats-more" onClick={() => setExpanded(false)}>
             Show less
           </button>
         ) : null}
@@ -252,16 +240,14 @@ export function LeftRail({
   }
 
   const liveAgents = issues.filter(
-    (i) =>
-      i.agent === 'running' || i.agent === 'blocked' || i.agent === 'review',
+    (i) => i.agent === 'running' || i.agent === 'blocked' || i.agent === 'review',
   );
   const runs = liveAgents.filter((i) => i.agent === 'running').length;
 
   const me: string = authorLogin ?? 'you';
   const meColor = colorForLogin(me);
 
-  const currentFolder =
-    ws.folders.find((f) => f.current) ?? ws.folders[0] ?? null;
+  const currentFolder = ws.folders.find((f) => f.current) ?? ws.folders[0] ?? null;
 
   const headerName = currentFolder?.name ?? ws.workspace.name ?? 'Workspace';
   const headerSubtitle = currentFolder?.branch ?? null;
@@ -274,7 +260,10 @@ export function LeftRail({
         label="Workspace"
         trailing={
           ws.workspace.activeAgents > 0 ? (
-            <span className="kb-rail-label-pulse" aria-label={`${ws.workspace.activeAgents} active agents`}>
+            <span
+              className="kb-rail-label-pulse"
+              aria-label={`${ws.workspace.activeAgents} active agents`}
+            >
               <span className="kb-pulse" />
               {ws.workspace.activeAgents}
             </span>
@@ -334,7 +323,8 @@ export function LeftRail({
             <span className="kb-who-name">{String(me)}</span>
             <span className="kb-who-status">
               <span className="kb-pulse" />
-              {runs} run{runs === 1 ? '' : 's'} · {issues.length} issue{issues.length === 1 ? '' : 's'}
+              {runs} run{runs === 1 ? '' : 's'} · {issues.length} issue
+              {issues.length === 1 ? '' : 's'}
             </span>
           </span>
           <span className="kb-rail-account-caret" aria-hidden>
@@ -358,7 +348,9 @@ export function LeftRail({
               className="kb-rail-account-item"
               onClick={() => pick(onOpenArchive)}
             >
-              <span className="kb-rail-account-icon" aria-hidden>📦</span>
+              <span className="kb-rail-account-icon" aria-hidden>
+                📦
+              </span>
               Archive
             </button>
             <button
@@ -367,7 +359,9 @@ export function LeftRail({
               className="kb-rail-account-item"
               onClick={() => pick(onOpenStats)}
             >
-              <span className="kb-rail-account-icon" aria-hidden>📊</span>
+              <span className="kb-rail-account-icon" aria-hidden>
+                📊
+              </span>
               Stats &amp; cost
             </button>
             <div className="kb-rail-account-sep" role="separator" />
@@ -377,7 +371,9 @@ export function LeftRail({
               className="kb-rail-account-item"
               onClick={() => pick(onOpenProviders)}
             >
-              <span className="kb-rail-account-icon" aria-hidden>⚡</span>
+              <span className="kb-rail-account-icon" aria-hidden>
+                ⚡
+              </span>
               Providers
             </button>
             <button
@@ -386,7 +382,9 @@ export function LeftRail({
               className="kb-rail-account-item"
               onClick={() => pick(onOpenCloud)}
             >
-              <span className="kb-rail-account-icon" aria-hidden>☁</span>
+              <span className="kb-rail-account-icon" aria-hidden>
+                ☁
+              </span>
               Cloud
             </button>
             <button
@@ -395,7 +393,9 @@ export function LeftRail({
               className="kb-rail-account-item"
               onClick={() => pick(onOpenRules)}
             >
-              <span className="kb-rail-account-icon" aria-hidden>📜</span>
+              <span className="kb-rail-account-icon" aria-hidden>
+                📜
+              </span>
               House rules
             </button>
             <button
@@ -404,7 +404,9 @@ export function LeftRail({
               className="kb-rail-account-item"
               onClick={() => pick(onOpenScripts)}
             >
-              <span className="kb-rail-account-icon" aria-hidden>▸_</span>
+              <span className="kb-rail-account-icon" aria-hidden>
+                ▸_
+              </span>
               Repo scripts
             </button>
             <button
@@ -413,7 +415,9 @@ export function LeftRail({
               className="kb-rail-account-item"
               onClick={() => pick(onOpenRepos)}
             >
-              <span className="kb-rail-account-icon" aria-hidden>⎘</span>
+              <span className="kb-rail-account-icon" aria-hidden>
+                ⎘
+              </span>
               Repos
             </button>
             <button
@@ -422,7 +426,9 @@ export function LeftRail({
               className="kb-rail-account-item"
               onClick={() => pick(onOpenCardTemplates)}
             >
-              <span className="kb-rail-account-icon" aria-hidden>◳</span>
+              <span className="kb-rail-account-icon" aria-hidden>
+                ◳
+              </span>
               Card templates
             </button>
             <div className="kb-rail-account-sep" role="separator" />
@@ -432,7 +438,9 @@ export function LeftRail({
               className="kb-rail-account-item"
               onClick={() => pick(onOpenMemory)}
             >
-              <span className="kb-rail-account-icon" aria-hidden>◌</span>
+              <span className="kb-rail-account-icon" aria-hidden>
+                ◌
+              </span>
               Memory
             </button>
             <button
@@ -441,10 +449,14 @@ export function LeftRail({
               className="kb-rail-account-item"
               onClick={() => pick(onOpenSentry)}
             >
-              <span className="kb-rail-account-icon" aria-hidden>⚙</span>
+              <span className="kb-rail-account-icon" aria-hidden>
+                ⚙
+              </span>
               Settings
             </button>
-            <div className="kb-rail-account-version">Kodra{appVersion ? ` v${appVersion}` : ''}</div>
+            <div className="kb-rail-account-version">
+              Kodra{appVersion ? ` v${appVersion}` : ''}
+            </div>
           </div>
         ) : null}
       </div>

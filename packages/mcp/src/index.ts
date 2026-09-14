@@ -184,7 +184,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
   {
     name: 'resolvePendingDecision',
     description:
-      'Resolve a pending decision card (the agent on a sibling run has asked for the user\'s input). Use listPendingDecisions to discover cardIds.',
+      "Resolve a pending decision card (the agent on a sibling run has asked for the user's input). Use listPendingDecisions to discover cardIds.",
     inputSchema: {
       type: 'object',
       additionalProperties: false,
@@ -198,7 +198,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
   {
     name: 'listPendingDecisions',
     description:
-      'List every pending decision card across the workspace so the agent can resolve them on the user\'s behalf.',
+      "List every pending decision card across the workspace so the agent can resolve them on the user's behalf.",
     inputSchema: { type: 'object', additionalProperties: false, properties: {} },
   },
   {
@@ -223,8 +223,7 @@ export const KANBOTS_TOOLS: readonly ToolDef[] = [
   },
   {
     name: 'pinLearning',
-    description:
-      'Pin (or unpin) a learning so it always appears in the top of injection ranking.',
+    description: 'Pin (or unpin) a learning so it always appears in the top of injection ranking.',
     inputSchema: {
       type: 'object',
       additionalProperties: false,

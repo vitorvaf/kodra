@@ -48,17 +48,9 @@ export interface CloudClient {
     create(orgSlug: string, body: CreateProjectRequest): Promise<ProjectSummary>;
   };
   cards: {
-    list(
-      orgSlug: string,
-      projectSlug: string,
-      query?: ListCardsQuery,
-    ): Promise<CardListResponse>;
+    list(orgSlug: string, projectSlug: string, query?: ListCardsQuery): Promise<CardListResponse>;
     get(orgSlug: string, projectSlug: string, number: number): Promise<CardSummary>;
-    create(
-      orgSlug: string,
-      projectSlug: string,
-      body: CreateCardRequest,
-    ): Promise<CardSummary>;
+    create(orgSlug: string, projectSlug: string, body: CreateCardRequest): Promise<CardSummary>;
     update(
       orgSlug: string,
       projectSlug: string,
@@ -72,11 +64,7 @@ export interface CloudClient {
     unarchive(orgSlug: string, projectSlug: string, number: number): Promise<CardSummary>;
   };
   comments: {
-    list(
-      orgSlug: string,
-      projectSlug: string,
-      number: number,
-    ): Promise<CommentListResponse>;
+    list(orgSlug: string, projectSlug: string, number: number): Promise<CommentListResponse>;
     add(
       orgSlug: string,
       projectSlug: string,
@@ -88,11 +76,7 @@ export interface CloudClient {
     delete(orgSlug: string, commentId: string): Promise<void>;
   };
   attachments: {
-    list(
-      orgSlug: string,
-      projectSlug: string,
-      number: number,
-    ): Promise<AttachmentListResponse>;
+    list(orgSlug: string, projectSlug: string, number: number): Promise<AttachmentListResponse>;
     upload(
       orgSlug: string,
       projectSlug: string,
@@ -176,10 +160,7 @@ export interface CloudClient {
      * to. Used by the desktop to poll work queued from the web UI.
      * Per `sync-08`.
      */
-    listPending(
-      orgSlug: string,
-      opts?: { limit?: number },
-    ): Promise<{ data: AgentRunSummary[] }>;
+    listPending(orgSlug: string, opts?: { limit?: number }): Promise<{ data: AgentRunSummary[] }>;
     /**
      * Append NDJSON events to a run owned by the caller. Lines are
      * `{type, payload, source?}` objects joined by `\n`. The cloud
@@ -202,10 +183,7 @@ export interface CloudClient {
      * Implemented client-side because the cloud has no notion of "spawn
      * a new CLI" — only the desktop daemon does. See `sync-01`.
      */
-    continueWithDecision?(
-      runId: string,
-      decision: { value: string; note?: string },
-    ): Promise<void>;
+    continueWithDecision?(runId: string, decision: { value: string; note?: string }): Promise<void>;
   };
   /**
    * Labels API per `sync-14` — the cloud schema exists but the
@@ -439,17 +417,14 @@ export function createCloudClient(opts: CloudClientOptions): CloudClient {
         });
       },
       setWorktree: (runId, body) =>
-        request<{ id: string; worktree_path: string | null; branch_name: string | null }>(
-          opts,
-          {
-            method: 'PATCH',
-            path: `/api/v1/agent/runs/${encodeURIComponent(runId)}`,
-            body: {
-              ...(body.worktreePath !== undefined ? { worktree_path: body.worktreePath } : {}),
-              ...(body.branchName !== undefined ? { branch_name: body.branchName } : {}),
-            },
+        request<{ id: string; worktree_path: string | null; branch_name: string | null }>(opts, {
+          method: 'PATCH',
+          path: `/api/v1/agent/runs/${encodeURIComponent(runId)}`,
+          body: {
+            ...(body.worktreePath !== undefined ? { worktree_path: body.worktreePath } : {}),
+            ...(body.branchName !== undefined ? { branch_name: body.branchName } : {}),
           },
-        ),
+        }),
       stop: (orgSlug, projectSlug, runId, stopOpts) =>
         request<{ id: string; status: string }>(opts, {
           method: 'POST',
@@ -566,9 +541,7 @@ async function* streamRunEvents(
   }
 }
 
-function parseSseBlock(
-  block: string,
-): { id: string; event: string; data: unknown } | null {
+function parseSseBlock(block: string): { id: string; event: string; data: unknown } | null {
   let id = '';
   let event = 'message';
   let data = '';

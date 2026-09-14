@@ -168,7 +168,14 @@ export function SentrySettingsModal({ onClose }: SentrySettingsModalProps) {
             aria-label="Close (Esc)"
             title="Close"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M6 6l12 12M18 6l-12 12" />
             </svg>
           </button>
@@ -236,13 +243,16 @@ export function SentrySettingsModal({ onClose }: SentrySettingsModalProps) {
                   ref={tokenInputRef}
                   type="password"
                   value={tokenDraft}
-                  placeholder={config.hasToken ? '•••••• (leave blank to keep)' : 'Sentry auth token'}
+                  placeholder={
+                    config.hasToken ? '•••••• (leave blank to keep)' : 'Sentry auth token'
+                  }
                   autoComplete="off"
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setTokenDraft(e.target.value)}
                 />
               </label>
               <div className="kb-sentry-hint">
-                Use a Sentry Internal Integration token with <code>project:read</code> + <code>event:read</code> scopes.
+                Use a Sentry Internal Integration token with <code>project:read</code> +{' '}
+                <code>event:read</code> scopes.
               </div>
 
               <label className="kb-sentry-row">
@@ -251,7 +261,9 @@ export function SentrySettingsModal({ onClose }: SentrySettingsModalProps) {
                   type="text"
                   value={environmentFilter}
                   placeholder="production (leave blank for all)"
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setEnvironmentFilter(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setEnvironmentFilter(e.target.value)
+                  }
                 />
               </label>
 

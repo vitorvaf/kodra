@@ -81,11 +81,9 @@ function describeFolder(config: Config | null): string {
 function ShellHost({
   config,
   workspace,
-  cloudWorkspace,
 }: {
   config: Config | null;
   workspace: ActiveWorkspaceInfo | null;
-  cloudWorkspace: ActiveCloudWorkspaceInfo | null;
 }) {
   // Cloud workspaces don't yet carry per-workspace settings like
   // `notifyOnRunComplete` — phase 3's project-config endpoint will surface
@@ -120,9 +118,7 @@ function ShellHost({
   const [providersSettingsOpen, setProvidersSettingsOpen] = useState(false);
   const [cloudSettingsOpen, setCloudSettingsOpen] = useState(false);
   const [houseRulesOpen, setHouseRulesOpen] = useState(false);
-  const [scriptsOpen, setScriptsOpen] = useState<
-    null | { autoRun?: 'setup' | 'cleanup' }
-  >(null);
+  const [scriptsOpen, setScriptsOpen] = useState<null | { autoRun?: 'setup' | 'cleanup' }>(null);
   const [sentrySettingsOpen, setSentrySettingsOpen] = useState(false);
   const [memorySettingsOpen, setMemorySettingsOpen] = useState(false);
   const [reposOpen, setReposOpen] = useState(false);
@@ -142,8 +138,7 @@ function ShellHost({
       setReposOpen(true);
     }
     window.addEventListener('kanbots:open-workspace-repos', onOpen);
-    return () =>
-      window.removeEventListener('kanbots:open-workspace-repos', onOpen);
+    return () => window.removeEventListener('kanbots:open-workspace-repos', onOpen);
   }, []);
 
   useEffect(() => {
@@ -151,8 +146,7 @@ function ShellHost({
       setCardTemplatesOpen(true);
     }
     window.addEventListener('kanbots:open-card-templates', onOpen);
-    return () =>
-      window.removeEventListener('kanbots:open-card-templates', onOpen);
+    return () => window.removeEventListener('kanbots:open-card-templates', onOpen);
   }, []);
 
   useEffect(() => {
@@ -328,9 +322,7 @@ function ShellHost({
       {cloudSettingsOpen ? (
         <CloudSettingsModal onClose={() => setCloudSettingsOpen(false)} />
       ) : null}
-      {houseRulesOpen ? (
-        <HouseRulesSettingsModal onClose={() => setHouseRulesOpen(false)} />
-      ) : null}
+      {houseRulesOpen ? <HouseRulesSettingsModal onClose={() => setHouseRulesOpen(false)} /> : null}
       {scriptsOpen !== null ? (
         <RepoScriptsSettingsModal
           onClose={() => setScriptsOpen(null)}
@@ -343,9 +335,7 @@ function ShellHost({
       {memorySettingsOpen ? (
         <MemorySettingsModal onClose={() => setMemorySettingsOpen(false)} />
       ) : null}
-      {reposOpen ? (
-        <WorkspaceReposSettingsModal onClose={() => setReposOpen(false)} />
-      ) : null}
+      {reposOpen ? <WorkspaceReposSettingsModal onClose={() => setReposOpen(false)} /> : null}
       {cardTemplatesOpen ? (
         <CardTemplatesSettingsModal onClose={() => setCardTemplatesOpen(false)} />
       ) : null}
@@ -359,16 +349,10 @@ function ShellHost({
             setTweaksOpen(false);
             setPaletteOpen(true);
           }}
-          {...(pausedAgent
-            ? { onFocusPaused: () => setSelectedNumber(pausedAgent.number) }
-            : {})}
-          {...(reviewReady
-            ? { onFocusReview: () => setSelectedNumber(reviewReady.number) }
-            : {})}
+          {...(pausedAgent ? { onFocusPaused: () => setSelectedNumber(pausedAgent.number) } : {})}
+          {...(reviewReady ? { onFocusReview: () => setSelectedNumber(reviewReady.number) } : {})}
           notifyOnRunComplete={notifyOnRunComplete}
-          {...(getBridge()
-            ? { onSetNotifyOnRunComplete: setNotifyOnRunComplete }
-            : {})}
+          {...(getBridge() ? { onSetNotifyOnRunComplete: setNotifyOnRunComplete } : {})}
         />
       ) : null}
     </>
@@ -420,9 +404,8 @@ export function App({
 
   const hasOpenWorkspace = workspace !== null || cloudWorkspace !== null;
   const { data: config } = useFetch(hasOpenWorkspace ? 'config' : null, () => api.config());
-  const { data: providers } = useFetch(
-    hasOpenWorkspace ? `providers:${providersTick}` : null,
-    () => api.getProviders(),
+  const { data: providers } = useFetch(hasOpenWorkspace ? `providers:${providersTick}` : null, () =>
+    api.getProviders(),
   );
 
   // Local-first launch: the cloud sign-in prompt is OPTIONAL. It shows on
@@ -498,11 +481,7 @@ export function App({
   if (hasBridge && !anyConfigured) {
     return (
       <IssuesProvider>
-        <ShellHost
-          config={config ?? null}
-          workspace={workspace}
-          cloudWorkspace={cloudWorkspace}
-        />
+        <ShellHost config={config ?? null} workspace={workspace} />
         <ProvidersOverlay
           reason={(providers?.providers ?? []).some((p) => p.lastError) ? 'all-failed' : 'none'}
           onConfigured={() => setProvidersTick((t) => t + 1)}
@@ -513,11 +492,7 @@ export function App({
 
   return (
     <IssuesProvider>
-      <ShellHost
-        config={config ?? null}
-        workspace={workspace}
-        cloudWorkspace={cloudWorkspace}
-      />
+      <ShellHost config={config ?? null} workspace={workspace} />
     </IssuesProvider>
   );
 }

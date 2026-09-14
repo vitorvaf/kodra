@@ -112,7 +112,9 @@ const CHECK_KINDS: readonly CheckCommandKind[] = ['typecheck', 'tests', 'lint', 
 function validateScripts(input: unknown): WorkspaceScripts | undefined {
   if (input === undefined) return undefined;
   if (typeof input !== 'object' || input === null) {
-    console.warn('[kanbots] ignoring invalid `scripts` field in .kanbots/config.json (expected object)');
+    console.warn(
+      '[kanbots] ignoring invalid `scripts` field in .kanbots/config.json (expected object)',
+    );
     return undefined;
   }
   const obj = input as Record<string, unknown>;
@@ -143,7 +145,9 @@ function validateScripts(input: unknown): WorkspaceScripts | undefined {
 function validateCheckOverrides(input: unknown): CheckCommandOverrides | undefined {
   if (input === undefined) return undefined;
   if (typeof input !== 'object' || input === null) {
-    console.warn('[kanbots] ignoring invalid `checks` field in .kanbots/config.json (expected object)');
+    console.warn(
+      '[kanbots] ignoring invalid `checks` field in .kanbots/config.json (expected object)',
+    );
     return undefined;
   }
   const obj = input as Record<string, unknown>;
@@ -176,7 +180,9 @@ function validateMemory(input: unknown): MemoryConfig | undefined {
   if (input === undefined) return undefined;
   if (typeof input !== 'object' || input === null) {
     if (input !== null) {
-      console.warn('[kanbots] ignoring invalid `memory` field in .kanbots/config.json (expected object)');
+      console.warn(
+        '[kanbots] ignoring invalid `memory` field in .kanbots/config.json (expected object)',
+      );
     }
     return undefined;
   }
@@ -203,7 +209,7 @@ function validateMemory(input: unknown): MemoryConfig | undefined {
     };
   }
 
-  let provider: MemoryConfig['provider'] = 'agentmemory';
+  const provider: MemoryConfig['provider'] = 'agentmemory';
   if (obj.provider !== undefined && obj.provider !== 'agentmemory') {
     console.warn('[kanbots] invalid `memory.provider`; defaulting to "agentmemory"');
   }
@@ -222,7 +228,9 @@ function validateMemory(input: unknown): MemoryConfig | undefined {
     if (typeof obj.secret === 'string') {
       secret = obj.secret;
     } else {
-      console.warn('[kanbots] invalid `memory.secret` (expected string or null); defaulting to null');
+      console.warn(
+        '[kanbots] invalid `memory.secret` (expected string or null); defaulting to null',
+      );
     }
   }
 
@@ -238,7 +246,9 @@ function validateMemory(input: unknown): MemoryConfig | undefined {
   let teamId: string | null = null;
   if (scope === 'team') {
     if (typeof obj.teamId !== 'string' || obj.teamId.length === 0) {
-      console.warn('[kanbots] ignoring `memory.scope: "team"` without a valid `teamId`; defaulting to "shared"');
+      console.warn(
+        '[kanbots] ignoring `memory.scope: "team"` without a valid `teamId`; defaulting to "shared"',
+      );
       scope = 'shared';
     } else {
       teamId = obj.teamId;
@@ -252,7 +262,9 @@ function validateRtk(input: unknown): RtkConfig | undefined {
   if (input === undefined) return undefined;
   if (typeof input !== 'object' || input === null) {
     if (input !== null) {
-      console.warn('[kanbots] ignoring invalid `rtk` field in .kanbots/config.json (expected object)');
+      console.warn(
+        '[kanbots] ignoring invalid `rtk` field in .kanbots/config.json (expected object)',
+      );
     }
     return undefined;
   }
@@ -269,7 +281,9 @@ function validateRtk(input: unknown): RtkConfig | undefined {
     if (typeof obj.assumeInstalled === 'boolean') {
       assumeInstalled = obj.assumeInstalled;
     } else {
-      console.warn('[kanbots] invalid `rtk.assumeInstalled` (expected boolean); defaulting to false');
+      console.warn(
+        '[kanbots] invalid `rtk.assumeInstalled` (expected boolean); defaulting to false',
+      );
     }
   }
   return { assumeInstalled };
@@ -336,7 +350,11 @@ function validateConfig(input: unknown): WorkspaceConfig | null {
     return cfg;
   }
   if (obj.mode === 'local' && typeof obj.name === 'string' && typeof obj.authorLogin === 'string') {
-    const cfg: LocalWorkspaceConfig = { mode: 'local', name: obj.name, authorLogin: obj.authorLogin };
+    const cfg: LocalWorkspaceConfig = {
+      mode: 'local',
+      name: obj.name,
+      authorLogin: obj.authorLogin,
+    };
     if (defaults) cfg.defaults = defaults;
     if (checks) cfg.checks = checks;
     if (scripts) cfg.scripts = scripts;
@@ -353,15 +371,15 @@ function validateConfig(input: unknown): WorkspaceConfig | null {
 function validateAcpCommand(input: unknown): string | undefined {
   if (input === undefined || input === null) return undefined;
   if (typeof input !== 'string') {
-    console.warn('[kanbots] ignoring invalid `acpCommand` field in .kanbots/config.json (expected string)');
+    console.warn(
+      '[kanbots] ignoring invalid `acpCommand` field in .kanbots/config.json (expected string)',
+    );
     return undefined;
   }
   const trimmed = input.trim();
   if (trimmed.length === 0) return undefined;
   if (Buffer.byteLength(trimmed, 'utf8') > WORKSPACE_SCRIPT_MAX_BYTES) {
-    console.warn(
-      `[kanbots] ignoring \`acpCommand\` exceeding ${WORKSPACE_SCRIPT_MAX_BYTES} bytes`,
-    );
+    console.warn(`[kanbots] ignoring \`acpCommand\` exceeding ${WORKSPACE_SCRIPT_MAX_BYTES} bytes`);
     return undefined;
   }
   return trimmed;
@@ -370,7 +388,9 @@ function validateAcpCommand(input: unknown): string | undefined {
 function validateHouseRules(input: unknown): string | undefined {
   if (input === undefined || input === null) return undefined;
   if (typeof input !== 'string') {
-    console.warn('[kanbots] ignoring invalid `houseRules` field in .kanbots/config.json (expected string)');
+    console.warn(
+      '[kanbots] ignoring invalid `houseRules` field in .kanbots/config.json (expected string)',
+    );
     return undefined;
   }
   const trimmed = input.trim();

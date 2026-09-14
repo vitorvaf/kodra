@@ -11,10 +11,14 @@ interface FakeChild extends EventEmitter {
   kill(signal?: NodeJS.Signals): boolean;
 }
 
-function makeFakeChild(): { child: FakeChild; stdoutPush: (s: string) => void; stdoutEnd: () => void } {
+function makeFakeChild(): {
+  child: FakeChild;
+  stdoutPush: (s: string) => void;
+  stdoutEnd: () => void;
+} {
   const emitter = new EventEmitter() as FakeChild;
   const stdoutChunks: string[] = [];
-  let stdoutResolve: ((value: string | null) => void) | null = null;
+  const stdoutResolve: ((value: string | null) => void) | null = null;
 
   const stdout = new Readable({
     read(): void {
@@ -25,7 +29,11 @@ function makeFakeChild(): { child: FakeChild; stdoutPush: (s: string) => void; s
       }
     },
   });
-  const stderr = new Readable({ read(): void { this.push(null); } });
+  const stderr = new Readable({
+    read(): void {
+      this.push(null);
+    },
+  });
   const stdinWrites: string[] = [];
   const stdin = new Writable({
     write(chunk, _enc, cb): void {

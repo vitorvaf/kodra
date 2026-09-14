@@ -50,7 +50,9 @@ export async function runFeatureDevLoop(
   const provider = config.provider;
   const effort = config.effort;
 
-  log(`session ${initialSession.id}: starting loop with parallelism=${parallelism}, personas=${personas.length}, provider=${provider ?? 'default'}, model=${model ?? 'default'}, effort=${effort ?? 'medium'}`);
+  log(
+    `session ${initialSession.id}: starting loop with parallelism=${parallelism}, personas=${personas.length}, provider=${provider ?? 'default'}, model=${model ?? 'default'}, effort=${effort ?? 'medium'}`,
+  );
 
   // Serializes claims of the next persona index so concurrent slots advance
   // cycle_index atomically (single-process JS, so a promise chain is enough).
@@ -70,7 +72,6 @@ export async function runFeatureDevLoop(
 }
 
 function log(msg: string): void {
-  // eslint-disable-next-line no-console
   console.log(`[autopilot/feature-dev] ${msg}`);
 }
 
@@ -155,11 +156,22 @@ async function runSlot(
       log(`session ${sessionId}: slot ${slotIndex} got null claim — exiting`);
       return;
     }
-    log(`session ${sessionId}: slot ${slotIndex} claimed persona "${claim.persona.name}" (idx ${claim.index})`);
+    log(
+      `session ${sessionId}: slot ${slotIndex} claimed persona "${claim.persona.name}" (idx ${claim.index})`,
+    );
 
     let stepError: Error | null = null;
     try {
-      await runOneIteration(ctx, sessionId, slotIndex, claim.persona, model, provider, effort, signal);
+      await runOneIteration(
+        ctx,
+        sessionId,
+        slotIndex,
+        claim.persona,
+        model,
+        provider,
+        effort,
+        signal,
+      );
     } catch (err) {
       stepError = err instanceof Error ? err : new Error(String(err));
       log(`session ${sessionId}: slot ${slotIndex} iteration error: ${stepError.message}`);
@@ -259,7 +271,9 @@ async function runOneIteration(
   } finally {
     ctx.planning.clear(sessionId, slotIndex);
   }
-  log(`session ${sessionId}: slot ${slotIndex} suggestIssue done in ${Date.now() - draftStart}ms — "${drafted.title}"`);
+  log(
+    `session ${sessionId}: slot ${slotIndex} suggestIssue done in ${Date.now() - draftStart}ms — "${drafted.title}"`,
+  );
   if (signal.aborted) return;
 
   const issue = await ctx.source.createIssue({
@@ -286,7 +300,9 @@ async function runOneIteration(
   if (effort !== undefined) dispatchArgs.effort = effort;
 
   const run = await dispatchAutopilotChild({ supervisor: ctx.supervisor }, dispatchArgs);
-  log(`session ${sessionId}: slot ${slotIndex} dispatched run #${run.id} for issue #${issue.number}`);
+  log(
+    `session ${sessionId}: slot ${slotIndex} dispatched run #${run.id} for issue #${issue.number}`,
+  );
 
   // With parallelism > 1 this represents the most recently started child;
   // active children are derived from `children` (status === 'running') for stop.
@@ -311,14 +327,10 @@ async function runOneIteration(
       ? 'skipped'
       : settled.finalStatus;
   log(`session ${sessionId}: slot ${slotIndex} child run #${run.id} settled as ${childStatus}`);
-  const updated = ctx.store.autopilotSessions.updateChildByIssueNumber(
-    sessionId,
-    issue.number,
-    {
-      status: childStatus,
-      endedAt: new Date().toISOString(),
-    },
-  );
+  const updated = ctx.store.autopilotSessions.updateChildByIssueNumber(sessionId, issue.number, {
+    status: childStatus,
+    endedAt: new Date().toISOString(),
+  });
   ctx.notify(updated);
 }
 

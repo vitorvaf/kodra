@@ -39,7 +39,7 @@ type BoardAgentEventPayload =
 
 function incrementPerfCounter(field: 'boardEventsIn' | 'boardUpdates'): void {
   if (!import.meta.env.DEV) return;
-  const perf = ((window as any).__kodraPerf ??= {}) as Record<string, number>;
+  const perf = ((window as unknown as { __kodraPerf?: Record<string, number> }).__kodraPerf ??= {});
   perf[field] = (perf[field] ?? 0) + 1;
 }
 
@@ -111,9 +111,7 @@ export function useBoardAgentStreams(runIds: readonly number[]): RunLiveMap {
           }
           sub.subscriptionId = subscriptionId;
           subsById.set(subscriptionId, runId);
-          void bridge
-            .invoke('agent-runs:events:ready', { subscriptionId })
-            .catch(() => {});
+          void bridge.invoke('agent-runs:events:ready', { subscriptionId }).catch(() => {});
         })
         .catch(() => {
           // Drop the slot so a later effect can retry.
@@ -189,13 +187,10 @@ function applyEvent(
 ): void {
   if (ev.type !== 'tool_use') return;
   const p = ev.payload as { name?: string; input?: unknown };
-  queueLiveUpdate(
-    liveBufferRef,
-    liveTimerRef,
-    setMap,
-    runId,
-    { currentTool: p.name ?? null, currentArg: summarizeInput(p.input) },
-  );
+  queueLiveUpdate(liveBufferRef, liveTimerRef, setMap, runId, {
+    currentTool: p.name ?? null,
+    currentArg: summarizeInput(p.input),
+  });
 }
 
 function applyCard(
@@ -261,12 +256,7 @@ function flushLiveUpdates(setMap: LiveSetter, liveBufferRef: LiveBufferRef): voi
   });
 }
 
-function applyReplay(
-  setMap: LiveSetter,
-  runId: number,
-  events: AgentEvent[],
-  cards: Card[],
-): void {
+function applyReplay(setMap: LiveSetter, runId: number, events: AgentEvent[], cards: Card[]): void {
   let lastTool: { currentTool: string | null; currentArg: string | null } | null = null;
   for (let i = events.length - 1; i >= 0; i--) {
     const ev = events[i];

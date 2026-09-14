@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
 import type { RunLiveMap } from './useBoardAgentStreams.js';
 
 /**

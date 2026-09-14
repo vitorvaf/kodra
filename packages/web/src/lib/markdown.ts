@@ -32,16 +32,24 @@ function safeUrl(url: string): string {
 
 function applyInline(src: string): string {
   let out = escapeHtml(src);
+  // The source is already HTML-escaped here, so an optional title reads as
+  // `&quot;...&quot;` rather than raw quotes, and needs no second escaping.
   // Images first so the link rule below doesn't claim them.
-  out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (_m, alt: string, url: string, title?: string) => {
-    const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-    return `<img src="${safeUrl(url)}" alt="${escapeHtml(alt)}"${titleAttr} />`;
-  });
+  out = out.replace(
+    /!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^"]*?)&quot;)?\)/g,
+    (_m, alt: string, url: string, title?: string) => {
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<img src="${safeUrl(url)}" alt="${escapeHtml(alt)}"${titleAttr} />`;
+    },
+  );
   // Links.
-  out = out.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (_m, label: string, url: string, title?: string) => {
-    const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-    return `<a href="${safeUrl(url)}"${titleAttr} rel="noreferrer noopener" target="_blank">${label}</a>`;
-  });
+  out = out.replace(
+    /\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;([^"]*?)&quot;)?\)/g,
+    (_m, label: string, url: string, title?: string) => {
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<a href="${safeUrl(url)}"${titleAttr} rel="noreferrer noopener" target="_blank">${label}</a>`;
+    },
+  );
   // Inline code — protect its contents from further inline processing by
   // running the rule before bold/italic and skipping nested matches.
   out = out.replace(/`([^`\n]+)`/g, (_m, code: string) => `<code>${code}</code>`);
@@ -52,7 +60,7 @@ function applyInline(src: string): string {
   out = out.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
   out = out.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, '$1<em>$2</em>');
   // Hard line breaks: two trailing spaces before a newline.
-  out = out.replace(/  \n/g, '<br />');
+  out = out.replace(/ {2}\n/g, '<br />');
   return out;
 }
 

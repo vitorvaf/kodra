@@ -29,7 +29,7 @@ type PerfCounter = 'chatEventsIn' | 'chatFlushes' | 'chatStateUpdates';
 
 function incrementDevCounter(name: PerfCounter): void {
   if (!import.meta.env.DEV || typeof window === 'undefined') return;
-  const perf = ((window as any).__kodraPerf ??= {}) as Record<string, number>;
+  const perf = ((window as unknown as { __kodraPerf?: Record<string, number> }).__kodraPerf ??= {});
   perf[name] = (perf[name] ?? 0) + 1;
 }
 
@@ -196,9 +196,7 @@ export function useAgentRunStream(
         const mergedEventsBySeq = new Map<number, AgentEvent>();
         for (const event of prev.events) mergedEventsBySeq.set(event.seq, event);
         for (const event of replayEvents) mergedEventsBySeq.set(event.seq, event);
-        const mergedEvents = Array.from(mergedEventsBySeq.values()).sort(
-          (a, b) => a.seq - b.seq,
-        );
+        const mergedEvents = Array.from(mergedEventsBySeq.values()).sort((a, b) => a.seq - b.seq);
 
         const mergedCardsById = new Map<number, Card>();
         for (const card of prev.cards) mergedCardsById.set(card.id, card);
@@ -248,9 +246,7 @@ export function useAgentRunStream(
           }
           // 'end' → main process auto-cleans the subscription; nothing to do.
         });
-        void bridge
-          .invoke('agent-runs:events:ready', { subscriptionId: subId })
-          .catch(() => {});
+        void bridge.invoke('agent-runs:events:ready', { subscriptionId: subId }).catch(() => {});
       })
       .catch((err: unknown) => {
         if (cancelled) return;

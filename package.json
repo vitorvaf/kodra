@@ -21,12 +21,17 @@
     "desktop": "pnpm --filter @kanbots/desktop launch",
     "desktop:dev": "pnpm --filter @kanbots/desktop dev",
     "release:dry": "pnpm -r publish --access public --dry-run --no-git-checks",
-    "release": "pnpm -r publish --access public"
+    "release": "pnpm -r publish --access public",
+    "memory:start": "docker compose -f docker-compose.agentmemory.yml up -d --build",
+    "memory:stop": "docker compose -f docker-compose.agentmemory.yml down",
+    "memory:logs": "docker compose -f docker-compose.agentmemory.yml logs -f agentmemory",
+    "memory:health": "node scripts/memory-health.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@types/node": "^22.10.5",
     "eslint": "^9.18.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.5.0",
     "prettier": "^3.4.2",
     "typescript": "^5.7.3",

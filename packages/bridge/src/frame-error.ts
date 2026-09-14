@@ -12,6 +12,7 @@ export type ReportFrameErrorInput = {
 };
 
 const PREVIEW_LIMIT = 200;
+// eslint-disable-next-line no-control-regex -- control characters are exactly what we redact
 const CONTROL_CHAR_PATTERN = /[\x00-\x1f\x7f]/g;
 const REDACTION_CHAR = '?';
 

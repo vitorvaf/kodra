@@ -278,22 +278,15 @@ function streamEventToWire(event: StreamEvent): BufferedEvent | null {
  * The returned `done` promise resolves when the CLI exits and the final
  * event flush + synthetic terminal event (if any) lands on the cloud.
  */
-export async function startCloudRun(
-  opts: DispatchCloudRunOptions,
-): Promise<CloudRunHandle> {
+export async function startCloudRun(opts: DispatchCloudRunOptions): Promise<CloudRunHandle> {
   const provider = opts.provider ?? 'claude-code';
 
   // Step 1 — create the pending run on the cloud.
-  const run = await opts.cloudClient.runs.create(
-    opts.orgSlug,
-    opts.projectSlug,
-    opts.cardNumber,
-    {
-      cli: PROVIDER_TO_CLI[provider],
-      ...(opts.model !== undefined ? { model: opts.model } : {}),
-      provider: PROVIDER_TO_PROVIDER_TAG[provider],
-    },
-  );
+  const run = await opts.cloudClient.runs.create(opts.orgSlug, opts.projectSlug, opts.cardNumber, {
+    cli: PROVIDER_TO_CLI[provider],
+    ...(opts.model !== undefined ? { model: opts.model } : {}),
+    provider: PROVIDER_TO_PROVIDER_TAG[provider],
+  });
 
   // Step 2 — claim it as the running worker. If this fails we still return
   // the runId so the renderer can surface a status; the background loop
@@ -303,7 +296,6 @@ export async function startCloudRun(
     await opts.cloudClient.runs.claim(run.id);
     claimed = true;
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.warn(
       `[cloud-run-dispatcher] claim failed for run ${run.id}:`,
       err instanceof Error ? err.message : err,
@@ -334,7 +326,6 @@ export async function startCloudRun(
         branchName,
       });
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.warn(
         `[cloud-run-dispatcher] setWorktree failed for run ${run.id}:`,
         err instanceof Error ? err.message : err,
@@ -392,7 +383,7 @@ export async function startCloudRun(
     } catch (err) {
       consecutiveFailures += 1;
       const giveUp = consecutiveFailures >= MAX_FLUSH_ATTEMPTS;
-      // eslint-disable-next-line no-console
+
       console.warn(
         `[cloud-run-dispatcher] flush failed for run ${run.id} (attempt ${consecutiveFailures}/${MAX_FLUSH_ATTEMPTS})${giveUp ? ' — dropping batch' : ''}:`,
         err instanceof Error ? err.message : err,
@@ -437,7 +428,6 @@ export async function startCloudRun(
       // suddenly quiet.
       const dropped = buffer.splice(0, buffer.length - MAX_BUFFERED_EVENTS);
       if (dropped.length > 0) {
-        // eslint-disable-next-line no-console
         console.warn(
           `[cloud-run-dispatcher] buffer overflow on run ${run.id} — dropped ${dropped.length} events`,
         );
@@ -496,7 +486,7 @@ export async function startCloudRun(
         const input = event.input as Record<string, unknown> | null | undefined;
         const raw =
           input !== null && input !== undefined
-            ? input['file_path'] ?? input['filePath'] ?? input['path']
+            ? (input['file_path'] ?? input['filePath'] ?? input['path'])
             : undefined;
         if (typeof raw === 'string' && raw.length > 0) {
           try {
@@ -530,9 +520,10 @@ export async function startCloudRun(
     // supervisor's equivalent path) until a user answers the
     // decision. Posting a synthetic `succeeded` here would terminate
     // the run and orphan the decision row.
-    const synthesizeTerminal = claimed
-      && !sawTerminalResult
-      && !(sawDecision && summary.exitCode === 0 && !summary.killedByStop);
+    const synthesizeTerminal =
+      claimed &&
+      !sawTerminalResult &&
+      !(sawDecision && summary.exitCode === 0 && !summary.killedByStop);
     if (synthesizeTerminal) {
       const synthStatus = summary.killedByStop
         ? 'stopped'
@@ -562,7 +553,6 @@ export async function startCloudRun(
           { idempotencyKey: `${run.id}:synth-terminal` },
         );
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.warn(
           `[cloud-run-dispatcher] failed to post synthetic terminal for ${run.id}:`,
           err instanceof Error ? err.message : err,
@@ -574,11 +564,7 @@ export async function startCloudRun(
 
     let finalStatus = 'unknown';
     try {
-      const final = await opts.cloudClient.runs.get(
-        opts.orgSlug,
-        opts.projectSlug,
-        run.id,
-      );
+      const final = await opts.cloudClient.runs.get(opts.orgSlug, opts.projectSlug, run.id);
       finalStatus = final.status;
     } catch {
       // best-effort

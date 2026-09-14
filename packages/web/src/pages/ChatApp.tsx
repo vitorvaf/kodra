@@ -10,11 +10,9 @@ import {
 } from 'react';
 import { Virtuoso, type ListProps } from 'react-virtuoso';
 import { api } from '../api.js';
-import {
-  SessionDropdown,
-  useActiveSessionId,
-} from '../components/chat/SessionDropdown.js';
+import { SessionDropdown, useActiveSessionId } from '../components/chat/SessionDropdown.js';
 import { ModelPicker, PROVIDER_LABELS } from '../components/forms/ModelPicker.js';
+import type { ModelPickerValue } from '../components/forms/ModelPicker.js';
 import { useAgentRunStream } from '../hooks/useAgentRunStream.js';
 import { ageString } from '../labels.js';
 import { ToolUseCard } from '../components/run/ToolUseCard.js';
@@ -125,13 +123,7 @@ export function ChatApp() {
   );
 }
 
-function ChatBootstrap({
-  loading,
-  error,
-}: {
-  loading: boolean;
-  error: string | null;
-}) {
+function ChatBootstrap({ loading, error }: { loading: boolean; error: string | null }) {
   return (
     <div className="kb-chat-bootstrap">
       {error ? (
@@ -206,9 +198,7 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
   // lose history.
   const sessionMessages = useMemo<Message[]>(() => {
     if (activeSessionId === null) return messages;
-    return messages.filter(
-      (m) => m.chatSessionId === activeSessionId || m.chatSessionId === null,
-    );
+    return messages.filter((m) => m.chatSessionId === activeSessionId || m.chatSessionId === null);
   }, [messages, activeSessionId]);
 
   // The events stream is per-run, but we want the session's run, not the
@@ -516,8 +506,7 @@ function ChatRoom({ conversationId }: { conversationId: number }) {
         onSessionsChange={setSessions}
         onActiveSessionChange={setActiveSessionId}
         disabled={
-          sessionActiveRun !== null &&
-          (stream.status === 'running' || stream.status === 'starting')
+          sessionActiveRun !== null && (stream.status === 'running' || stream.status === 'starting')
         }
         onSent={() => {
           setStreamGen((g) => g + 1);
@@ -545,7 +534,8 @@ const MemoizedLiveAgentSpinner = memo(function LiveAgentSpinner({
   const verb = pickSpinnerVerb(seed);
   const startMs = parseSpinnerStart(startedAt, now);
   const elapsedSec = Math.max(0, (now - startMs) / 1000);
-  const tokens = typeof tokensOut === 'number' && tokensOut > 0 ? formatSpinnerNumber(tokensOut) : null;
+  const tokens =
+    typeof tokensOut === 'number' && tokensOut > 0 ? formatSpinnerNumber(tokensOut) : null;
   const glyphRef = useRef<HTMLSpanElement | null>(null);
   const metaRef = useRef<HTMLSpanElement | null>(null);
 
@@ -578,16 +568,14 @@ const MemoizedLiveAgentSpinner = memo(function LiveAgentSpinner({
       </span>
       <span className="kb-spin-verb">{verb}…</span>
       <span className="kb-spin-meta" ref={metaRef}>
-        ({formatSpinnerElapsed(elapsedSec)}{tokens ? ` · ${tokens} tokens` : ''} · esc to interrupt)
+        ({formatSpinnerElapsed(elapsedSec)}
+        {tokens ? ` · ${tokens} tokens` : ''} · esc to interrupt)
       </span>
     </div>
   );
 });
 
-function parseSpinnerStart(
-  value: string | number | null | undefined,
-  fallback: number,
-): number {
+function parseSpinnerStart(value: string | number | null | undefined, fallback: number): number {
   if (value === null || value === undefined) return fallback;
   if (typeof value === 'number') return value;
   const parsed = new Date(value).getTime();
@@ -679,7 +667,16 @@ function ChatTitleEditor({
     >
       {conversation.title}
       <span className="kb-chat-title-pencil" aria-hidden>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M12 20h9" />
           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
         </svg>
@@ -706,8 +703,7 @@ function ReplyFooter({
   onSent: () => void;
 }) {
   const [body, setBody] = useState('');
-  const [modelSelection, setModelSelection] =
-    useState<import('../components/forms/ModelPicker.js').ModelPickerValue | null>(null);
+  const [modelSelection, setModelSelection] = useState<ModelPickerValue | null>(null);
   const [appendSystemPrompt, setAppendSystemPrompt] = useState<string>('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sending, setSending] = useState(false);
@@ -799,9 +795,7 @@ function ReplyFooter({
       <div className="kb-chat-foot-row">
         <textarea
           className="kb-chat-foot-input"
-          placeholder={
-            disabled ? 'agent is running…' : 'Ask the agent…'
-          }
+          placeholder={disabled ? 'agent is running…' : 'Ask the agent…'}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={onKey}
@@ -854,11 +848,7 @@ const MessageRow = memo(function MessageRow({
         — {message.body} · {ageString(message.createdAt)} ago —
         {cards.map((c) =>
           c.type === 'decision' ? (
-            <DecisionInline
-              key={c.id}
-              card={c as Card<DecisionPayload>}
-              onResolved={onResolved}
-            />
+            <DecisionInline key={c.id} card={c as Card<DecisionPayload>} onResolved={onResolved} />
           ) : null,
         )}
       </div>
@@ -875,11 +865,7 @@ const MessageRow = memo(function MessageRow({
       <div className="kb-chat-msg-body">{message.body}</div>
       {cards.map((c) =>
         c.type === 'decision' ? (
-          <DecisionInline
-            key={c.id}
-            card={c as Card<DecisionPayload>}
-            onResolved={onResolved}
-          />
+          <DecisionInline key={c.id} card={c as Card<DecisionPayload>} onResolved={onResolved} />
         ) : null,
       )}
     </div>
@@ -926,7 +912,12 @@ function DecisionInline({
   }
 
   return (
-    <div className="kb-decision" role="region" aria-label="Agent question" style={{ marginTop: 10 }}>
+    <div
+      className="kb-decision"
+      role="region"
+      aria-label="Agent question"
+      style={{ marginTop: 10 }}
+    >
       <div className="kb-decision-opts">
         {card.payload.options.map((opt, i) => (
           <button
@@ -985,7 +976,9 @@ const EventRow = memo(function EventRow({
     return (
       <div className="kb-tcall" style={{ borderColor: 'var(--failed)' }}>
         <div className="kb-tcall-head">
-          <span className="name" style={{ color: 'var(--failed)' }}>error</span>
+          <span className="name" style={{ color: 'var(--failed)' }}>
+            error
+          </span>
           <span className="arg">{p.message ?? 'unknown'}</span>
           <span className="dur">{ageString(event.createdAt)} ago</span>
         </div>

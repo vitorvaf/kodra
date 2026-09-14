@@ -1,12 +1,5 @@
-import {
-  detectRateLimit as detectRateLimitFromText,
-  type StreamEvent,
-} from '../stream-parser.js';
-import type {
-  AgentCliAdapter,
-  BuildArgsInput,
-  ComposePromptInput,
-} from './types.js';
+import { detectRateLimit as detectRateLimitFromText, type StreamEvent } from '../stream-parser.js';
+import type { AgentCliAdapter, BuildArgsInput, ComposePromptInput } from './types.js';
 
 // Schema mirrored from the canonical Rust definitions in
 // codex-rs/exec/src/exec_events.rs (ThreadEvent / ThreadItem). Kept as TS
@@ -67,11 +60,6 @@ interface AgentMessageDetails {
   text: string;
 }
 
-interface ReasoningDetails {
-  type: 'reasoning';
-  text: string;
-}
-
 interface McpToolCallDetails {
   type: 'mcp_tool_call';
   server: string;
@@ -92,16 +80,6 @@ interface ItemErrorDetails {
   type: 'error';
   message: string;
 }
-
-type ItemDetails =
-  | AgentMessageDetails
-  | ReasoningDetails
-  | CommandExecutionDetails
-  | FileChangeDetails
-  | McpToolCallDetails
-  | WebSearchDetails
-  | ItemErrorDetails
-  | { type: string };
 
 interface ThreadItem {
   id: string;
@@ -136,7 +114,8 @@ export const codexCliAdapter: AgentCliAdapter = {
     // here because codex has no equivalent flag — composePrompt prepends it
     // to the user prompt instead. `allowedTools` is similarly N/A: codex's
     // tool surface is fixed and gated by sandbox/approval policy.
-    const isResume = typeof opts.resumeFromSessionId === 'string' && opts.resumeFromSessionId.length > 0;
+    const isResume =
+      typeof opts.resumeFromSessionId === 'string' && opts.resumeFromSessionId.length > 0;
     const args: string[] = ['exec'];
     if (isResume) {
       args.push('resume', opts.resumeFromSessionId as string);

@@ -24,15 +24,15 @@ Two shapes, one per workspace mode. Both share a common
   // optional
   "defaults": {
     "runCostBudgetUsd": 2.5,
-    "sessionCostBudgetUsd": 25
+    "sessionCostBudgetUsd": 25,
   },
   "notifyOnRunComplete": true,
   "checks": {
     "typecheck": { "command": "pnpm", "args": ["typecheck"] },
-    "tests":     { "command": "pnpm", "args": ["test"] },
-    "lint":      { "command": "pnpm", "args": ["lint"] },
-    "e2e":       { "command": "pnpm", "args": ["e2e"] }
-  }
+    "tests": { "command": "pnpm", "args": ["test"] },
+    "lint": { "command": "pnpm", "args": ["lint"] },
+    "e2e": { "command": "pnpm", "args": ["e2e"] },
+  },
 }
 ```
 
@@ -53,25 +53,25 @@ Two shapes, one per workspace mode. Both share a common
 
 ## Field reference
 
-| Field | Type | Default | Meaning |
-| --- | --- | --- | --- |
-| `mode` | `'local' \| 'github'` | required | Issue source. |
-| `name` | `string` | required (local) | Display name. |
-| `authorLogin` | `string` | required (local) | Used as issue/comment author. |
-| `owner` | `string` | required (github) | GitHub repo owner. |
-| `repo` | `string` | required (github) | GitHub repo name. |
-| `defaults.runCostBudgetUsd` | `number \| null` | `null` | Per-run USD cap; `null` disables. |
-| `defaults.sessionCostBudgetUsd` | `number \| null` | `null` | Per-autopilot-session USD cap. |
-| `notifyOnRunComplete` | `boolean` | `false` | Show OS notification when a run ends. |
-| `checks.<kind>.command` | `string` | — | Override the executable for a check kind. |
-| `checks.<kind>.args` | `string[]` | — | Args to that executable. |
-| `memory.enabled` | `boolean` | `false` | Enable the AgentMemory integration; an absent `memory` section remains unset. |
-| `memory.provider` | `'agentmemory'` | `'agentmemory'` | Memory provider; only AgentMemory is supported. |
-| `memory.url` | `string` | `http://localhost:3111` | AgentMemory service URL. |
-| `memory.secret` | `string \| null` | `null` | Optional AgentMemory authentication secret. |
-| `memory.scope` | `'shared' \| 'team' \| 'global'` | `'shared'` | Memory namespace scope. |
-| `memory.teamId` | `string \| null` | `null` | Team identifier; required for `team` scope. |
-| `rtk.assumeInstalled` | `boolean` | `false` | Skip RTK installation checks when true. |
+| Field                           | Type                             | Default                 | Meaning                                                                       |
+| ------------------------------- | -------------------------------- | ----------------------- | ----------------------------------------------------------------------------- |
+| `mode`                          | `'local' \| 'github'`            | required                | Issue source.                                                                 |
+| `name`                          | `string`                         | required (local)        | Display name.                                                                 |
+| `authorLogin`                   | `string`                         | required (local)        | Used as issue/comment author.                                                 |
+| `owner`                         | `string`                         | required (github)       | GitHub repo owner.                                                            |
+| `repo`                          | `string`                         | required (github)       | GitHub repo name.                                                             |
+| `defaults.runCostBudgetUsd`     | `number \| null`                 | `null`                  | Per-run USD cap; `null` disables.                                             |
+| `defaults.sessionCostBudgetUsd` | `number \| null`                 | `null`                  | Per-autopilot-session USD cap.                                                |
+| `notifyOnRunComplete`           | `boolean`                        | `false`                 | Show OS notification when a run ends.                                         |
+| `checks.<kind>.command`         | `string`                         | —                       | Override the executable for a check kind.                                     |
+| `checks.<kind>.args`            | `string[]`                       | —                       | Args to that executable.                                                      |
+| `memory.enabled`                | `boolean`                        | `false`                 | Enable the AgentMemory integration; an absent `memory` section remains unset. |
+| `memory.provider`               | `'agentmemory'`                  | `'agentmemory'`         | Memory provider; only AgentMemory is supported.                               |
+| `memory.url`                    | `string`                         | `http://localhost:3111` | AgentMemory service URL.                                                      |
+| `memory.secret`                 | `string \| null`                 | `null`                  | Optional AgentMemory authentication secret.                                   |
+| `memory.scope`                  | `'shared' \| 'team' \| 'global'` | `'shared'`              | Memory namespace scope.                                                       |
+| `memory.teamId`                 | `string \| null`                 | `null`                  | Team identifier; required for `team` scope.                                   |
+| `rtk.assumeInstalled`           | `boolean`                        | `false`                 | Skip RTK installation checks when true.                                       |
 
 `<kind>` is one of `typecheck`, `tests`, `lint`, `e2e`.
 
@@ -99,9 +99,9 @@ detected from `package.json` scripts, but you can override per-workspace:
 {
   "checks": {
     "typecheck": { "command": "tsc", "args": ["--noEmit"] },
-    "tests":     { "command": "vitest", "args": ["run"] },
-    "lint":      { "command": "eslint", "args": ["."] },
-    "e2e":       { "command": "playwright", "args": ["test"] }
+    "tests": { "command": "vitest", "args": ["run"] },
+    "lint": { "command": "eslint", "args": ["."] },
+    "e2e": { "command": "playwright", "args": ["test"] }
   }
 }
 ```
@@ -116,6 +116,11 @@ provide persistent agent memory. Its defaults keep a local service at
 `http://localhost:3111` in the `shared` scope. Set `scope` to `team` only
 when `teamId` is provided; `global` uses the global namespace. See
 [ADR-0003](adr/0003-agentmemory-mcp-wiring-into-spawned-agents.md) for the design and rollout details.
+
+`AGENTMEMORY_*` environment variables take precedence over this section
+(`AGENTMEMORY_ENABLED`, `AGENTMEMORY_URL`, `AGENTMEMORY_SECRET`,
+`AGENTMEMORY_TEAM_ID`, ...). The full list, the Docker setup and the
+MemoryProvider layer are documented in [agent-memory.md](agent-memory.md).
 
 ## RTK
 
@@ -141,14 +146,24 @@ Can also be set via `KANBOTS_CONTAINMENT_MODE` environment variable.
 
 Kodra reads the following at startup. Most are dev-only.
 
-| Var | Used by | Meaning |
-| --- | --- | --- |
-| `GITHUB_TOKEN` | GitHub mode | Fallback when `gh auth token` fails. |
-| `KANBOTS_CONTAINMENT_MODE` | dispatcher | Override `containmentMode` for this process. |
-| `KANBOTS_RENDERER_URL` | desktop dev | Tell Electron to load Vite at this URL instead of `dist/`. |
-| `KANBOTS_OPEN_DEVTOOLS` | desktop | Open Chromium devtools on launch (`1`/`true`). |
-| `KANBOTS_TOOL_BRIDGE_URL` | MCP server | Where to reach the desktop's tool bridge. |
-| `KANBOTS_TOOL_BRIDGE_TOKEN` | MCP server | Bearer token for the tool bridge. |
+| Var                                        | Used by     | Meaning                                                    |
+| ------------------------------------------ | ----------- | ---------------------------------------------------------- |
+| `GITHUB_TOKEN`                             | GitHub mode | Fallback when `gh auth token` fails.                       |
+| `KANBOTS_CONTAINMENT_MODE`                 | dispatcher  | Override `containmentMode` for this process.               |
+| `KANBOTS_RENDERER_URL`                     | desktop dev | Tell Electron to load Vite at this URL instead of `dist/`. |
+| `KANBOTS_OPEN_DEVTOOLS`                    | desktop     | Open Chromium devtools on launch (`1`/`true`).             |
+| `KANBOTS_TOOL_BRIDGE_URL`                  | MCP server  | Where to reach the desktop's tool bridge.                  |
+| `KANBOTS_TOOL_BRIDGE_TOKEN`                | MCP server  | Bearer token for the tool bridge.                          |
+| `AGENTMEMORY_ENABLED`                      | memory      | Enable the MemoryProvider (overrides `memory.enabled`).    |
+| `AGENTMEMORY_URL`                          | memory      | AgentMemory server URL (default `http://localhost:3111`).  |
+| `AGENTMEMORY_SECRET`                       | memory      | Bearer secret sent to AgentMemory. Never commit it.        |
+| `AGENTMEMORY_PROJECT`                      | memory      | Canonical project id (default: repository folder name).    |
+| `AGENTMEMORY_TEAM_ID`                      | memory      | Team id for shared memory (see agent-memory.md).           |
+| `AGENTMEMORY_USER_ID`                      | memory      | Developer id tagged on writes.                             |
+| `AGENTMEMORY_AGENT_ID`                     | memory      | Agent id tagged on writes (opencode, claude-code, ...).    |
+| `AGENTMEMORY_MODE`                         | memory      | `private` (default) or `shared`.                           |
+| `AGENTMEMORY_TIMEOUT_MS`                   | memory      | Per-request timeout (default 2000).                        |
+| `AGENTMEMORY_MAX_CONTEXT_ITEMS` / `_CHARS` | memory      | Caps on the recalled context block (10 / 8000).            |
 
 The legacy provider-key vars (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
 `GOOGLE_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`) are **only**

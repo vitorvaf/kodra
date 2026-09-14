@@ -2,6 +2,7 @@ import type { IssueSource } from '@kanbots/core';
 import type { AgentRunProvider } from '@kanbots/dispatcher';
 import type { MemoryConfig, Store } from '@kanbots/local-store';
 import type { AgentMemoryClient } from '../memory/client.js';
+import type { MemoryProvider } from '../memory/provider.js';
 import type { AgentSupervisor } from '../agent-runs/supervisor.js';
 import type { AutopilotManager } from '../autopilot/orchestrator.js';
 import type {
@@ -10,6 +11,7 @@ import type {
   DraftIssueFn,
   DraftPrDescriptionFn,
   EventSubscribeResult,
+  MemoryStatus,
   PlannerEvent,
   SentryAnalyzerFn,
   SuggestFeatureFn,
@@ -31,7 +33,12 @@ export interface SentryRuntime {
   decryptToken(buffer: Buffer | null, encryption: 'safe' | 'plain'): string | null;
   envTokenOverride(): string | null;
   safeStorageAvailable(): boolean;
-  syncNow(): Promise<{ imported: number; updated: number; totalSeen: number; lastSyncedAt: string }>;
+  syncNow(): Promise<{
+    imported: number;
+    updated: number;
+    totalSeen: number;
+    lastSyncedAt: string;
+  }>;
   restartPoller(): void;
 }
 
@@ -107,8 +114,10 @@ export interface HandlerDeps {
   memory?: {
     client: AgentMemoryClient;
     getConfig: () => MemoryConfig | undefined;
+    /** Application-facing memory seam (recall/remember/share). See docs/agent-memory.md. */
+    provider?: MemoryProvider;
   };
-  memoryStatus?: () => import('../bridge.js').MemoryStatus;
+  memoryStatus?: () => MemoryStatus;
   /**
    * Optional sink for live planner activity from `composer:suggest`. The IPC
    * layer wires this up to broadcast events back to the renderer that

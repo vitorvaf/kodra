@@ -57,20 +57,20 @@ Pick the CLI per dispatch from the New Task modal. Each one reuses
 its own auth (you don't sign into Kodra — Kodra calls the CLI
 that's already on your `PATH`).
 
-| Provider | CLI binary | Sign-in |
-| --- | --- | --- |
-| Claude Code | `claude` | `claude /login` |
-| Codex | `codex` | `codex login` or `OPENAI_API_KEY` |
-| Gemini | `gemini` | `gemini auth` |
-| Antigravity CLI | `agy` | browser OAuth on first launch |
-| Cursor CLI | `cursor-agent` | `cursor-agent login` |
-| GitHub Copilot CLI | `gh-copilot` | `gh auth login` (needs Copilot subscription) |
-| Amp | `amp` | `amp login` |
-| OpenCode | `opencode` | `opencode auth` |
-| Droid | `droid` | `droid auth` (Factory account) |
-| CCR (Claude Code Router) | `ccr` | reuses Claude Code auth + routes to alternative models |
-| Qwen Code | `qwen` | `qwen auth` |
-| **Any ACP-compatible CLI** | (your binary) | per CLI — Kodra speaks the Agent Client Protocol over stdio |
+| Provider                   | CLI binary     | Sign-in                                                     |
+| -------------------------- | -------------- | ----------------------------------------------------------- |
+| Claude Code                | `claude`       | `claude /login`                                             |
+| Codex                      | `codex`        | `codex login` or `OPENAI_API_KEY`                           |
+| Gemini                     | `gemini`       | `gemini auth`                                               |
+| Antigravity CLI            | `agy`          | browser OAuth on first launch                               |
+| Cursor CLI                 | `cursor-agent` | `cursor-agent login`                                        |
+| GitHub Copilot CLI         | `gh-copilot`   | `gh auth login` (needs Copilot subscription)                |
+| Amp                        | `amp`          | `amp login`                                                 |
+| OpenCode                   | `opencode`     | `opencode auth`                                             |
+| Droid                      | `droid`        | `droid auth` (Factory account)                              |
+| CCR (Claude Code Router)   | `ccr`          | reuses Claude Code auth + routes to alternative models      |
+| Qwen Code                  | `qwen`         | `qwen auth`                                                 |
+| **Any ACP-compatible CLI** | (your binary)  | per CLI — Kodra speaks the Agent Client Protocol over stdio |
 
 Install the ones you want on your `PATH`. You only need at least one.
 
@@ -120,7 +120,7 @@ launcher points you at the `.exe` installer for v1 — see
 Latest upstream binaries: [releases page](https://github.com/leodavinci1/kanbots/releases).
 
 **macOS** — builds are currently unsigned, so Gatekeeper rejects the
-.dmg on first launch with *"kanbots is damaged and can't be opened"*.
+.dmg on first launch with _"kanbots is damaged and can't be opened"_.
 Use the one-line install script — it grabs the right .dmg for your
 architecture, clears the quarantine flag, and copies the app into
 `/Applications`:
@@ -136,7 +136,7 @@ into `/Applications`, then run
 **Linux** — `.AppImage` (`chmod +x` and run) or `.tar.xz`.
 
 **Windows** — `.exe` installer. SmartScreen warns on first launch —
-*More info → Run anyway*. Like macOS, the build is unsigned.
+_More info → Run anyway_. Like macOS, the build is unsigned.
 
 ### Kodra packaged builds
 
@@ -177,10 +177,10 @@ Nothing is written outside this directory or the worktrees it creates.
 
 ## Workspace modes
 
-| Mode | Source of issues | Use it for |
-| --- | --- | --- |
-| `local` | SQLite in the workspace data directory | Solo work, side projects, anywhere you don't want GitHub Issues |
-| `github` | GitHub REST via Octokit | When the repo's issues already live on GitHub |
+| Mode     | Source of issues                       | Use it for                                                      |
+| -------- | -------------------------------------- | --------------------------------------------------------------- |
+| `local`  | SQLite in the workspace data directory | Solo work, side projects, anywhere you don't want GitHub Issues |
+| `github` | GitHub REST via Octokit                | When the repo's issues already live on GitHub                   |
 
 See [docs/issues.md](docs/issues.md) for auth setup and the
 `IssueSource` contract.
@@ -207,9 +207,9 @@ to remote on their own. Promotion is always an explicit user step.
 
 ![Task detail modal](docs/assets/task-detail-overview.png)
 
-*Issue detail: description, Thread/Diff/Preview/Runs tabs, branch
+_Issue detail: description, Thread/Diff/Preview/Runs tabs, branch
 info, and the agent-session block with a ready-to-paste terminal
-resume command.*
+resume command._
 
 Details: [docs/agents.md](docs/agents.md).
 
@@ -234,33 +234,48 @@ see every child run, and stop the whole tree from a single button.
 
 Details: [docs/agents.md#autopilot](docs/agents.md#autopilot).
 
+## Agent Memory
+
+Development agents (OpenCode, Claude Code, Kodra runs) can use a local
+[AgentMemory](https://github.com/rohitg00/agentmemory) server for persistent
+project memory: recall before a task, remember durable findings, promote
+validated ones to the team. The server runs in Docker, outside the app:
+
+```sh
+pnpm memory:start   # docker compose -f docker-compose.agentmemory.yml up -d
+pnpm memory:health
+```
+
+See [docs/agent-memory.md](docs/agent-memory.md).
+
 ## Documentation
 
-| Topic | What's there |
-| --- | --- |
-| [Getting started](docs/getting-started.md) | Install, first run, picking a workspace |
-| [Agents](docs/agents.md) | All 12 agent CLI runs, decision prompts, containment, costs, autopilot, personas |
-| [Providers](docs/providers.md) | AI providers modal — picking the agent CLI, API key storage |
-| [Issues](docs/issues.md) | Local mode, GitHub mode, auth, Sentry import |
-| [MCP server](docs/mcp-server.md) | Wiring `kodra-mcp-server` into Cursor or Claude Desktop |
-| [Configuration](docs/configuration.md) | `.kodra/config.json`, env vars, check command overrides |
-| [Architecture](docs/architecture.md) | Packages, IPC bridge, database, dependency graph |
-| [Architecture decisions](docs/adr/README.md) | ADRs — agent memory integration, RTK output compression |
-| [Rebranding notes](docs/rebranding.md) | Compatibility identifiers and migration debt |
-| [Releasing](docs/releasing.md) | Cutting releases — version bump, tags, multi-OS builds, auto-update |
+| Topic                                        | What's there                                                                                  |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [Getting started](docs/getting-started.md)   | Install, first run, picking a workspace                                                       |
+| [Agents](docs/agents.md)                     | All 12 agent CLI runs, decision prompts, containment, costs, autopilot, personas              |
+| [Providers](docs/providers.md)               | AI providers modal — picking the agent CLI, API key storage                                   |
+| [Issues](docs/issues.md)                     | Local mode, GitHub mode, auth, Sentry import                                                  |
+| [MCP server](docs/mcp-server.md)             | Wiring `kodra-mcp-server` into Cursor or Claude Desktop                                       |
+| [Configuration](docs/configuration.md)       | `.kodra/config.json`, env vars, check command overrides                                       |
+| [Agent memory](docs/agent-memory.md)         | AgentMemory in Docker, `AGENTMEMORY_*` variables, OpenCode/MCP wiring, private vs team memory |
+| [Architecture](docs/architecture.md)         | Packages, IPC bridge, database, dependency graph                                              |
+| [Architecture decisions](docs/adr/README.md) | ADRs — agent memory integration, RTK output compression                                       |
+| [Rebranding notes](docs/rebranding.md)       | Compatibility identifiers and migration debt                                                  |
+| [Releasing](docs/releasing.md)               | Cutting releases — version bump, tags, multi-OS builds, auto-update                           |
 
 ## Packages
 
-| Package | Purpose |
-| --- | --- |
-| [`@kanbots/core`](packages/core) | Domain types, GitHub client, `IssueSource` contract |
-| [`@kanbots/local-store`](packages/local-store) | SQLite schema, migrations, repos, `LocalIssueSource` |
-| [`@kanbots/dispatcher`](packages/dispatcher) | Agent runtime — spawns the configured agent CLI, parses its stream output, manages worktrees |
-| [`@kanbots/llm`](packages/llm) | CLI adapters and provider catalogue |
-| [`@kanbots/api`](packages/api) | Pure handler library + agent supervisor (no HTTP server) |
-| [`@kanbots/mcp`](packages/mcp) | MCP server (`kodra-mcp-server` recommended; `kanbots-mcp-server` legacy alias) |
-| [`@kanbots/web`](packages/web) | React + Vite UI |
-| [`@kanbots/desktop`](packages/desktop) | Electron shell, IPC bridge, workspace picker |
+| Package                                        | Purpose                                                                                      |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [`@kanbots/core`](packages/core)               | Domain types, GitHub client, `IssueSource` contract                                          |
+| [`@kanbots/local-store`](packages/local-store) | SQLite schema, migrations, repos, `LocalIssueSource`                                         |
+| [`@kanbots/dispatcher`](packages/dispatcher)   | Agent runtime — spawns the configured agent CLI, parses its stream output, manages worktrees |
+| [`@kanbots/llm`](packages/llm)                 | CLI adapters and provider catalogue                                                          |
+| [`@kanbots/api`](packages/api)                 | Pure handler library + agent supervisor (no HTTP server)                                     |
+| [`@kanbots/mcp`](packages/mcp)                 | MCP server (`kodra-mcp-server` recommended; `kanbots-mcp-server` legacy alias)               |
+| [`@kanbots/web`](packages/web)                 | React + Vite UI                                                                              |
+| [`@kanbots/desktop`](packages/desktop)         | Electron shell, IPC bridge, workspace picker                                                 |
 
 ## Origins
 

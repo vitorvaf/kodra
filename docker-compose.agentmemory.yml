@@ -1,0 +1,50 @@
+# Local AgentMemory server for development agents (OpenCode, Claude Code, Kodra runs).
+#
+#   docker compose -f docker-compose.agentmemory.yml up -d
+#   docker compose -f docker-compose.agentmemory.yml logs -f
+#   docker compose -f docker-compose.agentmemory.yml down
+#
+# Values are interpolated from the shell or a root `.env` file (gitignored) —
+# see `.env.example`. Only the REST port 3111 is published, on loopback.
+# The viewer (3113) and stream (3112) stay inside the container.
+# Data lives in the named volume `agentmemory_data`, mounted at /data; the
+# repository never reads that volume directly.
+services:
+  agentmemory:
+    build:
+      context: ./docker/agentmemory
+      dockerfile: Dockerfile
+      args:
+        AGENTMEMORY_VERSION: '0.9.29'
+        III_VERSION: '0.11.2'
+        III_SDK_VERSION: '0.11.2'
+    container_name: kodra-agentmemory
+    restart: unless-stopped
+    environment:
+      # Bearer secret for the REST API. Leave unset to have the container
+      # generate one on first boot (printed once in the logs, persisted in /data/.hmac).
+      AGENTMEMORY_SECRET: ${AGENTMEMORY_SECRET:-}
+      # Team memory is enabled server-side only when BOTH TEAM_ID and USER_ID are set.
+      TEAM_ID: ${AGENTMEMORY_TEAM_ID:-}
+      USER_ID: ${AGENTMEMORY_USER_ID:-}
+      TEAM_MODE: ${AGENTMEMORY_MODE:-private}
+      # Default agent attribution for writes that do not pass agentId themselves.
+      AGENT_ID: ${AGENTMEMORY_AGENT_ID:-}
+    ports:
+      - '127.0.0.1:${AGENTMEMORY_PORT:-3111}:3111'
+    volumes:
+      - agentmemory_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:3111/agentmemory/livez || exit 1']
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+volumes:
+  agentmemory_data:

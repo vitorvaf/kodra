@@ -30,6 +30,83 @@ function safeUrl(url: string): string {
   return escapeHtml(trimmed);
 }
 
+const RELEASE_NOTE_TAGS = new Set([
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'p',
+  'ul',
+  'ol',
+  'li',
+  'strong',
+  'em',
+  'b',
+  'i',
+  'code',
+  'pre',
+  'blockquote',
+  'a',
+  'br',
+  'hr',
+]);
+
+const RELEASE_NOTE_DROP_CONTENT_TAGS = new Set(['script', 'style', 'iframe', 'object', 'embed']);
+
+export function looksLikeHtml(src: string): boolean {
+  const trimmed = src.trim();
+  return (
+    trimmed.startsWith('<') &&
+    /<\/?(?:h[1-6]|p|ul|ol|li|div|br|hr|strong|em|b|i|code|pre|blockquote|a)\b/i.test(trimmed)
+  );
+}
+
+export function sanitizeHtml(src: string): string {
+  const document = new DOMParser().parseFromString(src, 'text/html');
+  const output = document.createElement('div');
+
+  function appendNode(node: Node, parent: Element): void {
+    if (node.nodeType === Node.TEXT_NODE) {
+      parent.appendChild(document.createTextNode(node.nodeValue ?? ''));
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    const source = node as Element;
+    const tag = source.tagName.toLowerCase();
+    if (RELEASE_NOTE_DROP_CONTENT_TAGS.has(tag)) return;
+    if (!RELEASE_NOTE_TAGS.has(tag)) {
+      for (const child of source.childNodes) appendNode(child, parent);
+      return;
+    }
+
+    const target = document.createElement(tag);
+    if (tag === 'a') {
+      const href = source.getAttribute('href');
+      if (href !== null) {
+        // safeUrl performs the scheme check; use the original value when
+        // setting a DOM attribute so entity escaping is serialized once.
+        const checkedHref = safeUrl(href);
+        target.setAttribute('href', checkedHref === '#' ? '#' : href.trim());
+      }
+      const title = source.getAttribute('title');
+      if (title !== null) target.setAttribute('title', title);
+    } else if (tag === 'code') {
+      const className = source.getAttribute('class');
+      if (className !== null && /^lang-[\w-]+$/.test(className)) {
+        target.setAttribute('class', className);
+      }
+    }
+    parent.appendChild(target);
+    for (const child of source.childNodes) appendNode(child, target);
+  }
+
+  for (const child of document.body.childNodes) appendNode(child, output);
+  return output.innerHTML;
+}
+
 function applyInline(src: string): string {
   let out = escapeHtml(src);
   // The source is already HTML-escaped here, so an optional title reads as
@@ -203,4 +280,8 @@ export function renderMarkdown(src: string): string {
   flushList(list, out);
 
   return out.join('\n');
+}
+
+export function renderReleaseNotes(src: string): string {
+  return looksLikeHtml(src) ? sanitizeHtml(src) : renderMarkdown(src);
 }

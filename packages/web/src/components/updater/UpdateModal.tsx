@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { getBridge, UPDATER_CHANGED_CHANNEL, type UpdaterState } from '../../desktop-bridge.js';
-import { renderMarkdown } from '../../lib/markdown.js';
+import { renderReleaseNotes } from '../../lib/markdown.js';
 import { Logo } from '../Logo.js';
 
 // Update decision modal — the first beat of the update flow.
@@ -129,10 +129,11 @@ export function UpdateModal() {
     return () => window.removeEventListener('keydown', onKey);
   }, [visible, setDismissed]);
 
-  // renderMarkdown escapes before it decorates (lib/markdown.ts), so its
-  // output is safe to inject — the same renderer the task spec view uses.
+  // Electron-updater's GitHub Atom feed may deliver release notes as HTML;
+  // renderReleaseNotes whitelist-sanitizes those notes while keeping the
+  // escape-first markdown path safe (lib/markdown.ts).
   const notesHtml = useMemo(
-    () => (state?.releaseNotes ? renderMarkdown(state.releaseNotes) : ''),
+    () => (state?.releaseNotes ? renderReleaseNotes(state.releaseNotes) : ''),
     [state?.releaseNotes],
   );
 

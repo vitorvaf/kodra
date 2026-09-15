@@ -461,6 +461,11 @@ export function createDecisionStreamFilter(): DecisionStreamFilter {
       if (held.length === 0) return [];
       const tail = held;
       held = '';
+      const openerLineEnd = tail.indexOf('\n');
+      if (openerLineEnd >= 0) {
+        const decision = parseDecisionBody(tail.slice(openerLineEnd + 1).trim());
+        if (decision) return [decision];
+      }
       return tail.trim().length > 0 ? [{ kind: 'text', text: tail }] : [];
     },
   };

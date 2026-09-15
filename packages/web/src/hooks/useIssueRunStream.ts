@@ -12,6 +12,7 @@ import { useCloudRunStream } from './useCloudRunStream.js';
 export function useIssueRunStream(
   displayRun: AgentRun | null,
   cloudRunId: string | null,
+  cardId?: number,
 ): AgentRunStreamState {
   const ctx = getCloudCtx();
   // Both hooks are always called to satisfy rules-of-hooks. They idle
@@ -21,6 +22,7 @@ export function useIssueRunStream(
     orgSlug: ctx?.orgSlug ?? '',
     projectSlug: ctx?.projectSlug ?? '',
     cloudRunId: ctx !== null ? cloudRunId : null,
+    ...(cardId !== undefined ? { cardId } : {}),
   });
   return ctx !== null && cloudRunId !== null ? cloud : local;
 }

@@ -430,7 +430,7 @@ export async function waitForChildSettled(
 ): Promise<WaitForChildSettledResult> {
   const initial = supervisor.getRun(runId);
   if (initial && isTerminalStatus(initial.status)) {
-    return finishChild(store, runId, initial.status);
+    return finishChild(supervisor, store, runId, initial.status);
   }
 
   return new Promise<WaitForChildSettledResult>((resolve) => {
@@ -453,7 +453,7 @@ export async function waitForChildSettled(
       if (resolved) return;
       resolved = true;
       cleanup();
-      resolve(finishChild(store, runId, status));
+      resolve(finishChild(supervisor, store, runId, status));
     };
 
     const onAbort = (): void => settle('stopped');
@@ -476,14 +476,26 @@ function isTerminalStatus(status: AgentRunStatus): status is TerminalChildStatus
 }
 
 function finishChild(
+  supervisor: AgentSupervisor,
   store: Store,
   runId: number,
   status: TerminalChildStatus,
 ): WaitForChildSettledResult {
   let dismissedDecision = false;
   if (status === 'awaiting_input') {
+    const pending = store.cards
+      .listByRun(runId)
+      .filter((card) => card.type === 'decision' && card.status === 'pending');
     const dismissed = store.cards.dismissPendingDecisionsForRun(runId);
     dismissedDecision = dismissed > 0;
+    if (dismissedDecision) {
+      const dismissedIds = new Set(pending.map((card) => card.id));
+      for (const card of store.cards.listByRun(runId)) {
+        if (dismissedIds.has(card.id) && card.status === 'dismissed') {
+          supervisor.notifyCardUpdated(runId, card);
+        }
+      }
+    }
   }
   return { finalStatus: status, dismissedDecision };
 }

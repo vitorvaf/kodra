@@ -295,6 +295,10 @@ export function makeStubSupervisor(store: Store): StubSupervisor {
       return () => {};
     },
     notifyChecksChanged() {},
+    notifyCardUpdated(runId, card) {
+      const subs = subscribers.get(runId) ?? [];
+      for (const s of subs) s.onCard?.(card);
+    },
     subscribeChecksChanged() {
       return () => {};
     },

@@ -249,6 +249,13 @@ export interface KanbotsBridge {
     lastEventId?: string;
   }): Promise<{ subscriptionId: string }>;
   cloudRunsStreamStop(subscriptionId: string): Promise<void>;
+  /** Optional until the desktop daemon's cloud runs client supports answers. */
+  cloudRunsContinueWithDecision?(args: {
+    orgSlug: string;
+    projectSlug: string;
+    runId: string;
+    decision: { value: string };
+  }): Promise<void>;
   cloudCostToday(orgSlug: string): Promise<{ totalUsd: number; since: string }>;
   cloudProjectBindingGet(args: {
     orgSlug: string;

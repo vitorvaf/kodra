@@ -568,6 +568,7 @@ export const api = {
   listIssueRuns: (issueNumber: IssueRef): Promise<AgentRun[]> =>
     invoke('issues:list-runs', { number: issueNumber }),
   listPendingDecisions: (): Promise<PendingDecisionPayload[]> => {
+    // Cloud board decisions come from run SSE events, not this local stub.
     if (cloudCtx !== null) return Promise.resolve([]);
     return invoke('decisions:pending', undefined);
   },
@@ -883,8 +884,28 @@ export const api = {
     args: ChannelArgs<'analytics:recent-activity'> = {},
   ): Promise<ChannelResult<'analytics:recent-activity'>> =>
     invoke('analytics:recent-activity', args),
-  resolveCard: (cardId: number, value: string): Promise<ResolveCardResult> =>
-    invoke('cards:resolve', { cardId, value }),
+  resolveCard: (
+    cardId: number,
+    value: string,
+    opts?: { cloudRunId?: string },
+  ): Promise<ResolveCardResult> => {
+    if (cloudCtx !== null && opts?.cloudRunId !== undefined) {
+      const bridge = getCloudBridge();
+      const continueWithDecision = bridge.cloudRunsContinueWithDecision;
+      if (typeof continueWithDecision !== 'function') {
+        throw new Error(
+          'Answering this decision from a remote station requires a desktop daemon that implements continueWithDecision',
+        );
+      }
+      return continueWithDecision({
+        orgSlug: cloudCtx.orgSlug,
+        projectSlug: cloudCtx.projectSlug,
+        runId: opts.cloudRunId,
+        decision: { value },
+      }).then(() => undefined as unknown as ResolveCardResult);
+    }
+    return invoke('cards:resolve', { cardId, value });
+  },
   dismissCard: (cardId: number): Promise<DismissCardResult> => invoke('cards:dismiss', { cardId }),
   listCardTemplates: (): Promise<CardTemplatePayload[]> => {
     // Card templates are workspace-scoped local-store rows. Cloud

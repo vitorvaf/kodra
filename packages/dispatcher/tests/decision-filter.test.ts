@@ -85,6 +85,27 @@ describe('createDecisionStreamFilter', () => {
     expect(joinedText(out)).toBe('Partial:\n```kanbots-deci');
   });
 
+  it('recovers a valid decision from an open fence at end of stream', () => {
+    const filter = createDecisionStreamFilter();
+    const out = [...filter.push([text(DECISION_BLOCK.slice(0, -3))]), ...filter.flush()];
+    expect(out).toContainEqual({
+      kind: 'decision',
+      question: 'Approve this acceptance criteria list?',
+      options: [
+        { value: 'approve', label: 'Approve and start implementation' },
+        { value: 'edit', label: 'Edit the criteria' },
+        { value: 'cancel', label: 'Cancel the task' },
+      ],
+    });
+  });
+
+  it('keeps an invalid open decision fence as text at end of stream', () => {
+    const filter = createDecisionStreamFilter();
+    const tail = '```kodra-decision\n{"question":"incomplete"';
+    const out = [...filter.push([text(tail)]), ...filter.flush()];
+    expect(out).toEqual([text(tail)]);
+  });
+
   it('passes non-text events through untouched and in order', () => {
     const filter = createDecisionStreamFilter();
     const toolUse: StreamEvent = {

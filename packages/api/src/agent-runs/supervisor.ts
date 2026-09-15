@@ -302,6 +302,7 @@ export interface AgentSupervisor {
   subscribeDecisionsChanged(listener: DecisionChangeListener): () => void;
   notifyChecksChanged(runId: number): void;
   subscribeChecksChanged(listener: CheckChangeListener): () => void;
+  notifyCardUpdated(runId: number, card: Card): void;
   waitForCooldown(signal?: AbortSignal): Promise<void>;
   /** Best-effort agentmemory session close for a deleted logical chat session. */
   endMemorySession?(chatSessionId: number): void;
@@ -573,6 +574,27 @@ export async function createSupervisor(opts: CreateSupervisorOptions): Promise<A
     const payload: DecisionChangePayload = { kind };
     emitter.emit(DECISIONS_CHANGED_CHANNEL, payload);
     opts.onDecisionChange?.(payload);
+  }
+
+  function notifyCardUpdated(runId: number, card: Card): void {
+    emitter.emit(cardChannel(runId), card);
+  }
+
+  function dismissPendingDecisionsForRun(runId: number): number {
+    const pending = store.cards
+      .listByRun(runId)
+      .filter((card) => card.type === 'decision' && card.status === 'pending');
+    const dismissed = store.cards.dismissPendingDecisionsForRun(runId);
+    if (dismissed > 0) {
+      notifyDecisionChange('resolved');
+      const dismissedIds = new Set(pending.map((card) => card.id));
+      for (const card of store.cards.listByRun(runId)) {
+        if (dismissedIds.has(card.id) && card.status === 'dismissed') {
+          notifyCardUpdated(runId, card);
+        }
+      }
+    }
+    return dismissed;
   }
   const runMemoryProjects = new Map<number, string>();
   const runIssueNumbers = new Map<number, IssueRef>();
@@ -1237,8 +1259,7 @@ export async function createSupervisor(opts: CreateSupervisorOptions): Promise<A
         ...(successSignal !== null ? { successSignal } : {}),
       });
       if (status !== 'awaiting_input') {
-        const dismissed = store.cards.dismissPendingDecisionsForRun(run.id);
-        if (dismissed > 0) notifyDecisionChange('resolved');
+        dismissPendingDecisionsForRun(run.id);
       }
       if (status !== 'awaiting_input') {
         invokeRunCleanup(run.id, entry);
@@ -1818,8 +1839,7 @@ export async function createSupervisor(opts: CreateSupervisorOptions): Promise<A
           pid: null,
           exitReason: `stopped by user (forced after ${forceResolveAt}ms; child unresponsive)`,
         });
-        const dismissed = store.cards.dismissPendingDecisionsForRun(runId);
-        if (dismissed > 0) notifyDecisionChange('resolved');
+        dismissPendingDecisionsForRun(runId);
         emitter.emit(statusChannel(runId), 'stopped' as AgentRunStatus);
       }
       const run = store.agentRuns.findById(runId);
@@ -1835,8 +1855,7 @@ export async function createSupervisor(opts: CreateSupervisorOptions): Promise<A
       endedAt: new Date().toISOString(),
       pid: null,
     });
-    const dismissed = store.cards.dismissPendingDecisionsForRun(runId);
-    if (dismissed > 0) notifyDecisionChange('resolved');
+    dismissPendingDecisionsForRun(runId);
     invokeRunCleanup(runId);
     runMemoryProjects.delete(runId);
     runIssueNumbers.delete(runId);
@@ -1897,6 +1916,7 @@ export async function createSupervisor(opts: CreateSupervisorOptions): Promise<A
     getCooldown,
     subscribeCooldown,
     subscribeDecisionsChanged,
+    notifyCardUpdated,
     notifyChecksChanged,
     subscribeChecksChanged,
     waitForCooldown,

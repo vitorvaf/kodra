@@ -148,7 +148,11 @@ function CardBody({
             </div>
             <div className="kb-q-text">{decision.question}</div>
           </div>
-          <DecisionActions cardId={decision.cardId} options={decision.options} />
+          <DecisionActions
+            cardId={decision.cardId}
+            options={decision.options}
+            {...(typeof active?.cloudRunId === 'string' ? { cloudRunId: active.cloudRunId } : {})}
+          />
         </>
       ) : null}
 
@@ -465,11 +469,14 @@ const DECISION_RESOLVED_EVENT = 'kanbots:decision-resolved';
 function DecisionActions({
   cardId,
   options,
+  cloudRunId,
 }: {
   cardId: number;
   options: Array<{ value: string; label: string }>;
+  cloudRunId?: string;
 }) {
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function stop(e: MouseEvent<HTMLDivElement>): void {
     e.stopPropagation();
@@ -479,10 +486,17 @@ function DecisionActions({
     e.stopPropagation();
     if (submitting) return;
     setSubmitting(true);
+    setError(null);
     try {
-      await api.resolveCard(cardId, value);
+      if (cloudRunId !== undefined) {
+        await api.resolveCard(cardId, value, { cloudRunId });
+      } else {
+        await api.resolveCard(cardId, value);
+      }
       window.dispatchEvent(new CustomEvent(DECISION_RESOLVED_EVENT));
       dispatchIssuesRefetch();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSubmitting(false);
     }
@@ -519,6 +533,11 @@ function DecisionActions({
           {submitting ? '…' : opt.label}
         </button>
       ))}
+      {error !== null ? (
+        <span className="kb-error" role="alert">
+          {error}
+        </span>
+      ) : null}
       <button
         type="button"
         className="o dismiss"

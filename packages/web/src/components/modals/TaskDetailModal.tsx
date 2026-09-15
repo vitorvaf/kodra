@@ -1331,7 +1331,11 @@ function OverviewTab({
   cloudRunId: string | null;
   onOpenDetail?: (issueNumber: IssueRef) => void;
 }) {
-  const stream = useIssueRunStream(displayRun, cloudRunId);
+  const stream = useIssueRunStream(
+    displayRun,
+    cloudRunId,
+    typeof issue.number === 'number' ? issue.number : undefined,
+  );
   const { data: savedSpec } = useFetch(`spec:${issue.number}`, () => api.getSpec(issue.number));
   const recentToolCalls = stream.events
     .filter((e) => e.type === 'tool_use')
@@ -1627,7 +1631,11 @@ function ThreadTab({
   issueStatus: StatusKey | null;
   onActionDone: () => void;
 }) {
-  const stream = useIssueRunStream(displayRun, cloudRunId);
+  const stream = useIssueRunStream(
+    displayRun,
+    cloudRunId,
+    typeof issueNumber === 'number' ? issueNumber : undefined,
+  );
   const isLive = cloudRunId !== null || (activeRun !== null && activeRun.id === displayRun?.id);
 
   const cardsByMessageId = new Map<number, Card[]>();

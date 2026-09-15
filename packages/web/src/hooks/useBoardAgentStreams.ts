@@ -73,6 +73,9 @@ export function useBoardAgentStreams(runIds: readonly number[]): RunLiveMap {
   const subsByIdRef = useRef<Map<string, number>>(new Map());
   const liveBufferRef = useRef<Map<number, PendingLiveUpdate>>(new Map());
   const liveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const decisionCardsRef = useRef(
+    new Map<number, NonNullable<IssueActiveRun['pendingDecision']>>(),
+  );
 
   useEffect(() => {
     const bridge = typeof window !== 'undefined' ? window.kanbots : undefined;
@@ -87,6 +90,7 @@ export function useBoardAgentStreams(runIds: readonly number[]): RunLiveMap {
       if (wanted.has(runId)) continue;
       subs.delete(runId);
       liveBufferRef.current.delete(runId);
+      decisionCardsRef.current.delete(runId);
       if (sub.subscriptionId !== null) {
         const id = sub.subscriptionId;
         subsById.delete(id);
@@ -135,11 +139,11 @@ export function useBoardAgentStreams(runIds: readonly number[]): RunLiveMap {
       if (payload.kind === 'event') {
         applyEvent(setMap, runId, payload.event, liveBufferRef, liveTimerRef);
       } else if (payload.kind === 'card') {
-        applyCard(setMap, runId, payload.card, liveBufferRef, liveTimerRef);
+        applyCard(setMap, runId, payload.card, liveBufferRef, liveTimerRef, decisionCardsRef);
       } else if (payload.kind === 'replay') {
-        applyReplay(setMap, runId, payload.events, payload.cards);
+        applyReplay(setMap, runId, payload.events, payload.cards, decisionCardsRef);
       } else if (payload.kind === 'status') {
-        applyStatus(setMap, runId, payload.status, liveBufferRef);
+        applyStatus(setMap, runId, payload.status, liveBufferRef, liveTimerRef, decisionCardsRef);
       }
     });
 
@@ -158,6 +162,7 @@ export function useBoardAgentStreams(runIds: readonly number[]): RunLiveMap {
         liveTimerRef.current = null;
       }
       liveBufferRef.current.clear();
+      decisionCardsRef.current.clear();
       const bridge = typeof window !== 'undefined' ? window.kanbots : undefined;
       if (bridge) {
         for (const sub of subs.values()) {
@@ -199,10 +204,18 @@ function applyCard(
   card: Card,
   liveBufferRef: LiveBufferRef,
   liveTimerRef: LiveTimerRef,
+  decisionCardsRef: { current: Map<number, NonNullable<IssueActiveRun['pendingDecision']>> },
 ): void {
-  const pendingDecision = pendingDecisionFromCard(card);
-  if (pendingDecision === null) return;
-  queueLiveUpdate(liveBufferRef, liveTimerRef, setMap, runId, { pendingDecision });
+  if (card.type !== 'decision') return;
+  if (card.status === 'pending') {
+    const pendingDecision = pendingDecisionFromCard(card);
+    if (pendingDecision === null) return;
+    decisionCardsRef.current.set(runId, pendingDecision);
+    queueLiveUpdate(liveBufferRef, liveTimerRef, setMap, runId, { pendingDecision });
+    return;
+  }
+  decisionCardsRef.current.delete(runId);
+  queueLiveUpdate(liveBufferRef, liveTimerRef, setMap, runId, { pendingDecision: null });
 }
 
 function pendingDecisionFromCard(
@@ -256,7 +269,13 @@ function flushLiveUpdates(setMap: LiveSetter, liveBufferRef: LiveBufferRef): voi
   });
 }
 
-function applyReplay(setMap: LiveSetter, runId: number, events: AgentEvent[], cards: Card[]): void {
+function applyReplay(
+  setMap: LiveSetter,
+  runId: number,
+  events: AgentEvent[],
+  cards: Card[],
+  decisionCardsRef: { current: Map<number, NonNullable<IssueActiveRun['pendingDecision']>> },
+): void {
   let lastTool: { currentTool: string | null; currentArg: string | null } | null = null;
   for (let i = events.length - 1; i >= 0; i--) {
     const ev = events[i];
@@ -266,9 +285,16 @@ function applyReplay(setMap: LiveSetter, runId: number, events: AgentEvent[], ca
     break;
   }
   let pendingDecision: NonNullable<IssueActiveRun['pendingDecision']> | null = null;
+  decisionCardsRef.current.delete(runId);
   for (const card of cards) {
     const decision = pendingDecisionFromCard(card);
-    if (decision !== null) pendingDecision = decision;
+    if (decision !== null) {
+      pendingDecision = decision;
+      decisionCardsRef.current.set(runId, decision);
+    } else if (card.type === 'decision' && card.status !== 'pending') {
+      pendingDecision = null;
+      decisionCardsRef.current.delete(runId);
+    }
   }
   if (import.meta.env.DEV) incrementPerfCounter('boardUpdates');
   setMap((prev) => {
@@ -277,7 +303,7 @@ function applyReplay(setMap: LiveSetter, runId: number, events: AgentEvent[], ca
     next.set(runId, {
       ...cur,
       ...(lastTool ?? {}),
-      ...(pendingDecision !== null ? { pendingDecision } : {}),
+      pendingDecision,
     });
     return next;
   });
@@ -288,16 +314,12 @@ function applyStatus(
   runId: number,
   status: string,
   liveBufferRef: LiveBufferRef,
+  liveTimerRef: LiveTimerRef,
+  decisionCardsRef: { current: Map<number, NonNullable<IssueActiveRun['pendingDecision']>> },
 ): void {
-  if (status === 'awaiting_input') return;
-  const pending = liveBufferRef.current.get(runId);
-  if (pending) liveBufferRef.current.set(runId, { ...pending, pendingDecision: null });
-  if (import.meta.env.DEV) incrementPerfCounter('boardUpdates');
-  setMap((prev) => {
-    const cur = prev.get(runId);
-    if (!cur || cur.pendingDecision === null) return prev;
-    const next = new Map(prev);
-    next.set(runId, { ...cur, pendingDecision: null });
-    return next;
-  });
+  if (status !== 'awaiting_input') return;
+  const pendingDecision = decisionCardsRef.current.get(runId);
+  if (pendingDecision !== undefined) {
+    queueLiveUpdate(liveBufferRef, liveTimerRef, setMap, runId, { pendingDecision });
+  }
 }

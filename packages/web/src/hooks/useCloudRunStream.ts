@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AgentEvent, AgentRunStatus, Card } from '../types.js';
+import type { IssueActiveRun } from '../types.js';
 
 /**
  * Cloud-mode counterpart of useAgentRunStream. Subscribes to the cloud
@@ -14,6 +15,7 @@ export interface AgentRunStreamState {
   cards: Card[];
   status: AgentRunStatus | null;
   error: string | null;
+  pendingDecision: IssueActiveRun['pendingDecision'];
 }
 
 const EMPTY_STATE: AgentRunStreamState = {
@@ -21,6 +23,7 @@ const EMPTY_STATE: AgentRunStreamState = {
   cards: [],
   status: null,
   error: null,
+  pendingDecision: null,
 };
 
 interface CloudRunEventMessage {
@@ -40,15 +43,61 @@ interface CloudEventData {
 
 // Cloud writes events with type strings that match the local
 // AgentEventType enum (tool_use / tool_result / text / error /
-// containment_warning). Unknown types are dropped — adding new event
-// types is a server change that ships with renderer code anyway.
+// containment_warning), plus decision for the cloud transport. Unknown
+// types are dropped — adding new event types is a server change that ships
+// with renderer code anyway.
 const KNOWN_AGENT_EVENT_TYPES = new Set([
   'tool_use',
   'tool_result',
   'text',
   'error',
   'containment_warning',
+  'decision',
 ]);
+
+function pendingDecisionFromEvent(
+  data: unknown,
+  cardId: number,
+): NonNullable<IssueActiveRun['pendingDecision']> | null {
+  if (!data || typeof data !== 'object') return null;
+  const payload = (data as { payload?: unknown }).payload;
+  if (!payload || typeof payload !== 'object') return null;
+  const question = (payload as { question?: unknown }).question;
+  const options = (payload as { options?: unknown }).options;
+  if (typeof question !== 'string' || !Array.isArray(options)) return null;
+  const validOptions = options
+    .filter(
+      (option): option is { value: string; label?: unknown } =>
+        typeof option === 'object' &&
+        option !== null &&
+        typeof (option as { value?: unknown }).value === 'string',
+    )
+    .map((option) => ({
+      value: option.value,
+      label: typeof option.label === 'string' ? option.label : option.value,
+    }));
+  if (validOptions.length === 0) return null;
+  return { cardId, question, options: validOptions };
+}
+
+function decisionText(decision: NonNullable<IssueActiveRun['pendingDecision']>): string {
+  return [
+    `Decision needed: ${decision.question}`,
+    ...decision.options.map((option) => `- ${option.label} (value: ${option.value})`),
+  ].join('\n');
+}
+
+function isTerminalEvent(event: string): boolean {
+  return (
+    event === 'decision_answer' ||
+    event === 'result' ||
+    event === 'terminal' ||
+    event === 'stopped' ||
+    event === 'stop_signal' ||
+    event === 'closed' ||
+    event === 'error'
+  );
+}
 
 function statusFromConnected(data: unknown): AgentRunStatus | null {
   if (!data || typeof data !== 'object') return null;
@@ -88,10 +137,12 @@ export interface UseCloudRunStreamOpts {
   projectSlug: string;
   /** KSUID of the cloud run. Null disables the subscription. */
   cloudRunId: string | null;
+  /** Issue number for the shared pending-decision shape. */
+  cardId?: number;
 }
 
 export function useCloudRunStream(opts: UseCloudRunStreamOpts): AgentRunStreamState {
-  const { orgSlug, projectSlug, cloudRunId } = opts;
+  const { orgSlug, projectSlug, cloudRunId, cardId = 0 } = opts;
   const [state, setState] = useState<AgentRunStreamState>(EMPTY_STATE);
 
   useEffect(() => {
@@ -118,12 +169,13 @@ export function useCloudRunStream(opts: UseCloudRunStreamOpts): AgentRunStreamSt
       const msg = raw as CloudRunEventMessage;
       if (subscriptionId === null || msg.subscriptionId !== subscriptionId) return;
       if (msg.error !== undefined) {
-        setState((prev) => ({ ...prev, error: msg.error ?? null }));
+        setState((prev) => ({ ...prev, error: msg.error ?? null, pendingDecision: null }));
         return;
       }
       if (msg.done === true) {
         // server flagged terminal — leave events in place; status already
         // arrived via the prior `closed` event.
+        setState((prev) => ({ ...prev, pendingDecision: null }));
         return;
       }
       const ev = msg.event;
@@ -135,7 +187,11 @@ export function useCloudRunStream(opts: UseCloudRunStreamOpts): AgentRunStreamSt
       }
       if (ev.event === 'closed') {
         const status = statusFromClosed(ev.data);
-        if (status !== null) setState((prev) => ({ ...prev, status }));
+        setState((prev) => ({
+          ...prev,
+          ...(status !== null ? { status } : {}),
+          pendingDecision: null,
+        }));
         return;
       }
       if (ev.event === 'error') {
@@ -145,7 +201,31 @@ export function useCloudRunStream(opts: UseCloudRunStreamOpts): AgentRunStreamSt
           typeof (ev.data as { message?: unknown }).message === 'string'
             ? (ev.data as { message: string }).message
             : 'cloud stream error';
-        setState((prev) => ({ ...prev, error: message }));
+        setState((prev) => ({ ...prev, error: message, pendingDecision: null }));
+        return;
+      }
+      if (isTerminalEvent(ev.event)) {
+        setState((prev) => ({ ...prev, pendingDecision: null }));
+        return;
+      }
+      if (ev.event === 'decision') {
+        const decision = pendingDecisionFromEvent(ev.data, cardId);
+        if (decision === null) return;
+        const agentEvent = toAgentEvent({
+          ...ev,
+          event: 'text',
+          data: {
+            ...((ev.data ?? {}) as object),
+            payload: { text: decisionText(decision) },
+          },
+        });
+        setState((prev) => ({
+          ...prev,
+          ...(agentEvent !== null && !prev.events.some((existing) => existing.seq === agentEvent.seq)
+            ? { events: [...prev.events, agentEvent].sort((a, b) => a.seq - b.seq) }
+            : {}),
+          pendingDecision: decision,
+        }));
         return;
       }
       const agentEvent = toAgentEvent(ev);
@@ -153,7 +233,13 @@ export function useCloudRunStream(opts: UseCloudRunStreamOpts): AgentRunStreamSt
       setState((prev) => {
         if (prev.events.some((existing) => existing.seq === agentEvent.seq)) return prev;
         const next = [...prev.events, agentEvent].sort((a, b) => a.seq - b.seq);
-        return { ...prev, events: next };
+        return {
+          ...prev,
+          events: next,
+          ...(agentEvent.type === 'tool_use' || agentEvent.type === 'text'
+            ? { pendingDecision: null }
+            : {}),
+        };
       });
     });
 
@@ -181,7 +267,7 @@ export function useCloudRunStream(opts: UseCloudRunStreamOpts): AgentRunStreamSt
         void bridge.cloudRunsStreamStop(subscriptionId);
       }
     };
-  }, [orgSlug, projectSlug, cloudRunId]);
+  }, [orgSlug, projectSlug, cloudRunId, cardId]);
 
   return state;
 }

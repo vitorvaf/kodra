@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { RunLiveMap } from './useBoardAgentStreams.js';
+import type { IssueActiveRun } from '../types.js';
 
 /**
  * Cloud counterpart of useBoardAgentStreams. Subscribes to one SSE
@@ -15,6 +16,43 @@ interface CloudRunEventMessage {
   event?: { id: string; event: string; data: unknown };
   done?: boolean;
   error?: string;
+}
+
+function pendingDecisionFromEvent(
+  key: number,
+  data: unknown,
+): NonNullable<IssueActiveRun['pendingDecision']> | null {
+  if (!data || typeof data !== 'object') return null;
+  const payload = (data as { payload?: unknown }).payload;
+  if (!payload || typeof payload !== 'object') return null;
+  const question = (payload as { question?: unknown }).question;
+  const options = (payload as { options?: unknown }).options;
+  if (typeof question !== 'string' || !Array.isArray(options)) return null;
+  const validOptions = options
+    .filter(
+      (option): option is { value: string; label?: unknown } =>
+        typeof option === 'object' &&
+        option !== null &&
+        typeof (option as { value?: unknown }).value === 'string',
+    )
+    .map((option) => ({
+      value: option.value,
+      label: typeof option.label === 'string' ? option.label : option.value,
+    }));
+  if (validOptions.length === 0) return null;
+  return { cardId: key, question, options: validOptions };
+}
+
+function clearDecisionEvent(event: string): boolean {
+  return (
+    event === 'decision_answer' ||
+    event === 'result' ||
+    event === 'terminal' ||
+    event === 'stopped' ||
+    event === 'stop_signal' ||
+    event === 'error' ||
+    event === 'closed'
+  );
 }
 
 export interface CloudBoardEntry {
@@ -81,6 +119,10 @@ export function useCloudBoardStreams(
     }
 
     // Start subs for newly running cards.
+    // A fresh subscription does not send Last-Event-ID. The cloud client has
+    // no separate run-events fetch API, so this relies on the server's fresh
+    // stream replay behavior; an awaiting decision already emitted by a
+    // non-replaying server cannot be backfilled from the client.
     for (const [key, cloudRunId] of wanted) {
       const existing = subsByKey.current.get(key);
       if (existing && existing.cloudRunId === cloudRunId) continue;
@@ -116,10 +158,54 @@ export function useCloudBoardStreams(
       const msg = raw as CloudRunEventMessage;
       const key = keyBySubId.current.get(msg.subscriptionId);
       if (key === undefined) return;
-      if (msg.error !== undefined || msg.done === true) return;
+      if (msg.error !== undefined || msg.done === true) {
+        setMap((prev) => {
+          const cur = prev.get(key);
+          if (cur === undefined || cur.pendingDecision === null) return prev;
+          const next = new Map(prev);
+          next.set(key, { ...cur, pendingDecision: null });
+          return next;
+        });
+        return;
+      }
       const ev = msg.event;
       if (!ev) return;
-      if (ev.event === 'connected' || ev.event === 'closed' || ev.event === 'error') return;
+      if (clearDecisionEvent(ev.event)) {
+        setMap((prev) => {
+          const cur = prev.get(key);
+          if (cur === undefined || cur.pendingDecision === null) return prev;
+          const next = new Map(prev);
+          next.set(key, { ...cur, pendingDecision: null });
+          return next;
+        });
+        return;
+      }
+      if (ev.event === 'connected') return;
+      if (ev.event === 'text') {
+        setMap((prev) => {
+          const cur = prev.get(key);
+          if (cur === undefined || cur.pendingDecision === null) return prev;
+          const next = new Map(prev);
+          next.set(key, { ...cur, pendingDecision: null });
+          return next;
+        });
+        return;
+      }
+      if (ev.event === 'decision') {
+        const pendingDecision = pendingDecisionFromEvent(key, ev.data);
+        if (pendingDecision === null) return;
+        setMap((prev) => {
+          const cur = prev.get(key) ?? {
+            currentTool: null,
+            currentArg: null,
+            pendingDecision: null,
+          };
+          const next = new Map(prev);
+          next.set(key, { ...cur, pendingDecision });
+          return next;
+        });
+        return;
+      }
       if (ev.event !== 'tool_use') return;
       setMap((prev) => {
         const cur = prev.get(key) ?? {
@@ -134,6 +220,7 @@ export function useCloudBoardStreams(
           ...cur,
           currentTool: typeof payload.name === 'string' ? payload.name : cur.currentTool,
           currentArg: summarize(payload.input),
+          pendingDecision: null,
         });
         return next;
       });

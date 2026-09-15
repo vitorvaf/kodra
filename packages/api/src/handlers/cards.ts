@@ -62,6 +62,7 @@ export async function resolve(
     value: parsed.value,
     label: chosen.label,
   });
+  deps.supervisor.notifyCardUpdated(runId, resolved);
 
   if (deps.memory) {
     void Promise.resolve(
@@ -133,6 +134,7 @@ export async function dismiss(
   const after = deps.store.cards.findById(card.id);
   const dismissed =
     after && after.status === 'pending' ? deps.store.cards.dismiss(card.id) : (after ?? card);
+  deps.supervisor.notifyCardUpdated(runId, dismissed);
 
   return { card: dismissed, run };
 }

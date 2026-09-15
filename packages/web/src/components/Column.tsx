@@ -143,10 +143,20 @@ export function Column({
         ) : (
           issues.map((issue) => {
             const liveState = issue.activeRun ? liveByRun?.get(issue.activeRun.id) : undefined;
+            const issueWithLiveDecision =
+              issue.activeRun !== null && liveState !== undefined
+                ? {
+                    ...issue,
+                    activeRun: {
+                      ...issue.activeRun,
+                      pendingDecision: liveState.pendingDecision,
+                    },
+                  }
+                : issue;
             return (
               <Card
                 key={String(issue.number)}
-                issue={issue}
+                issue={issueWithLiveDecision}
                 selected={
                   selectedNumber !== null && String(selectedNumber) === String(issue.number)
                 }

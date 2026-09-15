@@ -11,7 +11,11 @@
     "url": "git+https://github.com/leodavinci1/kanbots.git",
     "directory": "packages/mcp"
   },
-  "keywords": ["kanbots", "mcp", "model-context-protocol"],
+  "keywords": [
+    "kanbots",
+    "mcp",
+    "model-context-protocol"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -35,7 +39,9 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",

@@ -11,7 +11,12 @@
     "url": "git+https://github.com/leodavinci1/kanbots.git",
     "directory": "packages/dispatcher"
   },
-  "keywords": ["kanbots", "agent", "claude-code", "codex-cli"],
+  "keywords": [
+    "kanbots",
+    "agent",
+    "claude-code",
+    "codex-cli"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -24,7 +29,10 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "assets"],
+  "files": [
+    "dist",
+    "assets"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",

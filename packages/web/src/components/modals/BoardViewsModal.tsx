@@ -97,8 +97,8 @@ export function BoardViewsModal({
         </div>
         <div className="kb-modal-body kb-sentry-body">
           <div className="kb-sentry-hint">
-            Saved presets of filters + sort + columns. Drag to reorder; the
-            order surfaces in the toolbar dropdown.
+            Saved presets of filters + sort + columns. Drag to reorder; the order surfaces in the
+            toolbar dropdown.
           </div>
           {views.length === 0 ? (
             <div className="kb-sentry-row kb-repos-empty">No saved views yet.</div>
@@ -122,9 +122,7 @@ export function BoardViewsModal({
                       type="text"
                       className="kb-input"
                       value={draftName}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setDraftName(e.target.value)
-                      }
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => setDraftName(e.target.value)}
                       onBlur={() => commitRename(v.id)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {

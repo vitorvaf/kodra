@@ -137,7 +137,11 @@ describe('GitHubClient', () => {
       const call = fetcher.calls[0];
       expect(call?.method).toBe('POST');
       expect(call?.url).toContain('/repos/octo/hello/issues');
-      const body = JSON.parse(call?.body ?? '{}') as { title: string; body: string; labels: string[] };
+      const body = JSON.parse(call?.body ?? '{}') as {
+        title: string;
+        body: string;
+        labels: string[];
+      };
       expect(body.title).toBe('new one');
       expect(body.body).toBe('description');
       expect(body.labels).toEqual(['status:todo']);

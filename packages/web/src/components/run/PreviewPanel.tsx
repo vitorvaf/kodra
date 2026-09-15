@@ -387,10 +387,7 @@ export function PreviewPanel({
           {state?.state ?? 'idle'}
         </span>
       </div>
-      <div
-        className={`pf-canvas pf-canvas-${device}`}
-        style={{ height: canvasHeight, padding: 0 }}
-      >
+      <div className={`pf-canvas pf-canvas-${device}`} style={{ height: canvasHeight, padding: 0 }}>
         {isLive ? (
           device === 'mobile' ? (
             <div className="pf-mobile-shell" aria-label="Mobile device frame">

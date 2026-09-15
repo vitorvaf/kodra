@@ -27,9 +27,7 @@ export async function reconcileIssueLabels(
   repoName: string,
 ): Promise<ReconcileLabelsResult> {
   const activeIssueNumbers = new Set(
-    store.agentRuns
-      .listActiveForRepo(repoOwner, repoName)
-      .map((r) => r.issueNumber),
+    store.agentRuns.listActiveForRepo(repoOwner, repoName).map((r) => r.issueNumber),
   );
 
   const issues = await source.listIssues({ state: 'open' });

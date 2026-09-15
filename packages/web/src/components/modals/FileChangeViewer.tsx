@@ -187,11 +187,7 @@ function StartAgentOnFilePanel({
             Created task <strong>#{created.number}</strong> — {created.title}
           </span>
           <div className="kb-fcv-start-ok-actions">
-            <button
-              type="button"
-              className="kb-btn"
-              onClick={() => setCreated(null)}
-            >
+            <button type="button" className="kb-btn" onClick={() => setCreated(null)}>
               Start another
             </button>
             {onSelectIssue !== undefined ? (
@@ -265,15 +261,12 @@ interface DiffViewState {
 function parseWorktreeContext(
   worktreePath: string,
 ): { issueNumber: IssueRef; runId: string } | null {
-  const m =
-    /\.(?:kanbots|kodra)\/worktrees\/issue-([A-Za-z0-9._-]+)-([A-Za-z0-9]+)\/?$/.exec(
-      worktreePath,
-    );
+  const m = /\.(?:kanbots|kodra)\/worktrees\/issue-([A-Za-z0-9._-]+)-([A-Za-z0-9]+)\/?$/.exec(
+    worktreePath,
+  );
   if (m === null) return null;
   const rawIssueNumber = m[1] ?? '';
-  const issueNumber = isValidCustomIssueId(rawIssueNumber)
-    ? parseIssueRef(rawIssueNumber)
-    : null;
+  const issueNumber = isValidCustomIssueId(rawIssueNumber) ? parseIssueRef(rawIssueNumber) : null;
   const runId = m[2] ?? '';
   if (issueNumber === null || runId.length === 0) return null;
   return { issueNumber, runId };
@@ -304,7 +297,10 @@ function statusLabel(status: StatusCode): string {
  * not as precise as walking the LCS but it's O(n) and Good Enough™ for
  * a header chip.
  */
-function quickStats(oldText: string | null, newText: string | null): { added: number; deleted: number } {
+function quickStats(
+  oldText: string | null,
+  newText: string | null,
+): { added: number; deleted: number } {
   if (oldText === null && newText === null) return { added: 0, deleted: 0 };
   if (oldText === null) {
     const lines = (newText ?? '').split('\n');
@@ -672,7 +668,9 @@ function WorktreeDiffCard({
           {open ? '▾' : '▸'}
         </span>
         {statusCode !== null ? (
-          <span className={`kb-fcv-status kb-fcv-status-${statusCode.toLowerCase().replace('?', 'u')}`}>
+          <span
+            className={`kb-fcv-status kb-fcv-status-${statusCode.toLowerCase().replace('?', 'u')}`}
+          >
             {statusCode === '??' ? 'U' : statusCode}
           </span>
         ) : null}
@@ -695,7 +693,10 @@ function WorktreeDiffCard({
                     <span className="kb-fcv-chip" title={`provider: ${meta.run.provider}`}>
                       {meta.run.provider}
                     </span>
-                    <span className="kb-fcv-chip kb-fcv-chip-model" title={`model: ${meta.run.model}`}>
+                    <span
+                      className="kb-fcv-chip kb-fcv-chip-model"
+                      title={`model: ${meta.run.model}`}
+                    >
                       {meta.run.model}
                     </span>
                     <span className={`kb-fcv-chip kb-fcv-chip-status is-${meta.run.status}`}>
@@ -725,8 +726,8 @@ function WorktreeDiffCard({
               <div className="kb-fcv-empty">Loading diff…</div>
             ) : state.error !== null ? (
               <div className="kb-fcv-empty kb-fcv-err">{state.error}</div>
-            ) : state.data === null
-              || (state.data.oldText === null && state.data.newText === null) ? (
+            ) : state.data === null ||
+              (state.data.oldText === null && state.data.newText === null) ? (
               <div className="kb-fcv-empty">No diff data available.</div>
             ) : (
               <InlineDiff
@@ -734,9 +735,7 @@ function WorktreeDiffCard({
                 newString={state.data.newText ?? ''}
                 mode={diffMode}
                 ignoreWhitespace={ignoreWhitespace}
-                {...(localRunId !== null
-                  ? { runId: localRunId, filePath }
-                  : {})}
+                {...(localRunId !== null ? { runId: localRunId, filePath } : {})}
               />
             )}
           </div>
@@ -842,9 +841,10 @@ export function FileChangeViewer({
   }
 
   const fileName = filePath.split('/').pop() ?? filePath;
-  const dirName = filePath.length > fileName.length
-    ? filePath.slice(0, filePath.length - fileName.length - 1)
-    : '';
+  const dirName =
+    filePath.length > fileName.length
+      ? filePath.slice(0, filePath.length - fileName.length - 1)
+      : '';
 
   return (
     <div className="kb-modal-scrim" onMouseDown={onClose} role="dialog" aria-modal="true">
@@ -855,7 +855,9 @@ export function FileChangeViewer({
               {dirName ? <span className="kb-fcv-file-dir">{dirName}/</span> : null}
               <span className="kb-fcv-file-name">{fileName}</span>
             </span>
-            <span className="kb-fcv-readonly" aria-label="read-only">read-only</span>
+            <span className="kb-fcv-readonly" aria-label="read-only">
+              read-only
+            </span>
           </h2>
           <span className="grow" />
           {hasChanges ? (
@@ -915,8 +917,21 @@ export function FileChangeViewer({
               ) : null}
             </>
           ) : null}
-          <button type="button" className="x-btn" onClick={onClose} aria-label="Close" title="Close">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button
+            type="button"
+            className="x-btn"
+            onClick={onClose}
+            aria-label="Close"
+            title="Close"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M6 6l12 12M18 6l-12 12" />
             </svg>
           </button>

@@ -32,3 +32,15 @@ docs/monetization.md
 # BEGIN oh-my-opencode-slim deepwork
 .slim/deepwork/
 # END oh-my-opencode-slim deepwork
+
+# Generated declaration output that must not sit next to sources
+packages/*/tsup.config.d.ts
+packages/*/vitest.config.d.ts
+packages/*/tests/**/*.d.ts
+
+# graphify: machine-specific interpreter/root pointers and extraction cache
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+graphify-out/cache/
+# Claude Code hook config written by `graphify claude install` (absolute local path)
+.claude/settings.json

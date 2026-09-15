@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { Logo } from '../Logo.js';
 import { getBridge } from '../../desktop-bridge.js';
-import type {
-  ActiveCloudWorkspaceInfo,
-  CloudStatusPayload,
-} from '../../desktop-bridge.js';
+import type { ActiveCloudWorkspaceInfo, CloudStatusPayload } from '../../desktop-bridge.js';
 
 export interface CloudSettingsModalProps {
   onClose: () => void;
@@ -32,26 +29,66 @@ type LoginState =
 const DEFAULT_BASE_URL = 'https://app.kanbots.dev';
 
 const CheckIcon = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
     <path d="M5 12l5 5L20 7" />
   </svg>
 );
 
 const ErrIcon = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
     <circle cx="12" cy="12" r="10" />
     <path d="M12 8v5M12 16h.01" />
   </svg>
 );
 
 const CloudIcon = (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg
+    width="28"
+    height="28"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
     <path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6 1.5A4 4 0 0 0 6 19h11.5z" />
   </svg>
 );
 
 const ExternalIcon = (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
     <path d="M14 4h6v6" />
     <path d="M10 14L21 3" />
     <path d="M19 14v6H4V5h6" />
@@ -64,9 +101,9 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
   const [loadError, setLoadError] = useState<string | null>(null);
   const [login, setLogin] = useState<LoginState>({ kind: 'idle' });
   const [signingOut, setSigningOut] = useState(false);
-  const [activeCloudWorkspace, setActiveCloudWorkspace] = useState<
-    ActiveCloudWorkspaceInfo | null
-  >(null);
+  const [activeCloudWorkspace, setActiveCloudWorkspace] = useState<ActiveCloudWorkspaceInfo | null>(
+    null,
+  );
   const [binding, setBinding] = useState<CloudBinding | null>(null);
   const [bindingBusy, setBindingBusy] = useState(false);
   const [bindingError, setBindingError] = useState<string | null>(null);
@@ -303,7 +340,14 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
               justifyContent: 'center',
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M6 6l12 12M18 6l-12 12" />
             </svg>
           </button>
@@ -388,22 +432,24 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
       <div className="kb-cloud-signedin">
         <div className="kb-cloud-signedin-status">
           <span className="kb-cloud-signedin-dot" />
-          <span className="kb-cloud-signedin-label">
-            Signed in to Kodra Cloud
-          </span>
+          <span className="kb-cloud-signedin-label">Signed in to Kodra Cloud</span>
         </div>
 
         <dl className="kb-cloud-meta">
           {status.baseUrl ? (
             <>
               <dt className="kb-cloud-meta-key">Endpoint</dt>
-              <dd className="kb-cloud-meta-val" style={{ margin: 0 }}>{status.baseUrl}</dd>
+              <dd className="kb-cloud-meta-val" style={{ margin: 0 }}>
+                {status.baseUrl}
+              </dd>
             </>
           ) : null}
           {status.tokenPrefix ? (
             <>
               <dt className="kb-cloud-meta-key">Token</dt>
-              <dd className="kb-cloud-meta-val" style={{ margin: 0 }}>{status.tokenPrefix}…</dd>
+              <dd className="kb-cloud-meta-val" style={{ margin: 0 }}>
+                {status.tokenPrefix}…
+              </dd>
             </>
           ) : null}
           {status.signedInAt ? (
@@ -440,9 +486,9 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
               </span>
             </div>
             <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: '0 0 10px' }}>
-              Pick the local clone of this project&rsquo;s git repo. Agent runs
-              dispatched from cards will use this path as their worktree root,
-              and the file tree on the left rail will read from here.
+              Pick the local clone of this project&rsquo;s git repo. Agent runs dispatched from
+              cards will use this path as their worktree root, and the file tree on the left rail
+              will read from here.
             </p>
             {binding ? (
               <>
@@ -501,8 +547,8 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
               color: 'var(--ink-3)',
             }}
           >
-            Open a cloud workspace from the picker first, then come back here
-            to point it at your local git clone.
+            Open a cloud workspace from the picker first, then come back here to point it at your
+            local git clone.
           </p>
         )}
 
@@ -537,12 +583,15 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
           </div>
           <h2 className="kb-cloud-hero-title">Connect to Kodra Cloud</h2>
           <p className="kb-cloud-hero-tagline">
-            Sync your tasks across devices and collaborate with your team.
-            Your local data never leaves this machine until you sign in.
+            Sync your tasks across devices and collaborate with your team. Your local data never
+            leaves this machine until you sign in.
           </p>
         </div>
 
-        <ul className="kb-cloud-features" style={{ listStyle: 'none', padding: '12px 14px', margin: 0 }}>
+        <ul
+          className="kb-cloud-features"
+          style={{ listStyle: 'none', padding: '12px 14px', margin: 0 }}
+        >
           <li className="kb-cloud-feature">
             <span className="kb-cloud-feature-icon">{CheckIcon}</span>
             <span>Real-time sync across desktops you sign in on</span>
@@ -589,11 +638,7 @@ export function CloudSettingsModal({ onClose, onChanged }: CloudSettingsModalPro
           <div className="kb-cloud-await">
             <p className="kb-cloud-await-label">
               Approve this device in your browser. If it didn’t open,{' '}
-              <a
-                href={login.verificationUri}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={login.verificationUri} target="_blank" rel="noopener noreferrer">
                 visit {login.verificationUri.replace(/^https?:\/\//, '')}
               </a>{' '}
               and enter:

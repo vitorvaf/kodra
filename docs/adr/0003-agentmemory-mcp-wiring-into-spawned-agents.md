@@ -48,8 +48,8 @@ wiring decision has to cover all of them or define a clean fallback.
 - The existing `prepareForRun()` pattern is runtime-generated and transient —
   nothing persists in `.kanbots/config.json` about which MCP servers a
   workspace wants. That has been fine because there was only ever one MCP
-  server (kanbots's own). Adding agentmemory is the first *user-visible,
-  toggleable* MCP server.
+  server (kanbots's own). Adding agentmemory is the first _user-visible,
+  toggleable_ MCP server.
 - `agentmemory connect <agent>` writes to the user's global agent config
   (`~/.claude/settings.json`, `~/.cursor/mcp.json`, `.codex/config.toml`,
   `~/.gemini/settings.json`, …). That works for agents the user runs by hand,
@@ -77,8 +77,8 @@ fallback covers MCP-less agents.**
        "provider": "agentmemory",
        "url": "http://localhost:3111",
        "secret": null,
-       "scope": "shared"            // see ADR-0004
-     }
+       "scope": "shared", // see ADR-0004
+     },
    }
    ```
 
@@ -116,14 +116,16 @@ fallback covers MCP-less agents.**
 ## Alternatives Considered
 
 ### Option A — Rely on `agentmemory connect` writing global config
+
 Rejected. (a) Spawns agents in worktrees may not read global config (explicit
 `--mcp-config` overrides it for Claude; kanbots already uses this). (b) It
 mutates the user's environment outside `.kanbots/`, violating the
 workspace-isolation principle documented in `docs/configuration.md`. (c) It
-applies to *all* the user's agent invocations, not just kanbots runs —
+applies to _all_ the user's agent invocations, not just kanbots runs —
 unwanted side effect.
 
 ### Option B — Persist a full per-agent MCP config table in SQLite
+
 Over-engineered for now. We only have one third-party MCP server to wire
 (agentmemory); a generalized "MCP marketplace" table is speculative. The
 `memory` section in `config.json` is the minimal shape. If a second or third
@@ -131,18 +133,21 @@ external MCP server becomes relevant, promote to a `mcpServers:` array and
 revisit — that's a future ADR.
 
 ### Option C — Pure env-var propagation (`AGENTMEMORY_URL` in the spawn env)
-Rejected as the *sole* mechanism. Env vars alone don't register the MCP
+
+Rejected as the _sole_ mechanism. Env vars alone don't register the MCP
 server with the agent — the agent still needs the `mcpServers` entry to know
 to spawn the `@agentmemory/mcp` shim. Env vars are necessary (the shim reads
 them) but not sufficient.
 
 ### Option D — Build a kanbots-side MCP proxy that fronts agentmemory
+
 Rejected. Adds an indirection layer with no benefit; the agentmemory MCP shim
 already exists and is maintained upstream.
 
 ## Consequences
 
 **Positive:**
+
 - One extension point (`prepareForRun()`) covers all MCP-capable agents,
   consistent with the existing kanbots-tool-bridge wiring.
 - Persisted toggle means memory is opt-in per workspace; upstream kanbots
@@ -152,6 +157,7 @@ already exists and is maintained upstream.
 - No mutation of user-global config — kanbots stays inside `.kanbots/`.
 
 **Negative:**
+
 - Every adapter that declares `mcpSupport` needs the translation logic
   written and tested (Claude file-merge, Codex flags, Gemini/Cursor config-dir
   variants). 11 adapters × a format each = real surface area.
@@ -162,6 +168,7 @@ already exists and is maintained upstream.
   and 0005 are coupled in practice.
 
 **Neutral:**
+
 - A migration in `packages/local-store/src/migrations/` (next number after
   `0019_project_scope`) may be needed if we persist any memory state beyond
   `config.json`. For the wiring itself, `config.json` suffices — no migration.

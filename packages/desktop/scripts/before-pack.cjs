@@ -16,7 +16,9 @@ module.exports = async function beforePack(context) {
   }
 
   if (archName === 'universal') {
-    throw new Error('[before-pack] universal arch is not supported by the better-sqlite3 prebuild flow');
+    throw new Error(
+      '[before-pack] universal arch is not supported by the better-sqlite3 prebuild flow',
+    );
   }
 
   const script = resolve(__dirname, 'ensure-native.cjs');

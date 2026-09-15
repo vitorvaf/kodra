@@ -29,10 +29,7 @@ export interface UseRepoStatusAPI {
   refetch: () => Promise<void>;
 }
 
-export function useRepoStatus(
-  repoId: number | null,
-  refreshKey?: number,
-): UseRepoStatusAPI {
+export function useRepoStatus(repoId: number | null, refreshKey?: number): UseRepoStatusAPI {
   const [status, setStatus] = useState<WorkspaceRepoStatus | null>(() => {
     if (repoId === null) return null;
     const cached = cache.get(repoId);
@@ -43,33 +40,30 @@ export function useRepoStatus(
   const [loading, setLoading] = useState(false);
   const cancelRef = useRef(false);
 
-  const fetchStatus = useCallback(
-    async (id: number, allowCache: boolean): Promise<void> => {
-      if (allowCache) {
-        const cached = cache.get(id);
-        if (cached && Date.now() - cached.fetchedAt <= CACHE_TTL_MS) {
-          setStatus(cached.status);
-          setLoading(false);
-          return;
-        }
+  const fetchStatus = useCallback(async (id: number, allowCache: boolean): Promise<void> => {
+    if (allowCache) {
+      const cached = cache.get(id);
+      if (cached && Date.now() - cached.fetchedAt <= CACHE_TTL_MS) {
+        setStatus(cached.status);
+        setLoading(false);
+        return;
       }
-      setLoading(true);
-      try {
-        const result = await api.getWorkspaceRepoStatus(id);
-        cache.set(id, { status: result, fetchedAt: Date.now() });
-        if (!cancelRef.current) {
-          setStatus(result);
-        }
-      } catch {
-        if (!cancelRef.current) {
-          setStatus(null);
-        }
-      } finally {
-        if (!cancelRef.current) setLoading(false);
+    }
+    setLoading(true);
+    try {
+      const result = await api.getWorkspaceRepoStatus(id);
+      cache.set(id, { status: result, fetchedAt: Date.now() });
+      if (!cancelRef.current) {
+        setStatus(result);
       }
-    },
-    [],
-  );
+    } catch {
+      if (!cancelRef.current) {
+        setStatus(null);
+      }
+    } finally {
+      if (!cancelRef.current) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     cancelRef.current = false;

@@ -146,9 +146,9 @@ describe('LearningsRepo', () => {
     });
 
     it('respects daily budget cap when set', () => {
-      store.learnings.setCuratorDailyBudget(repoOwner, repoName, 0.10);
+      store.learnings.setCuratorDailyBudget(repoOwner, repoName, 0.1);
       const state = store.learnings.getCuratorState(repoOwner, repoName);
-      expect(state?.dailyBudgetUsd).toBeCloseTo(0.10);
+      expect(state?.dailyBudgetUsd).toBeCloseTo(0.1);
     });
   });
 

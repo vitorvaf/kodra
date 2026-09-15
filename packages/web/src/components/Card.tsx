@@ -101,9 +101,7 @@ function CardBody({
   const decision = active?.pendingDecision ?? null;
   const checks = active?.checks ?? null;
   const stats =
-    active &&
-    typeof active.additions === 'number' &&
-    typeof active.deletions === 'number'
+    active && typeof active.additions === 'number' && typeof active.deletions === 'number'
       ? { add: active.additions, del: active.deletions }
       : null;
   const progress = active?.progress ?? null;
@@ -246,19 +244,15 @@ function ReviewActions({
     const request = isPullRequest
       ? api.requestChangesPullRequest(issueNumber)
       : api.requestChangesIssue(issueNumber);
-    void request
-      .then(() => {
-        dispatchIssuesRefetch();
-        onAction?.();
-      });
+    void request.then(() => {
+      dispatchIssuesRefetch();
+      onAction?.();
+    });
   }
   function spawnReviewer(e: MouseEvent<HTMLButtonElement>): void {
     e.stopPropagation();
     void api
-      .spawnReviewer(
-        issueNumber,
-        focusedRepoId !== null ? { repoId: focusedRepoId } : {},
-      )
+      .spawnReviewer(issueNumber, focusedRepoId !== null ? { repoId: focusedRepoId } : {})
       .then(() => {
         dispatchIssuesRefetch();
         onAction?.();
@@ -433,8 +427,7 @@ function ShipPanel({
       </div>
       {status?.hasUncommittedChanges ? (
         <div className="kb-ship-warn">
-          Worktree has uncommitted changes — you&rsquo;ll be asked before
-          shipping.
+          Worktree has uncommitted changes — you&rsquo;ll be asked before shipping.
         </div>
       ) : null}
       {error !== null ? (
@@ -539,15 +532,8 @@ function DecisionActions({
   );
 }
 
-function CheckPill({
-  kind,
-  label,
-}: {
-  kind: 'pass' | 'fail' | 'running' | 'idle';
-  label: string;
-}) {
-  const cls =
-    kind === 'pass' ? 'pass' : kind === 'fail' ? 'fail' : kind === 'running' ? 'run' : '';
+function CheckPill({ kind, label }: { kind: 'pass' | 'fail' | 'running' | 'idle'; label: string }) {
+  const cls = kind === 'pass' ? 'pass' : kind === 'fail' ? 'fail' : kind === 'running' ? 'run' : '';
   const icon = kind === 'pass' ? '✓' : kind === 'fail' ? '×' : kind === 'running' ? '↻' : '·';
   return (
     <span className={`kb-check ${cls}`} title={`${label}: ${kind}`} aria-label={`${label} ${kind}`}>
@@ -656,8 +642,7 @@ export const Card = memo(CardImpl, (prev, next) => {
         db !== null &&
         da.options.some(
           (option, index) =>
-            option.value !== db.options[index]?.value ||
-            option.label !== db.options[index]?.label,
+            option.value !== db.options[index]?.value || option.label !== db.options[index]?.label,
         ))
     ) {
       return false;
@@ -668,7 +653,7 @@ export const Card = memo(CardImpl, (prev, next) => {
   // Sentry meta — re-render when status changes (e.g. after analyze)
   const sa = a.sentryMeta ?? null;
   const sb = b.sentryMeta ?? null;
-  if ((sa && sb) ? (sa.status !== sb.status || sa.count !== sb.count) : sa !== sb) return false;
+  if (sa && sb ? sa.status !== sb.status || sa.count !== sb.count : sa !== sb) return false;
   return true;
 });
 

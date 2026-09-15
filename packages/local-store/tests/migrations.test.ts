@@ -138,10 +138,15 @@ describe('migrations', () => {
     expect(issue.number).toBe('5');
     expect(issue.folder_id).toBe('folder-a');
     expect(
-      (db.prepare('SELECT folder_id FROM local_issues WHERE number = ?').get('6') as { folder_id: unknown })
-        .folder_id,
+      (
+        db.prepare('SELECT folder_id FROM local_issues WHERE number = ?').get('6') as {
+          folder_id: unknown;
+        }
+      ).folder_id,
     ).toBeNull();
-    expect(db.prepare('SELECT issue_number FROM local_comments').get()).toEqual({ issue_number: '5' });
+    expect(db.prepare('SELECT issue_number FROM local_comments').get()).toEqual({
+      issue_number: '5',
+    });
     expect(db.prepare('SELECT local_issue_number FROM sentry_imports').get()).toEqual({
       local_issue_number: 5,
     });
@@ -172,9 +177,9 @@ describe('migrations', () => {
       issueNumber: '42',
     });
     expect(store.threads.findByIssue('octo', 'repo', 42)?.id).toBe(created.id);
-    expect(store.threads.getOrCreate({ repoOwner: 'octo', repoName: 'repo', issueNumber: 42 }).id).toBe(
-      created.id,
-    );
+    expect(
+      store.threads.getOrCreate({ repoOwner: 'octo', repoName: 'repo', issueNumber: 42 }).id,
+    ).toBe(created.id);
     store.close();
   });
 

@@ -7,11 +7,12 @@
     "build": "vite build",
     "dev": "vite",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@kanbots/core": "workspace:*",
     "@dnd-kit/core": "^6.3.1",
+    "@kanbots/core": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-virtuoso": "^4.18.13",
@@ -24,6 +25,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.3",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "vitest": "^3.2.4"
   }
 }

@@ -93,7 +93,9 @@ export function createSentryAnalyzer(opts: CreateSentryAnalyzerOptions): SentryA
   const systemPrompt = opts.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
   const spawn = opts.spawn ?? nodeSpawn;
 
-  return async function analyzeSentryError(input: SentryAnalyzerInput): Promise<SentryAnalyzerSuggestion> {
+  return async function analyzeSentryError(
+    input: SentryAnalyzerInput,
+  ): Promise<SentryAnalyzerSuggestion> {
     const stdin = formatSentryPrompt(input);
     return runClaudeForSentrySuggestion({ command, cwd, timeoutMs, systemPrompt, stdin, spawn });
   };
@@ -129,7 +131,9 @@ const claudeResultSchema = z
   })
   .passthrough();
 
-async function runClaudeForSentrySuggestion(opts: RunClaudeOptions): Promise<SentryAnalyzerSuggestion> {
+async function runClaudeForSentrySuggestion(
+  opts: RunClaudeOptions,
+): Promise<SentryAnalyzerSuggestion> {
   const args = [
     '-p',
     '--output-format',

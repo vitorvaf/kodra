@@ -152,12 +152,7 @@ export function AutopilotLaunchModal({ onClose, onStarted }: AutopilotLaunchModa
           {error ? (
             <span style={{ color: 'var(--failed)', fontSize: 11, marginRight: 8 }}>{error}</span>
           ) : null}
-          <button
-            type="button"
-            className="kb-btn ghost"
-            onClick={onClose}
-            disabled={submitting}
-          >
+          <button type="button" className="kb-btn ghost" onClick={onClose} disabled={submitting}>
             Cancel
           </button>
           {tab === 'feature-dev' ? (
@@ -205,12 +200,10 @@ function FeatureDevTab({
   return (
     <>
       <div style={{ color: 'var(--ink-2)', fontSize: 12.5, marginBottom: 12 }}>
-        Pick one or more personas. The autopilot will cycle through them in order, ideating and shipping
-        features until you stop it.
+        Pick one or more personas. The autopilot will cycle through them in order, ideating and
+        shipping features until you stop it.
       </div>
-      <div
-        style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}
-      >
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
         <label className="kb-pill-select">
           <span className="lbl">model</span>
           <ModelPicker
@@ -319,8 +312,8 @@ function QaComingSoon() {
         QA autopilot — coming soon
       </div>
       <div>
-        Will run code-level checks (typecheck/tests/lint/build) and live UI testing against this workspace,
-        filing a bug ticket and dispatching an agent for each failure it finds.
+        Will run code-level checks (typecheck/tests/lint/build) and live UI testing against this
+        workspace, filing a bug ticket and dispatching an agent for each failure it finds.
       </div>
     </div>
   );

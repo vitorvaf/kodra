@@ -80,7 +80,11 @@ describe('IssueRelationsRepo', () => {
     it('keys child counts by canonical issue references', () => {
       store.issueRelations.add({ workspaceId: wsId, parentNumber: 42, childNumber: 100 });
       store.issueRelations.add({ workspaceId: wsId, parentNumber: 42, childNumber: 101 });
-      store.issueRelations.add({ workspaceId: wsId, parentNumber: 'FEAT-42', childNumber: 'BUG-1' });
+      store.issueRelations.add({
+        workspaceId: wsId,
+        parentNumber: 'FEAT-42',
+        childNumber: 'BUG-1',
+      });
 
       const counts = store.issueRelations.countChildrenByParent(wsId);
       expect(counts.get(42)).toBe(2);

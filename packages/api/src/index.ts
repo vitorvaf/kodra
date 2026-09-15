@@ -20,20 +20,10 @@ export {
   type StartAutopilotInput,
   type StartAutopilotResult,
 } from './autopilot/orchestrator.js';
-export {
-  reconcileIssueLabels,
-  type ReconcileLabelsResult,
-} from './workspace-reconcile.js';
-export {
-  bootstrapWorkspace,
-  type WorkspaceBootstrapResult,
-} from './workspace-bootstrap.js';
+export { reconcileIssueLabels, type ReconcileLabelsResult } from './workspace-reconcile.js';
+export { bootstrapWorkspace, type WorkspaceBootstrapResult } from './workspace-bootstrap.js';
 
-export {
-  startToolBridge,
-  type ToolBridge,
-  type ToolDispatcher,
-} from './tool-bridge.js';
+export { startToolBridge, type ToolBridge, type ToolDispatcher } from './tool-bridge.js';
 export { dispatchChatTool } from './chat-tools-dispatch.js';
 export { issueRefSchema } from './issue-ref.js';
 
@@ -44,9 +34,46 @@ export {
   type AgentMemoryClient,
   type MemoryClientConfig,
   type MemoryHit,
+  type RememberMemoryInput,
+  type RememberMemoryResult,
   type SaveMemoryInput,
   type SmartSearchInput,
+  type TeamFeedItem,
+  type TeamShareInput,
 } from './memory/client.js';
+export {
+  MEMORY_DEFAULTS,
+  MEMORY_ENV,
+  projectIdFromPath,
+  resolveMemoryConfig,
+  type MemoryMode,
+  type ResolvedMemoryConfig,
+} from './memory/config.js';
+export {
+  createAgentMemoryProvider,
+  createMemoryProvider,
+  createNoopMemoryProvider,
+  type AgentMemoryProviderOptions,
+  type MemoryConfidence,
+  type MemoryHealthState,
+  type MemoryKind,
+  type MemoryProvenance,
+  type MemoryProvider,
+  type MemoryRecord,
+  type MemorySource,
+  type RecallInput,
+  type RememberFailure,
+  type RememberInput,
+  type RememberResult,
+} from './memory/provider.js';
+export {
+  buildMemoryContext,
+  rankMemoryItems,
+  type BuildMemoryContextOptions,
+  type MemoryContextItem,
+  type MemoryScope,
+} from './memory/context-builder.js';
+export { containsCredentials, findCredentials } from './memory/redaction.js';
 export {
   createAgentMemorySessionBridge,
   memoryCardSessionId,
@@ -83,7 +110,10 @@ export {
   type SentryRuntime,
   type SubscriptionRegistry,
 } from './handlers/index.js';
-export { hasProviderCredentials, resolveProviderWithCreds } from './handlers/provider-credentials.js';
+export {
+  hasProviderCredentials,
+  resolveProviderWithCreds,
+} from './handlers/provider-credentials.js';
 export {
   CHECKS_CHANGED_CHANNEL,
   DECISIONS_CHANGED_CHANNEL,

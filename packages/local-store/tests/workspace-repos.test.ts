@@ -61,9 +61,11 @@ describe('0025_multi_repo migration', () => {
 
     // Manually insert a workspace + two folders. The earlier one should
     // become the primary after the backfill.
-    db.prepare(
-      'INSERT INTO workspaces (id, name, created_at) VALUES (?, ?, ?)',
-    ).run('ws-a', 'Workspace A', '2024-01-01T00:00:00.000Z');
+    db.prepare('INSERT INTO workspaces (id, name, created_at) VALUES (?, ?, ?)').run(
+      'ws-a',
+      'Workspace A',
+      '2024-01-01T00:00:00.000Z',
+    );
     db.prepare(
       `INSERT INTO folders (id, workspace_id, name, path, default_branch, added_at)
        VALUES (?, ?, ?, ?, ?, ?)`,

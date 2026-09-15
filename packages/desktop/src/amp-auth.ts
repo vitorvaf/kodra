@@ -33,8 +33,7 @@ export async function startAmpLogin(): Promise<AmpLoginNotImplemented> {
   // actionable message so the user reaches for the CLI command directly.
   return {
     ok: false,
-    error:
-      'Run `amp /login` in your terminal to authorize Amp, then reopen this dialog.',
+    error: 'Run `amp /login` in your terminal to authorize Amp, then reopen this dialog.',
   };
 }
 

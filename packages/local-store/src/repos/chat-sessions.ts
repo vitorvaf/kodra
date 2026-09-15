@@ -100,18 +100,16 @@ export class ChatSessionsRepo {
   }
 
   findById(id: ChatSessionId): ChatSession | null {
-    const row = this.db
-      .prepare('SELECT * FROM chat_sessions WHERE id = ?')
-      .get(id) as ChatSessionRow | undefined;
+    const row = this.db.prepare('SELECT * FROM chat_sessions WHERE id = ?').get(id) as
+      | ChatSessionRow
+      | undefined;
     return row ? rowToSession(row) : null;
   }
 
   /** Most recently active session for a conversation, used as the
    *  fallback target when a caller posts a message without specifying a
    *  session id. */
-  findMostRecentForConversation(
-    conversationId: ChatConversationId,
-  ): ChatSession | null {
+  findMostRecentForConversation(conversationId: ChatConversationId): ChatSession | null {
     const row = this.db
       .prepare(
         `SELECT * FROM chat_sessions
@@ -145,9 +143,7 @@ export class ChatSessionsRepo {
     if ((conversationId === null) === (threadId === null)) {
       // Belt-and-braces: the discriminated union prevents this at the
       // type level, but a caller using `any` could still slip through.
-      throw new Error(
-        'chat_sessions.create: exactly one of conversationId/threadId must be set',
-      );
+      throw new Error('chat_sessions.create: exactly one of conversationId/threadId must be set');
     }
     const result = this.db
       .prepare(
@@ -200,9 +196,7 @@ export class ChatSessionsRepo {
   touch(id: ChatSessionId): void {
     const now = new Date().toISOString();
     this.db
-      .prepare(
-        'UPDATE chat_sessions SET last_message_at = ?, updated_at = ? WHERE id = ?',
-      )
+      .prepare('UPDATE chat_sessions SET last_message_at = ?, updated_at = ? WHERE id = ?')
       .run(now, now, id);
   }
 
@@ -214,14 +208,14 @@ export class ChatSessionsRepo {
       // cascade-clean cards/events/checks/promotions the same way the
       // chat-conversation delete path does.
       const messageIds = (
-        this.db
-          .prepare('SELECT id FROM messages WHERE chat_session_id = ?')
-          .all(id) as Array<{ id: number }>
+        this.db.prepare('SELECT id FROM messages WHERE chat_session_id = ?').all(id) as Array<{
+          id: number;
+        }>
       ).map((r) => r.id);
       const runIds = (
-        this.db
-          .prepare('SELECT id FROM agent_runs WHERE chat_session_id = ?')
-          .all(id) as Array<{ id: number }>
+        this.db.prepare('SELECT id FROM agent_runs WHERE chat_session_id = ?').all(id) as Array<{
+          id: number;
+        }>
       ).map((r) => r.id);
 
       if (messageIds.length > 0) {

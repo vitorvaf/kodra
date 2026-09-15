@@ -31,7 +31,7 @@ the same way, or treated as external infrastructure the user provides.
 
 - If kanbots assumes the server is up but it isn't, every dispatched run
   silently loses memory until the user notices. Failure is quiet.
-- If kanbots *forces* the server to be up by starting it itself, agentmemory
+- If kanbots _forces_ the server to be up by starting it itself, agentmemory
   becomes a hard runtime dependency of the fork, with the footprint and
   failure modes of an external process.
 - The iii-engine port conflict (`:49134`) means a user already running
@@ -79,25 +79,29 @@ the same way, or treated as external infrastructure the user provides.
 ## Alternatives Considered
 
 ### Option A — kanbots-managed always (force-start on app launch)
+
 Rejected. Makes agentmemory a hard dependency, breaks for users who run it
 standalone (port conflict), and forces an external binary + engine download
 on every kanbots install. Too coercive for an "enhancement."
 
 ### Option B — External always (user's responsibility, kanbots only connects)
+
 Considered. Simplest for kanbots, but the quiet-failure mode is bad: a user
 enables memory, dispatches a run, and gets no recall with no visible reason
 until they think to check. Detection + UI status mitigates this without
 forcing management.
 
 ### Option C — Managed per-workspace (separate `--data-dir` per kanbots workspace)
+
 Tempting because it ties lifecycle to the workspace (start when opened, stop
 when closed) and gives natural per-repo isolation (see ADR-0004). Rejected as
-the *default* because: (a) spinning a server per workspace multiplies port
+the _default_ because: (a) spinning a server per workspace multiplies port
 consumption and engine downloads; (b) the user loses the cross-workspace
 memory sharing that is one of agentmemory's strengths. Kept as an opt-in mode
 inside ADR-0004, not here.
 
 ### Option D — Embed agentmemory as a library inside the Electron process
+
 Rejected. agentmemory is architected as a server with its own engine process,
 not an in-process library. Forcing it in-process would mean vendoring and
 re-shaping its internals — exactly the kind of integration that breaks on
@@ -106,15 +110,17 @@ every upstream release.
 ## Consequences
 
 **Positive:**
+
 - Existing agentmemory users (who already run it for Cursor/Claude Desktop)
   can point kanbots at their instance with zero duplicate footprint.
 - Users who want the integrated experience flip one toggle.
 - Quiet failure is avoided: detection + warning event means the user always
-  knows *why* a run didn't recall.
+  knows _why_ a run didn't recall.
 - No port-conflict violence; coexistence with standalone agentmemory is
   first-class.
 
 **Negative:**
+
 - Two code paths (managed vs. external) to test and maintain.
 - Detection adds a startup HTTP call; needs a short timeout and graceful
   offline behavior.
@@ -123,6 +129,7 @@ every upstream release.
   worth a small dedicated supervisor rather than overloading the existing one.
 
 **Neutral:**
+
 - A `.kanbots/logs/agentmemory.log` becomes part of the workspace footprint.
 - A future cloud edition of kanbots would revisit this (agentmemory-as-service
   in the cloud); that decision is out of scope here.

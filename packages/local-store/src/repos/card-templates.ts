@@ -56,17 +56,15 @@ export class CardTemplatesRepo {
 
   listByWorkspace(workspaceId: string): CardTemplate[] {
     const rows = this.db
-      .prepare(
-        'SELECT * FROM card_templates WHERE workspace_id = ? ORDER BY sort_order, id',
-      )
+      .prepare('SELECT * FROM card_templates WHERE workspace_id = ? ORDER BY sort_order, id')
       .all(workspaceId) as CardTemplateRow[];
     return rows.map(rowToTemplate);
   }
 
   findById(id: number): CardTemplate | null {
-    const row = this.db
-      .prepare('SELECT * FROM card_templates WHERE id = ?')
-      .get(id) as CardTemplateRow | undefined;
+    const row = this.db.prepare('SELECT * FROM card_templates WHERE id = ?').get(id) as
+      | CardTemplateRow
+      | undefined;
     return row ? rowToTemplate(row) : null;
   }
 
@@ -83,8 +81,7 @@ export class CardTemplatesRepo {
       )
       .get(input.workspaceId) as { m: number };
     const sortOrder = max.m + 1;
-    const labels =
-      input.labels && input.labels.length > 0 ? JSON.stringify(input.labels) : null;
+    const labels = input.labels && input.labels.length > 0 ? JSON.stringify(input.labels) : null;
     const info = this.db
       .prepare(
         `INSERT INTO card_templates
@@ -104,9 +101,7 @@ export class CardTemplatesRepo {
       );
     const fresh = this.findById(Number(info.lastInsertRowid));
     if (!fresh) {
-      throw new Error(
-        `card_template ${info.lastInsertRowid} not found immediately after insert`,
-      );
+      throw new Error(`card_template ${info.lastInsertRowid} not found immediately after insert`);
     }
     return fresh;
   }
@@ -117,16 +112,10 @@ export class CardTemplatesRepo {
     const next: CardTemplate = {
       ...existing,
       ...(patch.name !== undefined ? { name: patch.name } : {}),
-      ...(patch.titleTemplate !== undefined
-        ? { titleTemplate: patch.titleTemplate }
-        : {}),
-      ...(patch.bodyTemplate !== undefined
-        ? { bodyTemplate: patch.bodyTemplate }
-        : {}),
+      ...(patch.titleTemplate !== undefined ? { titleTemplate: patch.titleTemplate } : {}),
+      ...(patch.bodyTemplate !== undefined ? { bodyTemplate: patch.bodyTemplate } : {}),
       ...(patch.labels !== undefined ? { labels: patch.labels } : {}),
-      ...(patch.defaultProvider !== undefined
-        ? { defaultProvider: patch.defaultProvider }
-        : {}),
+      ...(patch.defaultProvider !== undefined ? { defaultProvider: patch.defaultProvider } : {}),
       updatedAt: new Date().toISOString(),
     };
     const labels = next.labels.length > 0 ? JSON.stringify(next.labels) : null;

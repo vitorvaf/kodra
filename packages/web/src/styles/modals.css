@@ -44,11 +44,7 @@
   gap: 10px;
   padding: 14px 18px;
   border-bottom: 1px solid var(--hairline);
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--bg) 88%, var(--bg-1)),
-    var(--bg)
-  );
+  background: linear-gradient(180deg, color-mix(in oklch, var(--bg) 88%, var(--bg-1)), var(--bg));
   flex-shrink: 0;
 }
 .kb-modal-head .crumb-chip {
@@ -983,7 +979,10 @@
   line-height: 1;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 80ms ease-out, color 80ms ease-out, border-color 80ms ease-out;
+  transition:
+    opacity 80ms ease-out,
+    color 80ms ease-out,
+    border-color 80ms ease-out;
 }
 .kb-idiff-line:hover .kb-idiff-comment-trigger,
 .kb-idiff-comment-trigger:focus-visible {
@@ -1409,8 +1408,12 @@
   font-family: var(--ff-mono);
   letter-spacing: 0;
 }
-.kb-scripts-output-status.ok { color: var(--add); }
-.kb-scripts-output-status.err { color: var(--del); }
+.kb-scripts-output-status.ok {
+  color: var(--add);
+}
+.kb-scripts-output-status.err {
+  color: var(--del);
+}
 .kb-scripts-output-pane {
   margin: 0;
   padding: 8px 10px;
@@ -1421,7 +1424,9 @@
   overflow: auto;
   color: var(--ink-1);
 }
-.kb-scripts-output-pane.is-err { color: var(--del); }
+.kb-scripts-output-pane.is-err {
+  color: var(--del);
+}
 
 /* =========================================================================
    Sentry settings modal.
@@ -1514,15 +1519,17 @@
   border-radius: 6px;
 }
 .kb-sentry-warn code {
-   font-family: var(--ff-mono);
-   font-size: 11px;
-   background: rgba(0, 0, 0, 0.06);
-   padding: 1px 4px;
-   border-radius: 3px;
- }
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
 
 /* agentmemory settings modal. */
-.kb-memory-modal { max-width: 560px; }
+.kb-memory-modal {
+  max-width: 560px;
+}
 .kb-memory-body {
   padding: 22px 20px 26px;
   display: flex;
@@ -1530,7 +1537,9 @@
   gap: 16px;
   overflow-y: auto;
 }
-.kb-memory-intro { padding-bottom: 4px; }
+.kb-memory-intro {
+  padding-bottom: 4px;
+}
 .kb-memory-kicker {
   color: var(--ink-3);
   font-size: 11px;
@@ -1572,7 +1581,9 @@
   border-color: color-mix(in oklch, var(--ok, #15803d) 28%, var(--hairline));
   background: color-mix(in oklch, var(--ok, #15803d) 8%, transparent);
 }
-.kb-memory-status--missing { color: var(--ink-3); }
+.kb-memory-status--missing {
+  color: var(--ink-3);
+}
 .kb-memory-dot {
   width: 7px;
   height: 7px;
@@ -1596,7 +1607,9 @@
   padding: 10px 0;
   border-bottom: 1px solid var(--hairline-soft);
 }
-.kb-memory-details dt { color: var(--ink-3); }
+.kb-memory-details dt {
+  color: var(--ink-3);
+}
 .kb-memory-details dd {
   margin: 0;
   color: var(--ink-2);
@@ -1605,7 +1618,11 @@
   text-align: right;
   overflow-wrap: anywhere;
 }
-.kb-memory-error { margin: 0; color: var(--ink-3); font-size: 12px; }
+.kb-memory-error {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+}
 
 /* Enable toggle — switch control with label + helper copy. */
 .kb-memory-toggle {
@@ -1660,7 +1677,9 @@
     transform 140ms ease,
     background-color 140ms ease;
 }
-.kb-switch:hover:not(:disabled) { border-color: var(--ink-4); }
+.kb-switch:hover:not(:disabled) {
+  border-color: var(--ink-4);
+}
 .kb-switch[aria-checked='true'] {
   border-color: var(--accent-line);
   background: color-mix(in oklch, var(--accent) 24%, var(--bg-3));
@@ -1682,7 +1701,9 @@
 }
 /* Opacity-only so it never fights the knob's translateX transition. */
 @keyframes kb-switch-pending {
-  50% { opacity: 0.6; }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* Server status stays visible while memory is off, just de-emphasized. */
@@ -1692,8 +1713,9 @@
   gap: 12px;
   transition: opacity 160ms ease;
 }
-.kb-memory-status-group.is-dimmed { opacity: 0.5; }
-
+.kb-memory-status-group.is-dimmed {
+  opacity: 0.5;
+}
 
 /* Sentry analysis section in TaskDetailModal overview */
 .kb-sentry-section {
@@ -1965,11 +1987,7 @@
   gap: 12px;
   padding: 14px 22px;
   border-bottom: 1px solid var(--hairline);
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--bg) 88%, var(--bg-1)),
-    var(--bg)
-  );
+  background: linear-gradient(180deg, color-mix(in oklch, var(--bg) 88%, var(--bg-1)), var(--bg));
   flex-shrink: 0;
 }
 .kb-chat-header-main {
@@ -2266,7 +2284,9 @@
   resize: vertical;
   min-height: 44px;
   outline: none;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
 }
 .kb-chat-foot-syspr:focus {
   border-color: var(--accent-line);
@@ -2293,7 +2313,9 @@
   resize: vertical;
   min-height: 64px;
   outline: none;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
 }
 .kb-chat-foot-input:focus {
   border-color: var(--accent-line);
@@ -2407,7 +2429,9 @@
    with two modes — Current (file content) and Changes (PR-style diff
    cards per worktree, each labelled with the originating task + agent
    run). */
-.kb-modal-fcv { max-width: 1040px; }
+.kb-modal-fcv {
+  max-width: 1040px;
+}
 .kb-fcv-title {
   display: flex;
   align-items: center;
@@ -2425,8 +2449,13 @@
   min-width: 0;
   flex: 1;
 }
-.kb-fcv-file-dir { color: var(--ink-3); }
-.kb-fcv-file-name { color: var(--ink); font-weight: 500; }
+.kb-fcv-file-dir {
+  color: var(--ink-3);
+}
+.kb-fcv-file-name {
+  color: var(--ink);
+  font-weight: 500;
+}
 .kb-fcv-readonly {
   font-size: 10px;
   text-transform: uppercase;
@@ -2461,7 +2490,9 @@
   gap: 6px;
   margin-bottom: -1px;
 }
-.kb-fcv-tab:hover { color: var(--ink); }
+.kb-fcv-tab:hover {
+  color: var(--ink);
+}
 .kb-fcv-tab.is-active {
   color: var(--ink);
   border-bottom-color: var(--accent, var(--ink));
@@ -2504,7 +2535,10 @@
   line-height: 1.5;
   overflow-x: auto;
 }
-.kb-fcv-code-line { display: flex; align-items: baseline; }
+.kb-fcv-code-line {
+  display: flex;
+  align-items: baseline;
+}
 .kb-fcv-code-num {
   flex: 0 0 auto;
   padding: 0 12px 0 10px;
@@ -2528,7 +2562,9 @@
   overflow: hidden;
   transition: border-color 0.12s ease;
 }
-.kb-fcv-worktree.is-open { border-color: var(--hairline); }
+.kb-fcv-worktree.is-open {
+  border-color: var(--hairline);
+}
 .kb-fcv-worktree-head {
   appearance: none;
   width: 100%;
@@ -2543,8 +2579,12 @@
   cursor: pointer;
   text-align: left;
 }
-.kb-fcv-worktree.is-closed .kb-fcv-worktree-head { border-bottom-color: transparent; }
-.kb-fcv-worktree-head:hover { background: var(--bg-3); }
+.kb-fcv-worktree.is-closed .kb-fcv-worktree-head {
+  border-bottom-color: transparent;
+}
+.kb-fcv-worktree-head:hover {
+  background: var(--bg-3);
+}
 .kb-fcv-chevron {
   color: var(--ink-3);
   font-size: 10px;
@@ -2562,11 +2602,26 @@
   background: var(--bg);
   color: var(--ink-2);
 }
-.kb-fcv-status-m { color: oklch(0.78 0.13 70); border-color: oklch(0.78 0.13 70 / 0.4); }
-.kb-fcv-status-a { color: oklch(0.72 0.16 145); border-color: oklch(0.72 0.16 145 / 0.4); }
-.kb-fcv-status-d { color: oklch(0.7 0.18 25); border-color: oklch(0.7 0.18 25 / 0.4); }
-.kb-fcv-status-r { color: oklch(0.72 0.14 245); border-color: oklch(0.72 0.14 245 / 0.4); }
-.kb-fcv-status-u { color: oklch(0.7 0.18 25); border-color: oklch(0.7 0.18 25 / 0.4); }
+.kb-fcv-status-m {
+  color: oklch(0.78 0.13 70);
+  border-color: oklch(0.78 0.13 70 / 0.4);
+}
+.kb-fcv-status-a {
+  color: oklch(0.72 0.16 145);
+  border-color: oklch(0.72 0.16 145 / 0.4);
+}
+.kb-fcv-status-d {
+  color: oklch(0.7 0.18 25);
+  border-color: oklch(0.7 0.18 25 / 0.4);
+}
+.kb-fcv-status-r {
+  color: oklch(0.72 0.14 245);
+  border-color: oklch(0.72 0.14 245 / 0.4);
+}
+.kb-fcv-status-u {
+  color: oklch(0.7 0.18 25);
+  border-color: oklch(0.7 0.18 25 / 0.4);
+}
 
 .kb-fcv-worktree-title {
   flex: 1;
@@ -2588,7 +2643,10 @@
   text-overflow: ellipsis;
   max-width: 100%;
 }
-.kb-fcv-task-title { color: var(--ink-2); font-weight: normal; }
+.kb-fcv-task-title {
+  color: var(--ink-2);
+  font-weight: normal;
+}
 .kb-fcv-agent {
   display: inline-flex;
   align-items: center;
@@ -2606,8 +2664,12 @@
   border-radius: 4px;
   padding: 1px 6px;
 }
-.kb-fcv-chip-model { color: var(--ink-1); }
-.kb-fcv-chip-status { text-transform: lowercase; }
+.kb-fcv-chip-model {
+  color: var(--ink-1);
+}
+.kb-fcv-chip-status {
+  text-transform: lowercase;
+}
 .kb-fcv-chip-status.is-running,
 .kb-fcv-chip-status.is-queued,
 .kb-fcv-chip-status.is-pending {
@@ -2627,7 +2689,9 @@
   color: var(--ink-3);
   border-color: var(--hairline);
 }
-.kb-fcv-muted { color: var(--ink-3); }
+.kb-fcv-muted {
+  color: var(--ink-3);
+}
 
 .kb-fcv-stats {
   display: inline-flex;
@@ -2637,11 +2701,20 @@
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
-.kb-fcv-stat-add { color: oklch(0.72 0.16 145); }
-.kb-fcv-stat-del { color: oklch(0.7 0.18 25); }
+.kb-fcv-stat-add {
+  color: oklch(0.72 0.16 145);
+}
+.kb-fcv-stat-del {
+  color: oklch(0.7 0.18 25);
+}
 
-.kb-fcv-worktree-glyph { color: var(--ink-3); }
-.kb-fcv-worktree-sub { color: var(--ink-3); font-weight: normal; }
+.kb-fcv-worktree-glyph {
+  color: var(--ink-3);
+}
+.kb-fcv-worktree-sub {
+  color: var(--ink-3);
+  font-weight: normal;
+}
 .kb-fcv-worktree-status {
   font-size: 10px;
   text-transform: uppercase;
@@ -2661,9 +2734,16 @@
   color: var(--ink-3);
   font-style: italic;
 }
-.kb-fcv-err { color: oklch(0.7 0.18 25); }
-.kb-fcv-ok  { color: oklch(0.72 0.16 145); }
-.kb-fcv-hint { font-size: 10.5px; color: var(--ink-3); }
+.kb-fcv-err {
+  color: oklch(0.7 0.18 25);
+}
+.kb-fcv-ok {
+  color: oklch(0.72 0.16 145);
+}
+.kb-fcv-hint {
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
 
 .kb-fcv-reply {
   display: flex;
@@ -2922,7 +3002,9 @@
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
   max-width: 360px;
 }
 .kb-chat-session-trigger:hover {
@@ -3226,7 +3308,9 @@
   border-radius: 8px;
   background: var(--bg-1);
   overflow: hidden;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
 }
 .kb-md-editor:focus-within {
   border-color: var(--accent-line);
@@ -3591,12 +3675,27 @@
   border: 1px solid var(--hairline-soft);
   flex-shrink: 0;
 }
-.kb-sub-issue-status-backlog { color: var(--ink-3); }
-.kb-sub-issue-status-todo    { color: var(--ink-2); }
-.kb-sub-issue-status-running { color: var(--running, var(--accent)); border-color: var(--running, var(--accent)); }
-.kb-sub-issue-status-review  { color: var(--review); border-color: var(--review); }
-.kb-sub-issue-status-done    { color: var(--done, var(--review)); border-color: var(--done, var(--review)); }
-.kb-sub-issue-status-inbox   { color: var(--ink-3); }
+.kb-sub-issue-status-backlog {
+  color: var(--ink-3);
+}
+.kb-sub-issue-status-todo {
+  color: var(--ink-2);
+}
+.kb-sub-issue-status-running {
+  color: var(--running, var(--accent));
+  border-color: var(--running, var(--accent));
+}
+.kb-sub-issue-status-review {
+  color: var(--review);
+  border-color: var(--review);
+}
+.kb-sub-issue-status-done {
+  color: var(--done, var(--review));
+  border-color: var(--done, var(--review));
+}
+.kb-sub-issue-status-inbox {
+  color: var(--ink-3);
+}
 .kb-sub-issue-open {
   display: flex;
   align-items: center;

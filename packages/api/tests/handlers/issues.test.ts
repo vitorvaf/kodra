@@ -147,7 +147,9 @@ describe('issues:create', () => {
 
   it('rejects custom ids in a GitHub workspace', async () => {
     const { handlers } = makeHandlerTestKit({ mode: 'github' });
-    await expect(handlers['issues:create']({ title: 'feature', number: 'FEAT-42' })).rejects.toMatchObject({
+    await expect(
+      handlers['issues:create']({ title: 'feature', number: 'FEAT-42' }),
+    ).rejects.toMatchObject({
       name: 'BadRequest',
       status: 400,
     });

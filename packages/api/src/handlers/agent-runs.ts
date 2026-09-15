@@ -52,36 +52,24 @@ export interface RunIdArgs {
   runId: number;
 }
 
-export async function get(
-  deps: HandlerDeps,
-  args: RunIdArgs,
-): Promise<AgentRun> {
+export async function get(deps: HandlerDeps, args: RunIdArgs): Promise<AgentRun> {
   const parsed = parseArgs(idSchema, args);
   const run = deps.supervisor.getRun(parsed.runId);
   if (!run) throw notFound(`agent run ${parsed.runId} not found`);
   return run;
 }
 
-export async function listHunks(
-  deps: HandlerDeps,
-  args: RunIdArgs,
-): Promise<DiffHunk[]> {
+export async function listHunks(deps: HandlerDeps, args: RunIdArgs): Promise<DiffHunk[]> {
   const parsed = parseArgs(idSchema, args);
   return deps.store.diffHunks.listByRun(parsed.runId);
 }
 
-export async function stop(
-  deps: HandlerDeps,
-  args: RunIdArgs,
-): Promise<AgentRun> {
+export async function stop(deps: HandlerDeps, args: RunIdArgs): Promise<AgentRun> {
   const parsed = parseArgs(idSchema, args);
   return deps.supervisor.stop(parsed.runId);
 }
 
-export async function diff(
-  deps: HandlerDeps,
-  args: RunIdArgs,
-): Promise<DiffPayload> {
+export async function diff(deps: HandlerDeps, args: RunIdArgs): Promise<DiffPayload> {
   const parsed = parseArgs(idSchema, args);
   const run = deps.store.agentRuns.findById(parsed.runId);
   if (!run) throw notFound(`agent run ${parsed.runId} not found`);
@@ -112,10 +100,7 @@ interface StatsCacheEntry {
 const STATS_CACHE_MS = 5_000;
 const statsCache = new Map<number, StatsCacheEntry>();
 
-export async function stats(
-  deps: HandlerDeps,
-  args: RunIdArgs,
-): Promise<RunStatsResult> {
+export async function stats(deps: HandlerDeps, args: RunIdArgs): Promise<RunStatsResult> {
   const parsed = parseArgs(idSchema, args);
   const cached = statsCache.get(parsed.runId);
   if (cached && cached.expiresAt > Date.now()) return cached.payload;
@@ -129,11 +114,7 @@ export async function stats(
   let deletions = 0;
   for (const file of collected.files) {
     for (const line of file.patch.split('\n')) {
-      if (
-        line.startsWith('+++') ||
-        line.startsWith('---') ||
-        line.startsWith('diff ')
-      ) {
+      if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('diff ')) {
         continue;
       }
       if (line.startsWith('+')) additions++;
@@ -152,10 +133,7 @@ export async function stats(
   return payload;
 }
 
-export async function fork(
-  deps: HandlerDeps,
-  args: RunIdArgs,
-): Promise<ForkRunResult> {
+export async function fork(deps: HandlerDeps, args: RunIdArgs): Promise<ForkRunResult> {
   const parsed = parseArgs(idSchema, args);
   const source = deps.store.agentRuns.findById(parsed.runId);
   if (!source) throw notFound(`run ${parsed.runId} not found`);
@@ -173,11 +151,9 @@ export async function fork(
   const newBranch = `${source.branchName}-fork-${stamp}`;
   const newWorktreePath = `${source.worktreePath}-fork-${stamp}`;
   await mkdir(dirname(newWorktreePath), { recursive: true });
-  await execFileAsync(
-    'git',
-    ['worktree', 'add', '-b', newBranch, newWorktreePath, sha],
-    { cwd: source.worktreePath },
-  );
+  await execFileAsync('git', ['worktree', 'add', '-b', newBranch, newWorktreePath, sha], {
+    cwd: source.worktreePath,
+  });
   const run = await deps.supervisor.start({
     threadId: thread.id,
     issueNumber: thread.issueNumber,
@@ -236,11 +212,7 @@ export async function promoteCommit(
     // base isn't checked out anywhere — use a detached worktree and move the
     // ref ourselves so we don't compete with another checkout.
     const stamp = Date.now().toString(36);
-    const tmpPath = join(
-      describeKanbotsDir(repoPath).root,
-      'promote',
-      `${parsed.runId}-${stamp}`,
-    );
+    const tmpPath = join(describeKanbotsDir(repoPath).root, 'promote', `${parsed.runId}-${stamp}`);
     await mkdir(dirname(tmpPath), { recursive: true });
     await runGit(['worktree', 'add', '--detach', tmpPath, base], repoPath);
     try {
@@ -250,11 +222,9 @@ export async function promoteCommit(
       commitSha = stdout.trim();
       await runGit(['update-ref', `refs/heads/${base}`, commitSha], repoPath);
     } finally {
-      await execFileAsync(
-        'git',
-        ['worktree', 'remove', '--force', tmpPath],
-        { cwd: repoPath },
-      ).catch(() => undefined);
+      await execFileAsync('git', ['worktree', 'remove', '--force', tmpPath], {
+        cwd: repoPath,
+      }).catch(() => undefined);
     }
   }
 
@@ -275,25 +245,21 @@ export async function promoteCommit(
         ...(run.branchName !== null ? { sourceBranch: run.branchName } : {}),
       });
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[agent-runs] cloudPromote(commit) failed:', err instanceof Error ? err.message : err);
+      console.warn(
+        '[agent-runs] cloudPromote(commit) failed:',
+        err instanceof Error ? err.message : err,
+      );
     }
   }
   return { commitSha, base, cleanup };
 }
 
-async function ensureBranchAhead(
-  repoPath: string,
-  base: string,
-  branch: string,
-): Promise<void> {
+async function ensureBranchAhead(repoPath: string, base: string, branch: string): Promise<void> {
   let stdout: string;
   try {
-    ({ stdout } = await execFileAsync(
-      'git',
-      ['rev-list', '--count', `${base}..${branch}`],
-      { cwd: repoPath },
-    ));
+    ({ stdout } = await execFileAsync('git', ['rev-list', '--count', `${base}..${branch}`], {
+      cwd: repoPath,
+    }));
   } catch (err) {
     const e = err as { stderr?: string };
     const detail = (e.stderr ?? '').trim();
@@ -406,7 +372,7 @@ export async function runGit(
   } catch (err) {
     if (!(err instanceof Error)) throw err;
     const e = err as Error & { stderr?: string; stdout?: string };
-    const detail = ((e.stderr ?? '').trim() || (e.stdout ?? '').trim());
+    const detail = (e.stderr ?? '').trim() || (e.stdout ?? '').trim();
     if (!detail) throw err;
     const wrapped = new Error(`git ${args[0] ?? ''} failed: ${detail}`);
     wrapped.name = e.name;
@@ -414,10 +380,7 @@ export async function runGit(
   }
 }
 
-export async function locateBaseCheckout(
-  repoPath: string,
-  base: string,
-): Promise<string | null> {
+export async function locateBaseCheckout(repoPath: string, base: string): Promise<string | null> {
   let stdout: string;
   try {
     ({ stdout } = await execFileAsync('git', ['worktree', 'list', '--porcelain'], {
@@ -468,11 +431,9 @@ async function cleanupRunArtifacts(
     // best-effort
   }
   try {
-    await execFileAsync(
-      'git',
-      ['worktree', 'remove', '--force', run.worktreePath],
-      { cwd: repoPath },
-    );
+    await execFileAsync('git', ['worktree', 'remove', '--force', run.worktreePath], {
+      cwd: repoPath,
+    });
     worktreeRemoved = true;
   } catch {
     // worktree may already be missing
@@ -492,10 +453,7 @@ async function cleanupRunArtifacts(
   return { worktreeRemoved, branchDeleted };
 }
 
-export async function promotePr(
-  deps: HandlerDeps,
-  args: PromotePrArgs,
-): Promise<PromotePrResult> {
+export async function promotePr(deps: HandlerDeps, args: PromotePrArgs): Promise<PromotePrResult> {
   const parsed = parseArgs(promotePrSchema, args);
   const openDraftPR = deps.source.openDraftPR;
   if (typeof openDraftPR !== 'function') {
@@ -526,9 +484,7 @@ export async function promotePr(
   const trimmedTitleOverride = parsed.title?.trim();
   const trimmedBodyOverride = parsed.body?.trim();
   const finalTitle =
-    trimmedTitleOverride && trimmedTitleOverride.length > 0
-      ? trimmedTitleOverride
-      : issue.title;
+    trimmedTitleOverride && trimmedTitleOverride.length > 0 ? trimmedTitleOverride : issue.title;
   const finalBody =
     trimmedBodyOverride && trimmedBodyOverride.length > 0
       ? trimmedBodyOverride
@@ -565,8 +521,10 @@ export async function promotePr(
         prProvider: 'github',
       });
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[agent-runs] cloudPromote(pr) failed:', err instanceof Error ? err.message : err);
+      console.warn(
+        '[agent-runs] cloudPromote(pr) failed:',
+        err instanceof Error ? err.message : err,
+      );
     }
   }
   return { pr };
@@ -642,10 +600,7 @@ export async function detectLocalBase(repoPath: string): Promise<string> {
   throw badRequest('could not find a local main/master branch to promote into');
 }
 
-async function collectDiff(
-  worktreePath: string,
-  branchName: string | null,
-): Promise<DiffPayload> {
+async function collectDiff(worktreePath: string, branchName: string | null): Promise<DiffPayload> {
   const base = await detectBase(worktreePath);
   const tracked = await diffAgainstBase(worktreePath, base);
   const untracked = await listUntrackedFiles(worktreePath);
@@ -685,10 +640,7 @@ async function detectBase(cwd: string): Promise<string> {
 
 function isStdoutMaxBufferError(err: unknown): boolean {
   const e = err as { code?: unknown; name?: unknown };
-  return (
-    e?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' ||
-    e?.name === 'RangeError'
-  );
+  return e?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' || e?.name === 'RangeError';
 }
 
 /**
@@ -698,11 +650,7 @@ function isStdoutMaxBufferError(err: unknown): boolean {
  * useful to the renderer than a hard RangeError. Other errors (bad ref, git
  * failure) still reject so callers can apply their own fallbacks.
  */
-async function execGitText(
-  args: string[],
-  cwd: string,
-  maxBuffer: number,
-): Promise<string> {
+async function execGitText(args: string[], cwd: string, maxBuffer: number): Promise<string> {
   try {
     const { stdout } = await execFileAsync('git', args, { cwd, maxBuffer });
     return stdout;
@@ -747,18 +695,14 @@ async function diffAgainstBase(cwd: string, base: string): Promise<DiffFile[]> {
     ['diff', '--name-status', forkPoint],
     cwd,
     16 * 1024 * 1024,
-  ).catch(() =>
-    execGitText(['diff', '--name-status', 'HEAD'], cwd, 16 * 1024 * 1024),
-  );
+  ).catch(() => execGitText(['diff', '--name-status', 'HEAD'], cwd, 16 * 1024 * 1024));
 
   const statuses = parseNameStatus(nameStatusOut);
   if (statuses.length === 0) return [];
 
-  const patchText = await execGitText(
-    ['diff', forkPoint],
-    cwd,
-    32 * 1024 * 1024,
-  ).catch(() => execGitText(['diff', 'HEAD'], cwd, 32 * 1024 * 1024));
+  const patchText = await execGitText(['diff', forkPoint], cwd, 32 * 1024 * 1024).catch(() =>
+    execGitText(['diff', 'HEAD'], cwd, 32 * 1024 * 1024),
+  );
 
   const patches = splitUnifiedDiff(patchText);
   return statuses.map((s) => ({
@@ -805,9 +749,7 @@ function codeToStatus(code: string): DiffFileStatus {
 function splitUnifiedDiff(diff: string): Map<string, string> {
   const out = new Map<string, string>();
   if (!diff) return out;
-  const blocks = diff
-    .split(/^(?=diff --git )/m)
-    .filter((b) => b.startsWith('diff --git '));
+  const blocks = diff.split(/^(?=diff --git )/m).filter((b) => b.startsWith('diff --git '));
   for (const block of blocks) {
     const headerMatch = /^diff --git a\/(.+?) b\/(.+?)$/m.exec(block);
     const path = headerMatch ? (headerMatch[2] ?? headerMatch[1] ?? null) : null;
@@ -818,11 +760,10 @@ function splitUnifiedDiff(diff: string): Map<string, string> {
 
 async function listUntrackedFiles(cwd: string): Promise<string[]> {
   try {
-    const { stdout } = await execFileAsync(
-      'git',
-      ['ls-files', '--others', '--exclude-standard'],
-      { cwd, maxBuffer: 4 * 1024 * 1024 },
-    );
+    const { stdout } = await execFileAsync('git', ['ls-files', '--others', '--exclude-standard'], {
+      cwd,
+      maxBuffer: 4 * 1024 * 1024,
+    });
     return stdout
       .split('\n')
       .map((s) => s.trim())
@@ -834,11 +775,10 @@ async function listUntrackedFiles(cwd: string): Promise<string[]> {
 
 async function readUntracked(cwd: string, path: string): Promise<string> {
   try {
-    const { stdout } = await execFileAsync(
-      'git',
-      ['diff', '--no-index', '/dev/null', path],
-      { cwd, maxBuffer: 16 * 1024 * 1024 },
-    );
+    const { stdout } = await execFileAsync('git', ['diff', '--no-index', '/dev/null', path], {
+      cwd,
+      maxBuffer: 16 * 1024 * 1024,
+    });
     return stdout;
   } catch (err) {
     const e = err as { stdout?: string; code?: number };

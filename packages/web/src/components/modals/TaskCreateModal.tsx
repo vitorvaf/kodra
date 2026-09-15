@@ -14,10 +14,7 @@ import {
 import { api, isCloudMode } from '../../api.js';
 import { CardPreview } from '../Card.js';
 import { notifyBacklogCreated } from '../BacklogToast.js';
-import {
-  MarkdownEditor,
-  type MarkdownEditorHandle,
-} from '../forms/MarkdownEditor.js';
+import { MarkdownEditor, type MarkdownEditorHandle } from '../forms/MarkdownEditor.js';
 import {
   AGENT_RUN_PROVIDERS,
   MODELS,
@@ -339,10 +336,7 @@ export function TaskCreateModal({
   // Mirrors the dispatcher naming: kodra/issue-<id>-<runId> (see
   // defaultBranchName in @kanbots/dispatcher). Preview placeholders: N =
   // next auto number, R = run id assigned at dispatch time.
-  const branchName = useMemo(
-    () => `kodra/issue-${customNumber.trim() || 'N'}-R`,
-    [customNumber],
-  );
+  const branchName = useMemo(() => `kodra/issue-${customNumber.trim() || 'N'}-R`, [customNumber]);
   const previewIssue: Issue = useMemo(
     () => ({
       number: 0,
@@ -352,7 +346,11 @@ export function TaskCreateModal({
       labels: [
         `type:${tag}`,
         `priority:${priority}`,
-        mode === 'queue' ? 'status:backlog' : mode === 'spec' ? 'status:todo' : 'status:in-progress',
+        mode === 'queue'
+          ? 'status:backlog'
+          : mode === 'spec'
+            ? 'status:todo'
+            : 'status:in-progress',
       ],
       assignees: assignee === 'claude' ? [] : ['you'],
       user: { login: 'you', avatarUrl: null },
@@ -720,9 +718,7 @@ export function TaskCreateModal({
                       disabled={modelOptions.length === 0}
                       aria-label="Model"
                     >
-                      {modelOptions.length === 0 ? (
-                        <option value="">(no models)</option>
-                      ) : null}
+                      {modelOptions.length === 0 ? <option value="">(no models)</option> : null}
                       {modelOptions.map((m) => (
                         <option key={m.id} value={m.id}>
                           {m.label}
@@ -847,11 +843,7 @@ export function TaskCreateModal({
                   marginBottom: 8,
                 }}
               >
-                {mode === 'queue'
-                  ? 'BACKLOG'
-                  : mode === 'spec'
-                    ? 'AWAITING INPUT'
-                    : 'IN PROGRESS'}
+                {mode === 'queue' ? 'BACKLOG' : mode === 'spec' ? 'AWAITING INPUT' : 'IN PROGRESS'}
               </div>
               <div className="kb-preview-card-wrap">
                 <CardPreview issue={previewIssue} />
@@ -868,8 +860,8 @@ export function TaskCreateModal({
                 <span style={{ fontFamily: 'var(--ff-mono)', color: 'var(--accent)' }}>
                   {branchName}
                 </span>{' '}
-                off <span style={{ fontFamily: 'var(--ff-mono)', color: 'var(--ink-1)' }}>main</span>{' '}
-                in{' '}
+                off{' '}
+                <span style={{ fontFamily: 'var(--ff-mono)', color: 'var(--ink-1)' }}>main</span> in{' '}
                 <span style={{ fontFamily: 'var(--ff-mono)', color: 'var(--ink-2)' }}>
                   .kodra/worktrees/issue-{customNumber.trim() || 'N'}-R
                 </span>
@@ -892,7 +884,10 @@ export function TaskCreateModal({
               style={{ fontFamily: 'var(--ff-mono)' }}
               title={focused.repoPath}
             >
-              Will run in: {focused.displayName ?? focused.repoPath.split('/').filter(Boolean).pop() ?? focused.repoPath}
+              Will run in:{' '}
+              {focused.displayName ??
+                focused.repoPath.split('/').filter(Boolean).pop() ??
+                focused.repoPath}
               {focused.targetBranch ? ` · ${focused.targetBranch}` : ''}
             </span>
           ) : null}
@@ -963,10 +958,7 @@ function SplitButton({
         ▾
       </button>
       {open ? (
-        <div
-          className="kb-btn-grp-menu"
-          style={{ bottom: 'calc(100% + 6px)', right: 0 }}
-        >
+        <div className="kb-btn-grp-menu" style={{ bottom: 'calc(100% + 6px)', right: 0 }}>
           {options.map((opt) => (
             <button
               key={opt.label}

@@ -93,7 +93,14 @@ export function HouseRulesSettingsModal({ onClose }: HouseRulesSettingsModalProp
             aria-label="Close (Esc)"
             title="Close"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M6 6l12 12M18 6l-12 12" />
             </svg>
           </button>
@@ -101,9 +108,9 @@ export function HouseRulesSettingsModal({ onClose }: HouseRulesSettingsModalProp
 
         <div className="kb-modal-body kb-sentry-body">
           <div className="kb-sentry-hint">
-            Workspace-wide guidance prepended to every agent run started here. Use it for the
-            things you'd otherwise repeat per task — package manager, libraries to prefer, lint
-            commands, files never to touch.
+            Workspace-wide guidance prepended to every agent run started here. Use it for the things
+            you'd otherwise repeat per task — package manager, libraries to prefer, lint commands,
+            files never to touch.
           </div>
 
           {loading ? <div className="kb-sentry-row">Loading…</div> : null}
@@ -115,7 +122,10 @@ export function HouseRulesSettingsModal({ onClose }: HouseRulesSettingsModalProp
           ) : null}
 
           {!loading ? (
-            <div className="kb-sentry-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+            <div
+              className="kb-sentry-row"
+              style={{ flexDirection: 'column', alignItems: 'stretch' }}
+            >
               <span className="kb-sentry-label" style={{ marginBottom: 6 }}>
                 Rules
               </span>

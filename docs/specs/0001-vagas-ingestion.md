@@ -1,11 +1,11 @@
 # Spec 0001 — `vagas.com.br` job ingestion
 
-| | |
-| --- | --- |
-| **Task** | #3 — Criar uma nova ingestion (`https://www.vagas.com.br/vagas-de-tecnologia`) |
-| **Status** | Draft — awaiting decision on §9 (fetching strategy) |
-| **Date** | 2026-08-12 |
-| **Template** | Mirrors the existing Sentry ingestion (client → store → API → poller → UI) |
+|              |                                                                                     |
+| ------------ | ----------------------------------------------------------------------------------- |
+| **Task**     | #3 — Criar uma nova ingestion (`https://www.vagas.com.br/vagas-de-tecnologia`)      |
+| **Status**   | Draft — awaiting decision on §9 (fetching strategy)                                 |
+| **Date**     | 2026-08-12                                                                          |
+| **Template** | Mirrors the existing Sentry ingestion (client → store → API → poller → UI)          |
 | **Research** | `@explorer` Sentry wiring map + `@librarian` vagas.com.br site study (this session) |
 
 ---
@@ -29,15 +29,15 @@ table, and creates one local issue per new posting in the **Inbox** column.
 
 `@explorer` mapped it end-to-end. The new ingestion copies this skeleton:
 
-| Layer | Sentry file | Vagas equivalent (new) |
-| --- | --- | --- |
-| Core client | `packages/core/src/sentry-client.ts` | `packages/core/src/vagas-client.ts` |
-| Migration | `packages/local-store/src/migrations/0010-sentry.ts` | `…/migrations/0031-vagas.ts` (**0031 is the next free number**; `0011` is taken, `0019` reserved) |
-| Config repo | `…/repos/sentry-config.ts` | `…/repos/vagas-config.ts` |
-| Imports repo | `…/repos/sentry-imports.ts` | `…/repos/vagas-imports.ts` |
-| IPC handlers | `packages/api/src/handlers/sentry.ts` | `packages/api/src/handlers/vagas.ts` |
-| Poller | `packages/desktop/src/sentry-poller.ts` | `packages/desktop/src/vagas-poller.ts` |
-| Settings UI | `packages/web/src/components/modals/SentrySettingsModal.tsx` | `…/modals/VagasSettingsModal.tsx` |
+| Layer        | Sentry file                                                  | Vagas equivalent (new)                                                                            |
+| ------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Core client  | `packages/core/src/sentry-client.ts`                         | `packages/core/src/vagas-client.ts`                                                               |
+| Migration    | `packages/local-store/src/migrations/0010-sentry.ts`         | `…/migrations/0031-vagas.ts` (**0031 is the next free number**; `0011` is taken, `0019` reserved) |
+| Config repo  | `…/repos/sentry-config.ts`                                   | `…/repos/vagas-config.ts`                                                                         |
+| Imports repo | `…/repos/sentry-imports.ts`                                  | `…/repos/vagas-imports.ts`                                                                        |
+| IPC handlers | `packages/api/src/handlers/sentry.ts`                        | `packages/api/src/handlers/vagas.ts`                                                              |
+| Poller       | `packages/desktop/src/sentry-poller.ts`                      | `packages/desktop/src/vagas-poller.ts`                                                            |
+| Settings UI  | `packages/web/src/components/modals/SentrySettingsModal.tsx` | `…/modals/VagasSettingsModal.tsx`                                                                 |
 
 The Sentry poller only depends on `IssueSource.createIssue()` from the
 source — the vagas poller reuses the exact same contract
@@ -66,6 +66,7 @@ source — the vagas poller reuses the exact same contract
 ## 3. Scope — v1 (this spec)
 
 **In:**
+
 - Poll **page 1** of the configured search URL on a timer (default 30 min).
 - Parse listings, de-duplicate by `vaga_id`, create one Inbox card per new
   posting, record an import row.
@@ -73,6 +74,7 @@ source — the vagas poller reuses the exact same contract
 - Honest User-agent, robots-respecting path scope, graceful block handling.
 
 **Out / non-goals (§10):**
+
 - "Load more" pagination / full-result crawl (deferred — see §9 decision).
 - A generic/pluggable ingestion framework. This is a site-specific module.
 - Applying to jobs via the site (no auth, no CV upload).
@@ -95,22 +97,22 @@ export class VagasBlockError extends Error {
 
 export interface VagasClientOptions {
   searchUrl?: string; // default https://www.vagas.com.br/vagas-de-tecnologia
-  userAgent?: string;  // default honest UA (see §8)
+  userAgent?: string; // default honest UA (see §8)
   fetch?: typeof fetch;
 }
 
 export interface VagasListing {
-  vagaId: string;          // numeric id from /vagas/{id}/{slug}
+  vagaId: string; // numeric id from /vagas/{id}/{slug}
   title: string;
-  detailUrl: string;       // absolute
+  detailUrl: string; // absolute
   company: string | null;
   location: string | null;
-  salary: string | null;   // frequently null on this site
+  salary: string | null; // frequently null on this site
 }
 
 export class VagasClient {
   constructor(opts?: VagasClientOptions);
-  listListings(): Promise<VagasListing[]>;       // page 1 only (v1)
+  listListings(): Promise<VagasListing[]>; // page 1 only (v1)
   testConnection(): Promise<{ ok: true; count: number }>; // fetch + parse, no throw
 }
 ```
@@ -166,6 +168,7 @@ CREATE INDEX idx_vagas_imports_status ON vagas_imports(status);
 > no `VagasRuntime` token plumbing, no `safeStorage`).
 
 **Repos** (mirror sentry-config / sentry-imports APIs):
+
 - `VagasConfigRepo`: `get()` / `update(patch)` / `recordFailure()` /
   `resetFailures()`.
 - `VagasImportsRepo`: `findByVagaId(id)` / `findByLocalNumber(n)` /
@@ -211,15 +214,22 @@ Zod schemas mirror sentry's `.strict()` style:
 `sentry-poller.ts`:
 
 ```ts
-interface VagasPollerOptions { store: Store; source: IssueSource; broadcast: () => void; }
+interface VagasPollerOptions {
+  store: Store;
+  source: IssueSource;
+  broadcast: () => void;
+}
 class VagasPoller {
   constructor(opts: VagasPollerOptions);
-  start(): void; stop(): void; restart(): void;
+  start(): void;
+  stop(): void;
+  restart(): void;
   runOnce(): Promise<VagasSyncSummary>;
 }
 ```
 
 `runOnce()` flow:
+
 1. Read `vagasConfig`; no-op if `!enabled`.
 2. Build `VagasClient({ searchUrl, userAgent })`; call `listListings()`.
 3. For each listing: skip if `vagasImports.findByVagaId(vagaId)` exists
@@ -242,7 +252,7 @@ class VagasPoller {
 `formatVagasBody()`:
 
 ```md
-> Imported from vagas.com.br — [view listing](<detailUrl>)
+> Imported from vagas.com.br — [view listing](detailUrl)
 
 **Cargo:** <title>
 **Empresa:** <company | "Não informado">
@@ -318,24 +328,24 @@ VagasPoller tick
 
 ## 8. Risks
 
-| # | Risk | Severity | Mitigation |
-| --- | --- | --- | --- |
-| R1 | Cloudflare 403/503 blocks the fetch | **High** | `VagasBlockError` → backoff; honest UA; pt-BR `Accept-Language`; surface `last_error` in UI. Accept that syncs may fail intermittently. |
-| R2 | DOM selectors churn (`<li>`→`<article>`) | Med | `vagaId` from URL path (stable); multi-strategy selector fallback; fixture test + parse-failure alerting. |
-| R3 | Page-1-only misses older/newer postings | Med | Accepted in v1; dedup accumulates new postings over time; §9 option B is the upgrade. |
-| R4 | ToS / legal reuse of scraped data | Med | Public listings only; honest UA; **legal-review gate** before any non-personal use; document as a constraint in the settings modal. |
-| R5 | `cheerio` added to `@kanbots/core` | Low | Acceptable (standard lib); revisit if core must stay parser-free (§9 sub-decision). |
-| R6 | Salary frequently `null` on this site | Low | Schema allows null; body renders "Não informado". |
+| #   | Risk                                     | Severity | Mitigation                                                                                                                              |
+| --- | ---------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Cloudflare 403/503 blocks the fetch      | **High** | `VagasBlockError` → backoff; honest UA; pt-BR `Accept-Language`; surface `last_error` in UI. Accept that syncs may fail intermittently. |
+| R2  | DOM selectors churn (`<li>`→`<article>`) | Med      | `vagaId` from URL path (stable); multi-strategy selector fallback; fixture test + parse-failure alerting.                               |
+| R3  | Page-1-only misses older/newer postings  | Med      | Accepted in v1; dedup accumulates new postings over time; §9 option B is the upgrade.                                                   |
+| R4  | ToS / legal reuse of scraped data        | Med      | Public listings only; honest UA; **legal-review gate** before any non-personal use; document as a constraint in the settings modal.     |
+| R5  | `cheerio` added to `@kanbots/core`       | Low      | Acceptable (standard lib); revisit if core must stay parser-free (§9 sub-decision).                                                     |
+| R6  | Salary frequently `null` on this site    | Low      | Schema allows null; body renders "Não informado".                                                                                       |
 
 ## 9. Decisions required before implementation
 
 ### Decision A — fetching strategy (critical)
 
-| | Approach | Pros | Cons |
-| --- | --- | --- | --- |
-| **A1 (recommended)** | HTTP `fetch` + `cheerio`, **page 1 only** | Mirrors `SentryClient`; no heavy deps; dedup makes page-1 viable; fits desktop | Misses anything not on page 1 during a given poll |
-| A2 | Hidden `BrowserWindow`/session in Electron for "load more" | Full results; reuses shipped Chromium (no new dep) | Couples client to desktop; harder to unit-test; heavier per sync |
-| A3 | Add Playwright as a dep | Full results; cleanest headless API | Heavy dep; redundant in an Electron app; overkill for v1 |
+|                      | Approach                                                   | Pros                                                                           | Cons                                                             |
+| -------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| **A1 (recommended)** | HTTP `fetch` + `cheerio`, **page 1 only**                  | Mirrors `SentryClient`; no heavy deps; dedup makes page-1 viable; fits desktop | Misses anything not on page 1 during a given poll                |
+| A2                   | Hidden `BrowserWindow`/session in Electron for "load more" | Full results; reuses shipped Chromium (no new dep)                             | Couples client to desktop; harder to unit-test; heavier per sync |
+| A3                   | Add Playwright as a dep                                    | Full results; cleanest headless API                                            | Heavy dep; redundant in an Electron app; overkill for v1         |
 
 **Recommendation: A1 for v1**, with the client interface (`listListings`)
 written so A2/A3 can slot in later without touching the poller/store/UI.

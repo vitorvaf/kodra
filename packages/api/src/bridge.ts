@@ -137,9 +137,7 @@ export interface DraftPrDescriptionInput {
   diffTruncated?: boolean;
 }
 
-export type DraftPrDescriptionFn = (
-  input: DraftPrDescriptionInput,
-) => Promise<DraftedIssue>;
+export type DraftPrDescriptionFn = (input: DraftPrDescriptionInput) => Promise<DraftedIssue>;
 
 export interface DraftedPrDescription {
   title: string;
@@ -322,13 +320,11 @@ export interface IssueActiveRunPayload {
   currentTool: string | null;
   currentArg: string | null;
   totalCostUsd: number | null;
-  pendingDecision:
-    | {
-        cardId: number;
-        question: string;
-        options: Array<{ value: string; label: string }>;
-      }
-    | null;
+  pendingDecision: {
+    cardId: number;
+    question: string;
+    options: Array<{ value: string; label: string }>;
+  } | null;
   checks: {
     typecheck: 'pass' | 'fail' | 'running' | 'idle';
     tests: 'pass' | 'fail' | 'running' | 'idle';
@@ -685,13 +681,7 @@ export interface WorkspaceRepoStatus {
   dirtyCount: number;
 }
 
-export type DiffFileStatus =
-  | 'added'
-  | 'modified'
-  | 'deleted'
-  | 'renamed'
-  | 'untracked'
-  | 'other';
+export type DiffFileStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'untracked' | 'other';
 
 export interface DiffFile {
   path: string;

@@ -83,11 +83,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     [data, loading, error, mutate, refetch],
   );
 
-  return createElement(
-    IssuesContext.Provider,
-    { value },
-    children,
-  );
+  return createElement(IssuesContext.Provider, { value }, children);
 }
 
 export function useIssues(): IssuesContextValue {

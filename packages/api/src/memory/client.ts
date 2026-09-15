@@ -18,6 +18,42 @@ export interface SmartSearchInput {
   namespace?: string;
   sessionId?: string;
   topK?: number;
+  agentId?: string;
+}
+
+/** Body of `POST /agentmemory/remember` (AgentMemory's own field names). */
+export interface RememberMemoryInput {
+  content: string;
+  /** AgentMemory memory type: pattern | preference | architecture | bug | workflow | fact. */
+  type?: string;
+  concepts?: string[];
+  files?: string[];
+  project?: string;
+  agentId?: string;
+  ttlDays?: number;
+}
+
+export interface RememberMemoryResult {
+  id: string | null;
+  /** Id of a near-duplicate AgentMemory reported without superseding it. */
+  similarTo: string | null;
+}
+
+export interface TeamShareInput {
+  itemId: string;
+  itemType: 'memory' | 'observation' | 'pattern';
+  sessionId?: string;
+  project?: string;
+}
+
+/** One entry of `GET /agentmemory/team/feed`. */
+export interface TeamFeedItem {
+  id: string;
+  content: string;
+  type: string;
+  project: string;
+  sharedBy: string;
+  sharedAt: string;
 }
 
 export interface SaveMemoryInput {
@@ -51,6 +87,11 @@ export interface AgentMemoryClient {
   smartSearch(input: SmartSearchInput): Promise<MemoryHit[]>;
   getSession(sessionId: string): Promise<{ hasContent: boolean } | null>;
   save(input: SaveMemoryInput): Promise<boolean>;
+  /** Like `save` but returns the stored memory id; `null` when the request failed. */
+  remember(input: RememberMemoryInput): Promise<RememberMemoryResult | null>;
+  forget(memoryId: string): Promise<boolean>;
+  teamShare(input: TeamShareInput): Promise<boolean>;
+  teamFeed(limit?: number): Promise<TeamFeedItem[]>;
   sessionStart(input: SessionStartInput): Promise<boolean>;
   observe(input: ObserveInput): Promise<boolean>;
   sessionEnd(sessionId: string): Promise<boolean>;
@@ -63,6 +104,9 @@ const ENDPOINTS = {
   smartSearch: '/agentmemory/smart-search',
   sessions: '/agentmemory/sessions',
   remember: '/agentmemory/remember',
+  forget: '/agentmemory/forget',
+  teamShare: '/agentmemory/team/share',
+  teamFeed: '/agentmemory/team/feed',
   sessionStart: '/agentmemory/session/start',
   observe: '/agentmemory/observe',
   sessionEnd: '/agentmemory/session/end',
@@ -117,11 +161,7 @@ async function request<T>(
 
 function parseVersion(body: unknown): string | null {
   if (isRecord(body) && typeof body.version === 'string') return body.version;
-  if (
-    isRecord(body) &&
-    isRecord(body.service) &&
-    typeof body.service.version === 'string'
-  ) {
+  if (isRecord(body) && isRecord(body.service) && typeof body.service.version === 'string') {
     return body.service.version;
   }
   return null;
@@ -132,20 +172,64 @@ function parseSearchResults(body: unknown): MemoryHit[] {
   const results = Array.isArray(body) ? body : isRecord(body) ? body.results : null;
   if (!Array.isArray(results)) return [];
 
-  return results
-    .filter(isRecord)
-    .map((result) => ({
-      id: result.obsId,
-      content:
-        typeof result.title === 'string'
-          ? result.title
-          : typeof result.type === 'string'
-            ? result.type
-            : '',
-      score: result.score,
-      sessionId: result.sessionId,
-      ...result,
-    })) as MemoryHit[];
+  return results.filter(isRecord).map((result) => ({
+    id: result.obsId,
+    content:
+      typeof result.title === 'string'
+        ? result.title
+        : typeof result.type === 'string'
+          ? result.type
+          : '',
+    score: result.score,
+    sessionId: result.sessionId,
+    ...result,
+  })) as MemoryHit[];
+}
+
+function parseRemember(body: unknown): RememberMemoryResult {
+  if (!isRecord(body)) return { id: null, similarTo: null };
+  const memory = isRecord(body.memory) ? body.memory : null;
+  const similar = isRecord(body.similarTo) ? body.similarTo : null;
+  return {
+    id: memory && typeof memory.id === 'string' ? memory.id : null,
+    similarTo: similar && typeof similar.id === 'string' ? similar.id : null,
+  };
+}
+
+function parseTeamFeed(body: unknown): TeamFeedItem[] {
+  if (!isRecord(body) || !Array.isArray(body.items)) return [];
+  return body.items.filter(isRecord).flatMap((item) => {
+    if (typeof item.id !== 'string') return [];
+    // `team/share` copies the whole item under `content`: for a shared memory
+    // that is the memory record ({ id, content, type, ... }), for an
+    // observation it is the observation. Older/other shapes carry a plain string.
+    const nested = isRecord(item.content) ? item.content : null;
+    const text =
+      typeof item.content === 'string'
+        ? item.content
+        : nested && typeof nested.content === 'string'
+          ? nested.content
+          : nested && typeof nested.title === 'string'
+            ? nested.title
+            : null;
+    if (text === null) return [];
+    const memoryType = nested && typeof nested.type === 'string' ? nested.type : null;
+    return [
+      {
+        id: item.id,
+        content: text,
+        type: memoryType ?? (typeof item.type === 'string' ? item.type : 'memory'),
+        project:
+          typeof item.project === 'string' && item.project.length > 0
+            ? item.project
+            : nested && typeof nested.project === 'string'
+              ? nested.project
+              : '',
+        sharedBy: typeof item.sharedBy === 'string' ? item.sharedBy : '',
+        sharedAt: typeof item.sharedAt === 'string' ? item.sharedAt : '',
+      },
+    ];
+  });
 }
 
 function parseSession(body: unknown, sessionId: string): { hasContent: boolean } | null {
@@ -159,7 +243,7 @@ function parseSession(body: unknown, sessionId: string): { hasContent: boolean }
     ? {
         hasContent: Boolean(
           (typeof session.observationCount === 'number' && session.observationCount > 0) ||
-            session.summary,
+          session.summary,
         ),
       }
     : null;
@@ -218,6 +302,7 @@ export function createAgentMemoryClient(config: MemoryClientConfig): AgentMemory
               limit: input.topK ?? 3,
               ...(input.namespace ? { project: input.namespace } : {}),
               ...(input.sessionId ? { sessionId: input.sessionId } : {}),
+              ...(input.agentId ? { agentId: input.agentId } : {}),
               includeLessons: true,
             }),
           },
@@ -261,6 +346,80 @@ export function createAgentMemoryClient(config: MemoryClientConfig): AgentMemory
       } catch (error) {
         warnFailure('save', error);
         return false;
+      }
+    },
+
+    async remember(input: RememberMemoryInput): Promise<RememberMemoryResult | null> {
+      try {
+        return await jsonRequest(
+          endpointUrl(config.baseUrl, ENDPOINTS.remember),
+          {
+            method: 'POST',
+            headers: { ...authHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: input.content,
+              ...(input.type ? { type: input.type } : {}),
+              ...(input.concepts && input.concepts.length > 0 ? { concepts: input.concepts } : {}),
+              ...(input.files && input.files.length > 0 ? { files: input.files } : {}),
+              ...(input.project ? { project: input.project } : {}),
+              ...(input.agentId ? { agentId: input.agentId } : {}),
+              ...(input.ttlDays !== undefined ? { ttlDays: input.ttlDays } : {}),
+            }),
+          },
+          parseRemember,
+        );
+      } catch (error) {
+        warnFailure('remember', error);
+        return null;
+      }
+    },
+
+    async forget(memoryId: string): Promise<boolean> {
+      try {
+        await request(endpointUrl(config.baseUrl, ENDPOINTS.forget), timeoutMs, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memoryId }),
+        });
+        return true;
+      } catch (error) {
+        warnFailure('forget', error);
+        return false;
+      }
+    },
+
+    async teamShare(input: TeamShareInput): Promise<boolean> {
+      try {
+        await request(endpointUrl(config.baseUrl, ENDPOINTS.teamShare), timeoutMs, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            itemId: input.itemId,
+            itemType: input.itemType,
+            ...(input.sessionId ? { sessionId: input.sessionId } : {}),
+            ...(input.project ? { project: input.project } : {}),
+          }),
+        });
+        return true;
+      } catch (error) {
+        warnFailure('teamShare', error);
+        return false;
+      }
+    },
+
+    async teamFeed(limit = 20): Promise<TeamFeedItem[]> {
+      try {
+        return await jsonRequest(
+          endpointUrl(
+            config.baseUrl,
+            `${ENDPOINTS.teamFeed}?limit=${encodeURIComponent(String(limit))}`,
+          ),
+          { method: 'GET', headers: authHeaders },
+          parseTeamFeed,
+        );
+      } catch (error) {
+        warnFailure('teamFeed', error);
+        return [];
       }
     },
 

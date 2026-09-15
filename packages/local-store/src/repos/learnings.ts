@@ -1,12 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Db } from '../db.js';
-import type {
-  AgentRunId,
-  CuratorRunState,
-  Learning,
-  LearningId,
-  LearningTag,
-} from '../types.js';
+import type { AgentRunId, CuratorRunState, Learning, LearningId, LearningTag } from '../types.js';
 
 interface LearningRow {
   id: number;
@@ -237,9 +231,7 @@ export class LearningsRepo {
   }
 
   pin(id: LearningId, pinned: boolean): Learning {
-    this.db
-      .prepare('UPDATE learnings SET pinned = ? WHERE id = ?')
-      .run(pinned ? 1 : 0, id);
+    this.db.prepare('UPDATE learnings SET pinned = ? WHERE id = ?').run(pinned ? 1 : 0, id);
     const row = this.findById(id);
     if (!row) throw new Error(`Learning ${id} not found`);
     return row;
@@ -268,9 +260,7 @@ export class LearningsRepo {
    *  to bail early if today's spend has hit the cap. */
   getCuratorState(repoOwner: string, repoName: string): CuratorRunState | null {
     const row = this.db
-      .prepare(
-        'SELECT * FROM curator_run_state WHERE repo_owner = ? AND repo_name = ?',
-      )
+      .prepare('SELECT * FROM curator_run_state WHERE repo_owner = ? AND repo_name = ?')
       .get(repoOwner, repoName) as
       | {
           repo_owner: string;
@@ -325,11 +315,7 @@ export class LearningsRepo {
     return next;
   }
 
-  setCuratorDailyBudget(
-    repoOwner: string,
-    repoName: string,
-    dailyBudgetUsd: number | null,
-  ): void {
+  setCuratorDailyBudget(repoOwner: string, repoName: string, dailyBudgetUsd: number | null): void {
     const existing = this.getCuratorState(repoOwner, repoName);
     if (!existing) {
       this.db

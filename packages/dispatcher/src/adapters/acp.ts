@@ -1,13 +1,6 @@
 import { parseAcpLine } from './acp-protocol.js';
-import {
-  detectRateLimit as detectRateLimitFromText,
-  type StreamEvent,
-} from '../stream-parser.js';
-import type {
-  AgentCliAdapter,
-  BuildArgsInput,
-  ComposePromptInput,
-} from './types.js';
+import { detectRateLimit as detectRateLimitFromText, type StreamEvent } from '../stream-parser.js';
+import type { AgentCliAdapter, BuildArgsInput, ComposePromptInput } from './types.js';
 
 /**
  * Generic Agent Client Protocol (ACP) transport adapter.
@@ -63,10 +56,11 @@ export function setAcpWorkspaceCommand(command: string | null): void {
   workspaceAcpCommand = trimmed.length > 0 ? trimmed : null;
 }
 
-function parseShellLikeCommand(
-  raw: string,
-): { command: string; args: readonly string[] } | null {
-  const parts = raw.trim().split(/\s+/).filter((s) => s.length > 0);
+function parseShellLikeCommand(raw: string): { command: string; args: readonly string[] } | null {
+  const parts = raw
+    .trim()
+    .split(/\s+/)
+    .filter((s) => s.length > 0);
   const head = parts[0];
   if (head === undefined || head.length === 0) return null;
   return { command: head, args: parts.slice(1) };

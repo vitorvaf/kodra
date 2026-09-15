@@ -8,7 +8,9 @@ const webDist = resolve(desktopRoot, '..', 'web', 'dist');
 const target = join(desktopRoot, 'dist', 'web');
 
 if (!existsSync(webDist)) {
-  console.error(`[copy-web] expected web build at ${webDist}; run \`pnpm --filter @kanbots/web build\` first.`);
+  console.error(
+    `[copy-web] expected web build at ${webDist}; run \`pnpm --filter @kanbots/web build\` first.`,
+  );
   process.exit(1);
 }
 

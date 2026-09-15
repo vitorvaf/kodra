@@ -8,13 +8,13 @@
 ## Context
 
 Wiring the MCP server (ADR-0003) and scoping memory (ADR-0004) make
-agentmemory *reachable* from spawned agents. They don't guarantee the agent
-*uses* it. Two failure modes:
+agentmemory _reachable_ from spawned agents. They don't guarantee the agent
+_uses_ it. Two failure modes:
 
 1. **No recall.** The agent never calls `memory_recall` and re-derives
    everything from scratch — the integration produces no quality gain.
 2. **No checkpoint.** The agent finishes a run without writing anything to
-   memory, so the *next* run has nothing to recall. The memory layer stays
+   memory, so the _next_ run has nothing to recall. The memory layer stays
    empty.
 
 kanbots's dispatch flow has two natural injection points (confirmed by
@@ -33,9 +33,10 @@ kanbots's dispatch flow has two natural injection points (confirmed by
 agentmemory itself ships 12 lifecycle hooks (SessionStart, UserPromptSubmit,
 PreToolUse, PostToolUse, PreCompact, Stop, …) that can auto-capture and
 auto-inject when wired into the agent's config. So there are two independent
-actors who *could* drive injection/checkpoint: **the agent** (via
+actors who _could_ drive injection/checkpoint: **the agent** (via
 agentmemory's own hooks + MCP tool calls) and **kanbots** (via prompt prefix
-+ transcript reading).
+
+- transcript reading).
 
 ### Forces
 
@@ -47,7 +48,7 @@ agentmemory's own hooks + MCP tool calls) and **kanbots** (via prompt prefix
   adapter's event schema.
 - The `result` event already carries cost and status; the `text` / `tool_use`
   / `tool_result` events in `agent_events` are the raw material for a
-  checkpoint. But summarizing them into a *memory* is exactly what
+  checkpoint. But summarizing them into a _memory_ is exactly what
   agentmemory's own consolidation does best.
 - Prompt-prefix tokens count against the run's cost budget; injecting a huge
   recalled blob eats budget. Recall must be selective.
@@ -64,12 +65,12 @@ fallback checkpoint only when the agent demonstrably didn't.**
    as the query, scoped per ADR-0004's namespace. It takes the **top-K
    results** (K=3 to start, tunable), formats them as a short "Relevant
    project memory" block, and prepends that block to `appendSystemPrompt` in
-   `composeSystemPrompt()`. This guarantees every run *starts* with context,
+   `composeSystemPrompt()`. This guarantees every run _starts_ with context,
    even if the agent never calls `memory_recall` itself.
 
    The block is explicitly bounded (token-capped) and ends with the line:
-   *"You also have `memory_recall` / `memory_smart_search` MCP tools for
-   deeper queries."* — turning the passive MCP wiring from ADR-0003 into an
+   _"You also have `memory_recall` / `memory_smart_search` MCP tools for
+   deeper queries."_ — turning the passive MCP wiring from ADR-0003 into an
    active affordance the agent knows about.
 
 2. **Checkpoint: agent-driven by default.** agentmemory's own hooks
@@ -102,19 +103,21 @@ fallback checkpoint only when the agent demonstrably didn't.**
    (`stream-parser.ts`, persisted to `agent_events`) and the user resolves
    it, kanbots writes the (question, chosen option) pair to memory under the
    run's session. These are high-value, human-validated decisions — exactly
-   what future runs should recall. This is the one piece of *kanbots-native*
+   what future runs should recall. This is the one piece of _kanbots-native_
    memory content, because kanbots is the only actor that sees the resolved
    decision.
 
 ## Alternatives Considered
 
 ### Option A — Pure passive (wire MCP only; agent decides)
+
 Rejected as sole mechanism. Depends entirely on the agent choosing to call
 `memory_recall`. For weaker models or tightly-scoped agents, recall never
 happens and the integration looks broken. The pre-run prefix injection in
 Decision 1 makes recall guaranteed, not optional.
 
 ### Option B — Pure active (kanbots reads transcript, summarizes, writes)
+
 Rejected. (a) Duplicates agentmemory's consolidation engine. (b) kanbots
 would have to understand 11 adapters' event schemas to summarize faithfully.
 (c) The summary quality would be worse than agentmemory's purpose-built
@@ -122,12 +125,14 @@ hybrid search + LLM consolidation. Keep kanbots's role to the minimal
 fallback in Decision 3.
 
 ### Option C — agentmemory hooks only; no kanbots involvement
+
 Tempting (least kanbots code) but rejected because hook support varies across
 the 11 agents. The agents that don't support hooks (or where the user hasn't
 run `agentmemory connect`) would get neither recall nor checkpoint. The
 hybrid covers them via prompt prefix + onRunComplete fallback.
 
 ### Option D — Inject the full recall into every prompt; no MCP
+
 Rejected. (a) Blows the cost budget on large memories. (b) The agent loses
 the ability to query deeper on demand. MCP stays wired so the agent can dig
 further; the prefix is just the guaranteed minimum.
@@ -135,6 +140,7 @@ further; the prefix is just the guaranteed minimum.
 ## Consequences
 
 **Positive:**
+
 - Every run starts with context — the quality benefit is realized even when
   the agent is passive or hooks aren't wired.
 - Checkpoint has two independent paths (agent hooks + kanbots fallback), so a
@@ -145,6 +151,7 @@ further; the prefix is just the guaranteed minimum.
   tight.
 
 **Negative:**
+
 - Two actors writing to memory (agent via hooks/MCP, kanbots via fallback +
   decision capture) means possible duplicate entries. Mitigation: the
   fallback only fires when nothing was written, so duplicates are rare;
@@ -156,6 +163,7 @@ further; the prefix is just the guaranteed minimum.
   the one trimmed. Acceptable trade-off; the agent can still query via MCP.
 
 **Neutral:**
+
 - The "Relevant project memory" block format should be consistent across
   adapters; document it once and reuse.
 - This ADR is the most coupled to the others (depends on 0001–0004). Changes

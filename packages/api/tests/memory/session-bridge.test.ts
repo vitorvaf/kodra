@@ -109,7 +109,12 @@ describe('agent memory session bridge', () => {
     const { bridge, sessionStart, observe, sessionEnd } = makeBridge();
 
     bridge.startCardSession({ threadId: 12, project: 'project', cwd: '/tmp/work', title: 'Task' });
-    bridge.startCardSession({ threadId: 12, project: 'project', cwd: '/tmp/work', title: 'Duplicate' });
+    bridge.startCardSession({
+      threadId: 12,
+      project: 'project',
+      cwd: '/tmp/work',
+      title: 'Duplicate',
+    });
     bridge.observeCard({
       threadId: 12,
       project: 'project',

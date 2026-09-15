@@ -215,9 +215,9 @@ export class AgentRunsRepo {
    *  higher than the existing rank, matching the monotonic semantics in
    *  canUpgradeSuccessSignal. Returns the row whether or not it was changed. */
   upgradeSuccessSignal(id: AgentRunId, next: SuccessSignal): AgentRun {
-    const row = this.db
-      .prepare('SELECT success_signal FROM agent_runs WHERE id = ?')
-      .get(id) as { success_signal: string | null } | undefined;
+    const row = this.db.prepare('SELECT success_signal FROM agent_runs WHERE id = ?').get(id) as
+      | { success_signal: string | null }
+      | undefined;
     if (!row) throw new Error(`AgentRun ${id} not found`);
     const RANK: Record<SuccessSignal, number> = {
       pending: 0,
@@ -228,12 +228,10 @@ export class AgentRunsRepo {
       completed_clean: 3,
       promoted: 4,
     };
-    const currentRank = row.success_signal ? RANK[row.success_signal as SuccessSignal] ?? 0 : 0;
+    const currentRank = row.success_signal ? (RANK[row.success_signal as SuccessSignal] ?? 0) : 0;
     const nextRank = RANK[next];
     if (nextRank > currentRank) {
-      this.db
-        .prepare('UPDATE agent_runs SET success_signal = ? WHERE id = ?')
-        .run(next, id);
+      this.db.prepare('UPDATE agent_runs SET success_signal = ? WHERE id = ?').run(next, id);
     }
     const updated = this.findById(id);
     if (!updated) throw new Error(`AgentRun ${id} not found`);
@@ -276,14 +274,15 @@ export class AgentRunsRepo {
 
   findLatestForChatSession(chatSessionId: ChatSessionId): AgentRun | null {
     const row = this.db
-      .prepare(
-        'SELECT * FROM agent_runs WHERE chat_session_id = ? ORDER BY id DESC LIMIT 1',
-      )
+      .prepare('SELECT * FROM agent_runs WHERE chat_session_id = ? ORDER BY id DESC LIMIT 1')
       .get(chatSessionId) as AgentRunRow | undefined;
     return row ? rowToAgentRun(row) : null;
   }
 
-  findLatestResumableForChatSession(chatSessionId: ChatSessionId, provider?: string): AgentRun | null {
+  findLatestResumableForChatSession(
+    chatSessionId: ChatSessionId,
+    provider?: string,
+  ): AgentRun | null {
     const row = this.db
       .prepare(
         `SELECT * FROM agent_runs WHERE chat_session_id = ? AND session_id IS NOT NULL${
@@ -334,7 +333,13 @@ export class AgentRunsRepo {
       for (const id of ids) update.run(endedAt, reason, id);
     });
     txn(rows.map((r) => r.id));
-    return rows.map((r) => ({ ...rowToAgentRun(r), status: 'failed', endedAt, pid: null, exitReason: reason }));
+    return rows.map((r) => ({
+      ...rowToAgentRun(r),
+      status: 'failed',
+      endedAt,
+      pid: null,
+      exitReason: reason,
+    }));
   }
 
   sumCostByIds(ids: readonly number[]): number {
@@ -357,7 +362,11 @@ export class AgentRunsRepo {
     return row.sum;
   }
 
-  sumCostByWorkspaceAndProvider(): Array<{ workspace: string; provider: string; totalUsd: number }> {
+  sumCostByWorkspaceAndProvider(): Array<{
+    workspace: string;
+    provider: string;
+    totalUsd: number;
+  }> {
     const rows = this.db
       .prepare(
         `SELECT t.repo_owner, t.repo_name, ar.provider, SUM(ar.total_cost_usd) as total_usd
@@ -365,9 +374,14 @@ export class AgentRunsRepo {
          JOIN threads t ON ar.thread_id = t.id
          WHERE ar.total_cost_usd IS NOT NULL
          GROUP BY t.repo_owner, t.repo_name, ar.provider
-         ORDER BY total_usd DESC`
+         ORDER BY total_usd DESC`,
       )
-      .all() as Array<{ repo_owner: string; repo_name: string; provider: string | null; total_usd: number }>;
+      .all() as Array<{
+      repo_owner: string;
+      repo_name: string;
+      provider: string | null;
+      total_usd: number;
+    }>;
 
     return rows.map((r) => ({
       workspace: `${r.repo_owner}/${r.repo_name}`,
@@ -392,7 +406,10 @@ export class AgentRunsRepo {
     }));
   }
 
-  listActiveForRepo(repoOwner: string, repoName: string): Array<AgentRun & { issueNumber: IssueRef }> {
+  listActiveForRepo(
+    repoOwner: string,
+    repoName: string,
+  ): Array<AgentRun & { issueNumber: IssueRef }> {
     const rows = this.db
       .prepare(
         `SELECT ar.*, t.issue_number AS issue_number_alias
@@ -414,13 +431,15 @@ export class AgentRunsRepo {
    * Filters out runs without a persona (non-autopilot dispatches and chat runs)
    * since the comparison only makes sense for autopilot-driven work.
    */
-  personaModelRollup(opts: {
-    repoOwner?: string;
-    repoName?: string;
-    sinceTs?: string;
-    cardKind?: string;
-    cardSizeBucket?: string;
-  } = {}): Array<{
+  personaModelRollup(
+    opts: {
+      repoOwner?: string;
+      repoName?: string;
+      sinceTs?: string;
+      cardKind?: string;
+      cardSizeBucket?: string;
+    } = {},
+  ): Array<{
     personaId: string;
     model: string | null;
     provider: string | null;
@@ -470,16 +489,16 @@ export class AgentRunsRepo {
          ORDER BY runs DESC, total_cost_usd DESC`,
       )
       .all(...params) as Array<{
-        persona_id: string;
-        model: string | null;
-        provider: string | null;
-        runs: number;
-        successes: number;
-        failures: number;
-        total_cost_usd: number;
-        avg_cost_usd: number;
-        avg_duration_ms: number | null;
-      }>;
+      persona_id: string;
+      model: string | null;
+      provider: string | null;
+      runs: number;
+      successes: number;
+      failures: number;
+      total_cost_usd: number;
+      avg_cost_usd: number;
+      avg_duration_ms: number | null;
+    }>;
 
     return rows.map((r) => ({
       personaId: r.persona_id,
@@ -535,11 +554,11 @@ export class AgentRunsRepo {
          ORDER BY bucket_date ASC`,
       )
       .all(...params) as Array<{
-        bucket_date: string;
-        runs: number;
-        total_cost_usd: number;
-        successes: number;
-      }>;
+      bucket_date: string;
+      runs: number;
+      total_cost_usd: number;
+      successes: number;
+    }>;
     return rows.map((r) => ({
       bucketDate: r.bucket_date,
       runs: r.runs,
@@ -553,12 +572,14 @@ export class AgentRunsRepo {
    * across persona × model. Same scope as personaModelRollup but filters out
    * combos with too few runs to be meaningful.
    */
-  frontierData(opts: {
-    repoOwner?: string;
-    repoName?: string;
-    sinceTs?: string;
-    minRuns?: number;
-  } = {}): Array<{
+  frontierData(
+    opts: {
+      repoOwner?: string;
+      repoName?: string;
+      sinceTs?: string;
+      minRuns?: number;
+    } = {},
+  ): Array<{
     personaId: string;
     model: string | null;
     provider: string | null;
@@ -585,12 +606,14 @@ export class AgentRunsRepo {
    * routing. α = successes + 1, β = failures + 1. Filtered by card-kind /
    * size when specified — that's the primary axis of routing decisions.
    */
-  routerCandidates(opts: {
-    repoOwner?: string;
-    repoName?: string;
-    cardKind?: string;
-    cardSizeBucket?: string;
-  } = {}): Array<{
+  routerCandidates(
+    opts: {
+      repoOwner?: string;
+      repoName?: string;
+      cardKind?: string;
+      cardSizeBucket?: string;
+    } = {},
+  ): Array<{
     personaId: string;
     model: string | null;
     provider: string | null;

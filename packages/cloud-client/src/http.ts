@@ -20,9 +20,7 @@ export interface CloudClientOptions {
 }
 
 /** Resolve the optional deployment-protection bypass header. */
-export async function bypassHeaders(
-  opts: CloudClientOptions,
-): Promise<Record<string, string>> {
+export async function bypassHeaders(opts: CloudClientOptions): Promise<Record<string, string>> {
   if (!opts.getBypassToken) return {};
   const token = await opts.getBypassToken();
   return token ? { 'x-vercel-protection-bypass': token } : {};
@@ -72,10 +70,7 @@ function buildUrl(baseUrl: string, path: string, query?: RequestInput['query']):
   return u.toString();
 }
 
-export async function request<T>(
-  opts: CloudClientOptions,
-  input: RequestInput,
-): Promise<T> {
+export async function request<T>(opts: CloudClientOptions, input: RequestInput): Promise<T> {
   const baseUrl = await opts.getBaseUrl();
   const token = await opts.getToken();
   if (token === null) {

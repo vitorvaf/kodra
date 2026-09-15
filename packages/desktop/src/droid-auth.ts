@@ -32,7 +32,8 @@ export interface DroidLoginNotImplemented {
 export async function startDroidLogin(): Promise<DroidLoginNotImplemented> {
   return {
     ok: false,
-    error: 'Run `droid login` in your terminal to authorize Factory Droid, then reopen this dialog.',
+    error:
+      'Run `droid login` in your terminal to authorize Factory Droid, then reopen this dialog.',
   };
 }
 

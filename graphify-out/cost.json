@@ -1,0 +1,13 @@
+{
+  "runs": [
+    {
+      "date": "2026-09-14T15:40:34.512228+00:00",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "files": 499,
+      "note": "semantic extraction by 12 Claude subagents (~1.1M subagent tokens), not metered by graphify"
+    }
+  ],
+  "total_input_tokens": 0,
+  "total_output_tokens": 0
+}

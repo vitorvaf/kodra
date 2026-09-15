@@ -274,10 +274,7 @@ export function Palette({
     return out;
   }, [quickActions, jumpActions, askAction, query]);
 
-  const flat: PaletteAction[] = useMemo(
-    () => sections.flatMap((s) => s.actions),
-    [sections],
-  );
+  const flat: PaletteAction[] = useMemo(() => sections.flatMap((s) => s.actions), [sections]);
 
   function onKey(e: KeyboardEvent<HTMLInputElement>): void {
     if (e.key === 'ArrowDown') {
@@ -306,7 +303,12 @@ export function Palette({
 
   return (
     <div className="kb-palette-overlay kb-app" role="dialog" aria-modal="true" onClick={onClose}>
-      <div ref={paletteRef} className="kb-palette" onClick={(e) => e.stopPropagation()} tabIndex={-1}>
+      <div
+        ref={paletteRef}
+        className="kb-palette"
+        onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
+      >
         <div className="kb-palette-input">
           <span aria-hidden>{searchIcon}</span>
           <input

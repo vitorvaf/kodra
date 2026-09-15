@@ -98,19 +98,19 @@ window.kanbots.subscribe('agent-runs:events', (payload) => { ... })
 
 Channels grouped by purpose:
 
-| Group | Channels |
-| --- | --- |
-| Workspace | `config:get`, `workspace:get`, `workspace:get-budgets`, `workspace:set-budgets` |
-| Issues | `issues:{list,get,create,patch,add-comment,changed}` |
-| Cards | `cards:{list,resolve}` |
+| Group      | Channels                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------ |
+| Workspace  | `config:get`, `workspace:get`, `workspace:get-budgets`, `workspace:set-budgets`                              |
+| Issues     | `issues:{list,get,create,patch,add-comment,changed}`                                                         |
+| Cards      | `cards:{list,resolve}`                                                                                       |
 | Agent runs | `issues:dispatch`, `agent-runs:{stop,diff,stats,reveal-worktree,promote-commit,promote-pr,events:subscribe}` |
-| Checks | `agent-runs:checks:{list,run,commands}` |
-| Preview | `agent-runs:preview:{get,start,stop}` |
-| Providers | `providers:{get,save,test-connection,set-defaults}` |
-| Sentry | `sentry:{get-config,save-config,test-connection,sync-now,analyze}` |
-| Autopilot | `autopilot:{start,stop,list-active,get-by-issue}` |
-| Chat | `chat:{list,create,get,delete,post-message}` |
-| Cooldown | `cooldown:{get,changed}` |
+| Checks     | `agent-runs:checks:{list,run,commands}`                                                                      |
+| Preview    | `agent-runs:preview:{get,start,stop}`                                                                        |
+| Providers  | `providers:{get,save,test-connection,set-defaults}`                                                          |
+| Sentry     | `sentry:{get-config,save-config,test-connection,sync-now,analyze}`                                           |
+| Autopilot  | `autopilot:{start,stop,list-active,get-by-issue}`                                                            |
+| Chat       | `chat:{list,create,get,delete,post-message}`                                                                 |
+| Cooldown   | `cooldown:{get,changed}`                                                                                     |
 
 The full source of truth is `bridge.ts` — the type imports there list
 every payload shape.
@@ -132,20 +132,20 @@ records its number in `schema_migrations` and skips if already applied.
 
 Key tables:
 
-| Table | Purpose |
-| --- | --- |
-| `local_issues` | Issues for local-mode workspaces. |
-| `cards` | UI state for an issue (status, agent state, decision payload). |
-| `threads` | Per-issue conversation thread root. |
-| `messages` | Messages within a thread. |
-| `agent_runs` | One row per `claude -p` invocation. |
-| `agent_events` | Streamed events (text, tool_use, tool_result, decision, result). |
-| `autopilot_sessions` | Autopilot orchestration state. |
-| `providers` | Provider configs + encrypted API keys. |
-| `chat_conversations` | Standalone chat sessions (not tied to issues). |
-| `sentry_config`, `sentry_imports` | Sentry integration. |
-| `promotions` | Audit trail for worktree → branch promotions. |
-| `sync_state` | Per-table sync metadata for the future cloud edition. |
+| Table                             | Purpose                                                          |
+| --------------------------------- | ---------------------------------------------------------------- |
+| `local_issues`                    | Issues for local-mode workspaces.                                |
+| `cards`                           | UI state for an issue (status, agent state, decision payload).   |
+| `threads`                         | Per-issue conversation thread root.                              |
+| `messages`                        | Messages within a thread.                                        |
+| `agent_runs`                      | One row per `claude -p` invocation.                              |
+| `agent_events`                    | Streamed events (text, tool_use, tool_result, decision, result). |
+| `autopilot_sessions`              | Autopilot orchestration state.                                   |
+| `providers`                       | Provider configs + encrypted API keys.                           |
+| `chat_conversations`              | Standalone chat sessions (not tied to issues).                   |
+| `sentry_config`, `sentry_imports` | Sentry integration.                                              |
+| `promotions`                      | Audit trail for worktree → branch promotions.                    |
+| `sync_state`                      | Per-table sync metadata for the future cloud edition.            |
 
 A few tables (`cloud_account`, `sync_state`) are stubs from migration
 `0019_project_scope` — they're empty in the local edition.
@@ -155,13 +155,13 @@ A few tables (`cloud_account`, `sync_state`) are stubs from migration
 `@kanbots/web` is React 19 + Vite 6, bundled into the Electron app at
 build time. Entry: `packages/web/src/main.tsx`. Pages:
 
-| Page | What it is |
-| --- | --- |
-| `WorkspacePicker.tsx` | First-run picker, recent workspaces. |
-| `Board.tsx` | The main kanban board. |
-| `ChatApp.tsx` | Standalone chat sessions. |
+| Page                   | What it is                           |
+| ---------------------- | ------------------------------------ |
+| `WorkspacePicker.tsx`  | First-run picker, recent workspaces. |
+| `Board.tsx`            | The main kanban board.               |
+| `ChatApp.tsx`          | Standalone chat sessions.            |
 | `ProvidersOverlay.tsx` | Gate when no provider is configured. |
-| `ClaudeLoginGate.tsx` | Gate when `claude` isn't signed in. |
+| `ClaudeLoginGate.tsx`  | Gate when `claude` isn't signed in.  |
 
 State lives mostly in component-local hooks (`useBoardFilters`,
 `useAgentRunStream`, etc.). There's no Redux / Zustand store —

@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ageString } from '../../labels.js';
 import { ModelPicker, type ModelPickerValue } from '../forms/ModelPicker.js';
-import type {
-  ChatSessionPayload,
-  ChatSessionStatus,
-  ProviderId,
-} from '../../types.js';
+import type { ChatSessionPayload, ChatSessionStatus, ProviderId } from '../../types.js';
 
 const PROVIDER_LABELS: Record<ProviderId, string> = {
   'claude-code': 'Claude Code',
@@ -46,10 +42,7 @@ export interface SessionDropdownProps {
   activeSessionId: number | null;
   onActiveSessionChange: (sessionId: number) => void;
   onCreateSession: (input: SessionCreateInput) => Promise<ChatSessionPayload>;
-  onRenameSession: (
-    id: number,
-    title: string | null,
-  ) => Promise<ChatSessionPayload>;
+  onRenameSession: (id: number, title: string | null) => Promise<ChatSessionPayload>;
   onDeleteSession: (id: number) => Promise<void>;
   onSessionsChange: (next: ChatSessionPayload[]) => void;
 }
@@ -165,11 +158,7 @@ export function SessionDropdown({
       </button>
 
       {menuOpen ? (
-        <div
-          className="kb-chat-session-menu"
-          role="menu"
-          aria-label="Chat sessions"
-        >
+        <div className="kb-chat-session-menu" role="menu" aria-label="Chat sessions">
           <div className="kb-chat-session-menu-head">
             <span className="kb-chat-session-menu-title">Sessions</span>
             <button
@@ -189,9 +178,7 @@ export function SessionDropdown({
               {sessions.map((s) => (
                 <li
                   key={s.id}
-                  className={`kb-chat-session-row${
-                    s.id === activeSession?.id ? ' is-active' : ''
-                  }`}
+                  className={`kb-chat-session-row${s.id === activeSession?.id ? ' is-active' : ''}`}
                 >
                   {renameId === s.id ? (
                     <SessionRenameInput
@@ -356,11 +343,7 @@ function SessionCreatorPopover({
         />
       </label>
       <div className="kb-chat-session-creator-foot">
-        <button
-          type="button"
-          className="kb-btn ghost"
-          onClick={onCancel}
-        >
+        <button type="button" className="kb-btn ghost" onClick={onCancel}>
           Cancel
         </button>
         <button

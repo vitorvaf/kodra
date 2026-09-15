@@ -49,8 +49,4 @@ export type {
   UpdateIssuePatch,
   User,
 } from './types.js';
-export {
-  isValidCustomIssueId,
-  issueBranchSlug,
-  parseIssueRef,
-} from './issue-ref.js';
+export { isValidCustomIssueId, issueBranchSlug, parseIssueRef } from './issue-ref.js';

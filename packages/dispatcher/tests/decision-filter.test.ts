@@ -74,10 +74,7 @@ describe('createDecisionStreamFilter', () => {
 
   it('keeps a malformed decision block as visible text', () => {
     const filter = createDecisionStreamFilter();
-    const out = [
-      ...filter.push([text('```kodra-decision\nnot-json\n```')]),
-      ...filter.flush(),
-    ];
+    const out = [...filter.push([text('```kodra-decision\nnot-json\n```')]), ...filter.flush()];
     expect(out.some((e) => e.kind === 'decision')).toBe(false);
     expect(joinedText(out)).toBe('```kodra-decision\nnot-json\n```');
   });

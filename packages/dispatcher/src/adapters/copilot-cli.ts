@@ -1,13 +1,6 @@
 import { parseAcpLine } from './acp-protocol.js';
-import {
-  detectRateLimit as detectRateLimitFromText,
-  type StreamEvent,
-} from '../stream-parser.js';
-import type {
-  AgentCliAdapter,
-  BuildArgsInput,
-  ComposePromptInput,
-} from './types.js';
+import { detectRateLimit as detectRateLimitFromText, type StreamEvent } from '../stream-parser.js';
+import type { AgentCliAdapter, BuildArgsInput, ComposePromptInput } from './types.js';
 
 /**
  * GitHub Copilot CLI adapter. Spawns the official Copilot CLI (via

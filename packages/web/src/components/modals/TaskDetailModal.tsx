@@ -12,19 +12,12 @@ import {
   type RefObject,
 } from 'react';
 import { api } from '../../api.js';
-import {
-  SessionDropdown,
-  useActiveSessionId,
-} from '../chat/SessionDropdown.js';
+import { SessionDropdown, useActiveSessionId } from '../chat/SessionDropdown.js';
 import { ModelPicker, PROVIDER_LABELS, type ModelPickerValue } from '../forms/ModelPicker.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useFocusTrap } from '../../hooks/useFocusTrap.js';
 import { useFocusedRepo } from '../../hooks/useFocusedRepo.js';
-import {
-  useIssues,
-  dispatchIssuesRefetch,
-  ISSUES_CHANGED_CHANNEL,
-} from '../../hooks/useIssues.js';
+import { useIssues, dispatchIssuesRefetch, ISSUES_CHANGED_CHANNEL } from '../../hooks/useIssues.js';
 import { useIssueRunStream } from '../../hooks/useIssueRunStream.js';
 import {
   ageString,
@@ -282,7 +275,8 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
                   if (displayRun === null || forking) return;
                   setForking(true);
                   setForkError(null);
-                  void api.forkAgentRun(displayRun.id)
+                  void api
+                    .forkAgentRun(displayRun.id)
                     .then(() => {
                       setRunsRefreshKey((key) => key + 1);
                       return refetch();
@@ -436,9 +430,7 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
                 </div>
 
                 <div className="kb-tdm-content">
-                  {tab === 'autopilot' ? (
-                    <AutopilotTab issueNumber={issue.number} />
-                  ) : null}
+                  {tab === 'autopilot' ? <AutopilotTab issueNumber={issue.number} /> : null}
                   {tab === 'overview' ? (
                     <OverviewTab
                       issue={issue}
@@ -461,7 +453,9 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
                     />
                   ) : null}
                   {tab === 'diff' && !isAutopilot ? <DiffTabModal activeRun={displayRun} /> : null}
-                  {tab === 'preview' && !isAutopilot ? <PreviewTabModal activeRun={displayRun} /> : null}
+                  {tab === 'preview' && !isAutopilot ? (
+                    <PreviewTabModal activeRun={displayRun} />
+                  ) : null}
                   {tab === 'runs' && !isAutopilot ? (
                     <RunsTab
                       issueNumber={issue.number}
@@ -485,13 +479,7 @@ export function TaskDetailModal({ issueNumber, onClose, onOpenDetail }: TaskDeta
           </main>
 
           <aside className="kb-modal-aside">
-            {issue ? (
-              <Aside
-                issue={issue}
-                activeRun={activeRun}
-                latestRun={latestRun}
-              />
-            ) : null}
+            {issue ? <Aside issue={issue} activeRun={activeRun} latestRun={latestRun} /> : null}
           </aside>
         </div>
 
@@ -701,7 +689,7 @@ function ReplyFooter({
   // the command name).
   const slashQuery = useMemo<string | null>(() => {
     const m = /^\/(\S*)$/.exec(body);
-    return m ? m[1] ?? '' : null;
+    return m ? (m[1] ?? '') : null;
   }, [body]);
   const slashOpen = slashQuery !== null;
 
@@ -946,9 +934,7 @@ function Aside({
         </div>
         <div className="kb-mas-row">
           <span className="k">Worktree</span>
-          <span className="v mono">
-            {sidebarRun?.worktreePath ?? '—'}
-          </span>
+          <span className="v mono">{sidebarRun?.worktreePath ?? '—'}</span>
         </div>
         <div className="kb-mas-row">
           <span className="k">Branch</span>
@@ -1247,11 +1233,7 @@ function SubIssuesSection({
           }}
         />
       ) : (
-        <button
-          type="button"
-          className="kb-sub-issue-add"
-          onClick={() => setAdding(true)}
-        >
+        <button type="button" className="kb-sub-issue-add" onClick={() => setAdding(true)}>
           + Add sub-issue
         </button>
       )}
@@ -1296,9 +1278,7 @@ function SubIssueAddPicker({
       if (!q) return true;
       const numStr = `#${i.number}`;
       return (
-        numStr.includes(q) ||
-        i.title.toLowerCase().includes(q) ||
-        String(i.number).includes(q)
+        numStr.includes(q) || i.title.toLowerCase().includes(q) || String(i.number).includes(q)
       );
     });
     return filtered.slice(0, 8);
@@ -1353,10 +1333,14 @@ function OverviewTab({
 }) {
   const stream = useIssueRunStream(displayRun, cloudRunId);
   const { data: savedSpec } = useFetch(`spec:${issue.number}`, () => api.getSpec(issue.number));
-  const recentToolCalls = stream.events.filter((e) => e.type === 'tool_use').slice(-4).reverse();
+  const recentToolCalls = stream.events
+    .filter((e) => e.type === 'tool_use')
+    .slice(-4)
+    .reverse();
   const resultByToolUseId = buildResultIndex(stream.events);
   const acMatches = (issue.body ?? '').match(/(?:^|\n)\s*AC:\s*\n((?:[-*]\s.+\n?)+)/);
-  const acItems = acMatches?.[1]?.match(/(?:^|\n)[-*]\s(.+)/g)?.map((l) => l.replace(/^[\s-*]+/, '')) ?? [];
+  const acItems =
+    acMatches?.[1]?.match(/(?:^|\n)[-*]\s(.+)/g)?.map((l) => l.replace(/^[\s-*]+/, '')) ?? [];
 
   return (
     <>
@@ -1368,10 +1352,7 @@ function OverviewTab({
         <div className="kb-desc-md">{issue.body || '(no description)'}</div>
       </div>
 
-      <SubIssuesSection
-        parentNumber={issue.number}
-        {...(onOpenDetail ? { onOpenDetail } : {})}
-      />
+      <SubIssuesSection parentNumber={issue.number} {...(onOpenDetail ? { onOpenDetail } : {})} />
 
       {savedSpec?.content !== null && savedSpec?.content !== undefined ? (
         <div className="kb-tdm-section">
@@ -1386,9 +1367,27 @@ function OverviewTab({
       {acItems.length > 0 ? (
         <div className="kb-tdm-section">
           <h3>Spec — extracted from AC: block</h3>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <ul
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+            }}
+          >
             {acItems.map((item, i) => (
-              <li key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 12.5, color: 'var(--ink-1)' }}>
+              <li
+                key={i}
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  padding: '5px 0',
+                  fontSize: 12.5,
+                  color: 'var(--ink-1)',
+                }}
+              >
                 <span
                   style={{
                     width: 13,
@@ -1572,11 +1571,7 @@ function SentryAnalysisSection({ issue }: { issue: IssueDetailPayload['issue'] }
               onClick={() => void handleApply()}
               disabled={applying || meta.status === 'applied'}
             >
-              {meta.status === 'applied'
-                ? 'Applied'
-                : applying
-                  ? 'Applying…'
-                  : 'Convert to task'}
+              {meta.status === 'applied' ? 'Applied' : applying ? 'Applying…' : 'Convert to task'}
             </button>
             <button
               type="button"
@@ -1633,8 +1628,7 @@ function ThreadTab({
   onActionDone: () => void;
 }) {
   const stream = useIssueRunStream(displayRun, cloudRunId);
-  const isLive =
-    cloudRunId !== null || (activeRun !== null && activeRun.id === displayRun?.id);
+  const isLive = cloudRunId !== null || (activeRun !== null && activeRun.id === displayRun?.id);
 
   const cardsByMessageId = new Map<number, Card[]>();
   for (const c of stream.cards) {
@@ -1720,10 +1714,13 @@ function ThreadTab({
           {displayRun ? (
             <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
               run #{displayRun.id} · {STATUS_LABEL[displayRun.status]}
-              {isLive ? '' : ` · ended ${ageString(displayRun.endedAt ?? displayRun.startedAt)} ago`}
+              {isLive
+                ? ''
+                : ` · ended ${ageString(displayRun.endedAt ?? displayRun.startedAt)} ago`}
             </span>
           ) : null}
-          {displayRun != null && (displayRun.status === 'running' || displayRun.status === 'starting') ? (
+          {displayRun != null &&
+          (displayRun.status === 'running' || displayRun.status === 'starting') ? (
             <KodraPulse tone="mint" style={{ alignSelf: 'center' }} />
           ) : null}
         </div>
@@ -1862,9 +1859,7 @@ function PrCommentsSection({ issueNumber }: { issueNumber: IssueRef }) {
         ) : null}
       </div>
       {error ? (
-        <div style={{ color: 'var(--failed)', fontSize: 12, marginBottom: 8 }}>
-          {error}
-        </div>
+        <div style={{ color: 'var(--failed)', fontSize: 12, marginBottom: 8 }}>{error}</div>
       ) : null}
       {comments.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 8 }}>
@@ -1920,9 +1915,7 @@ interface InlineCommentGroup {
   comments: PrCommentPayload[];
 }
 
-function groupInlineComments(
-  comments: ReadonlyArray<PrCommentPayload>,
-): InlineCommentGroup[] {
+function groupInlineComments(comments: ReadonlyArray<PrCommentPayload>): InlineCommentGroup[] {
   const byFile = new Map<string, PrCommentPayload[]>();
   for (const c of comments) {
     if (!c.inline) continue;
@@ -1943,11 +1936,7 @@ function PrCommentRow({ comment }: { comment: PrCommentPayload }) {
   return (
     <div className="kb-pr-comment">
       {comment.author.avatarUrl ? (
-        <img
-          className="kb-pr-comment-avatar"
-          src={comment.author.avatarUrl}
-          alt={login}
-        />
+        <img className="kb-pr-comment-avatar" src={comment.author.avatarUrl} alt={login} />
       ) : (
         <span
           className="kb-pr-comment-avatar"
@@ -1988,13 +1977,7 @@ function PrCommentRow({ comment }: { comment: PrCommentPayload }) {
 
 function GitHubGlyph() {
   return (
-    <svg
-      viewBox="0 0 16 16"
-      width="12"
-      height="12"
-      fill="currentColor"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true">
       <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
     </svg>
   );
@@ -2211,9 +2194,7 @@ function MessageRow({
   const isUser = message.role === 'user';
   const label = isUser ? 'you' : agentLabel;
   const labelColor = isUser ? 'var(--ink-1)' : 'var(--accent)';
-  const bg = isUser
-    ? 'var(--bg-2)'
-    : 'color-mix(in oklch, var(--bg-1) 80%, var(--accent-soft))';
+  const bg = isUser ? 'var(--bg-2)' : 'color-mix(in oklch, var(--bg-1) 80%, var(--accent-soft))';
   const border = isUser ? 'var(--hairline)' : 'var(--accent-line)';
   return (
     <div
@@ -2227,7 +2208,9 @@ function MessageRow({
       <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 5 }}>
         <b style={{ color: labelColor }}>{label}</b> · {ageString(message.createdAt)} ago
       </div>
-      <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--ink-1)', whiteSpace: 'pre-wrap' }}>
+      <div
+        style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--ink-1)', whiteSpace: 'pre-wrap' }}
+      >
         {message.body}
       </div>
       {cards.map((c) =>
@@ -2271,7 +2254,12 @@ function DecisionInline({ card }: { card: Card<DecisionPayload> }) {
   }
 
   return (
-    <div className="kb-decision" role="region" aria-label="Agent question" style={{ marginTop: 10 }}>
+    <div
+      className="kb-decision"
+      role="region"
+      aria-label="Agent question"
+      style={{ marginTop: 10 }}
+    >
       <div className="kb-decision-opts">
         {isPending ? (
           <KodraPulse
@@ -2328,7 +2316,9 @@ function EventRow({ event, agentLabel }: { event: AgentEvent; agentLabel: string
         <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 5 }}>
           <b style={{ color: 'var(--accent)' }}>{agentLabel}</b> · {ageString(event.createdAt)} ago
         </div>
-        <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--ink-1)', whiteSpace: 'pre-wrap' }}>
+        <div
+          style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--ink-1)', whiteSpace: 'pre-wrap' }}
+        >
           {text}
         </div>
       </div>
@@ -2339,7 +2329,9 @@ function EventRow({ event, agentLabel }: { event: AgentEvent; agentLabel: string
     return (
       <div className="kb-tcall" style={{ borderColor: 'var(--failed)' }}>
         <div className="kb-tcall-head">
-          <span className="name" style={{ color: 'var(--failed)' }}>error</span>
+          <span className="name" style={{ color: 'var(--failed)' }}>
+            error
+          </span>
           <span className="arg">{p.message ?? 'unknown'}</span>
           <span className="dur">{ageString(event.createdAt)} ago</span>
         </div>
@@ -2360,13 +2352,18 @@ function EventRow({ event, agentLabel }: { event: AgentEvent; agentLabel: string
     return (
       <div
         className="kb-tcall"
-        style={{ borderColor: 'var(--warning, #c47a00)', background: 'color-mix(in oklch, var(--bg-1) 80%, #c47a0033)' }}
+        style={{
+          borderColor: 'var(--warning, #c47a00)',
+          background: 'color-mix(in oklch, var(--bg-1) 80%, #c47a0033)',
+        }}
       >
         <div className="kb-tcall-head">
           <span className="name" style={{ color: 'var(--warning, #c47a00)' }}>
             ⚠ containment {p.mode === 'pause' ? 'pause' : 'warn'}
           </span>
-          <span className="arg" title={p.reason}>{arg}</span>
+          <span className="arg" title={p.reason}>
+            {arg}
+          </span>
           <span className="dur">{ageString(event.createdAt)} ago</span>
         </div>
       </div>
@@ -2500,9 +2497,7 @@ function PreviewTabModal({ activeRun }: { activeRun: AgentRun | null }) {
     const header = formatInspectHeader(sel);
     const preview = sel.textPreview.trim();
     const block = preview ? `${header}\n\`${preview}\`\n\n` : `${header}\n\n`;
-    window.dispatchEvent(
-      new CustomEvent('kanbots:composer:insert', { detail: { text: block } }),
-    );
+    window.dispatchEvent(new CustomEvent('kanbots:composer:insert', { detail: { text: block } }));
   }
   return (
     <div className="kb-tdm-section">
@@ -2619,8 +2614,20 @@ function RunsTab({
               </div>
               <div>
                 <div className="kb-run-meta-line">
-                  <span style={{ color: isActive ? 'var(--running)' : 'var(--ink-2)', fontWeight: 600 }}>
-                    {status === 'running' ? '● Running' : status === 'complete' ? '✓ Completed' : status === 'failed' ? '✗ Failed' : status === 'awaiting_input' ? '? Awaiting' : status === 'stopped' ? '◼ Stopped' : '… Starting'}
+                  <span
+                    style={{ color: isActive ? 'var(--running)' : 'var(--ink-2)', fontWeight: 600 }}
+                  >
+                    {status === 'running'
+                      ? '● Running'
+                      : status === 'complete'
+                        ? '✓ Completed'
+                        : status === 'failed'
+                          ? '✗ Failed'
+                          : status === 'awaiting_input'
+                            ? '? Awaiting'
+                            : status === 'stopped'
+                              ? '◼ Stopped'
+                              : '… Starting'}
                   </span>
                   <span className="id">run #{r.id}</span>
                   <span>· {ageString(r.startedAt)} ago</span>
@@ -2709,13 +2716,11 @@ function AutopilotStopButton({
             </div>
             <div className="kb-modal-body" style={{ display: 'block', padding: '14px 20px' }}>
               <div style={{ fontSize: 13, color: 'var(--ink-1)', marginBottom: 12 }}>
-                The autopilot loop will stop creating new tasks. Choose what happens to any
-                child task that's currently running.
+                The autopilot loop will stop creating new tasks. Choose what happens to any child
+                task that's currently running.
               </div>
               {error ? (
-                <div style={{ fontSize: 11, color: 'var(--failed)', marginBottom: 8 }}>
-                  {error}
-                </div>
+                <div style={{ fontSize: 11, color: 'var(--failed)', marginBottom: 8 }}>{error}</div>
               ) : null}
             </div>
             <div className="kb-modal-foot">
@@ -2800,12 +2805,10 @@ function AutopilotTab({ issueNumber }: { issueNumber: IssueRef }) {
   }
 
   const session = data;
-  const personas =
-    session.config.kind === 'feature-dev' ? session.config.personas : [];
+  const personas = session.config.kind === 'feature-dev' ? session.config.personas : [];
   const checks = session.config.kind === 'qa' ? session.config.checks : [];
   const liveUi = session.config.kind === 'qa' ? session.config.liveUi : false;
-  const featureDevConfig =
-    session.config.kind === 'feature-dev' ? session.config : null;
+  const featureDevConfig = session.config.kind === 'feature-dev' ? session.config : null;
   const parallelism = featureDevConfig?.parallelism ?? 1;
   const runningPersonaNames = new Set(
     session.children
@@ -3003,7 +3006,9 @@ function ChildRow({ child }: { child: AutopilotChildEntry }) {
           color:
             child.status === 'complete'
               ? 'var(--review)'
-              : child.status === 'failed' || child.status === 'stopped' || child.status === 'skipped'
+              : child.status === 'failed' ||
+                  child.status === 'stopped' ||
+                  child.status === 'skipped'
                 ? 'var(--failed)'
                 : 'var(--running)',
           fontSize: 11,
@@ -3052,15 +3057,10 @@ function PlanningSlotRow({ slot }: { slot: AutopilotPlanningSlot }) {
           <span style={{ color: 'var(--ink-3)' }}>Planning · </span>
           {slot.persona}
         </span>
-        <span style={{ color: 'var(--ink-3)', fontSize: 11 }}>
-          {fmtElapsed(slot.startedAt)}
-        </span>
+        <span style={{ color: 'var(--ink-3)', fontSize: 11 }}>{fmtElapsed(slot.startedAt)}</span>
       </div>
       {events.length === 0 ? (
-        <div
-          className="mono"
-          style={{ color: 'var(--ink-3)', fontSize: 11, paddingLeft: 18 }}
-        >
+        <div className="mono" style={{ color: 'var(--ink-3)', fontSize: 11, paddingLeft: 18 }}>
           starting…
         </div>
       ) : (

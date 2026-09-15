@@ -30,6 +30,7 @@ import type {
   Card,
   MemoryConfig,
   Store,
+  SuccessSignal,
 } from '@kanbots/local-store';
 import { DECISIONS_CHANGED_CHANNEL } from '../bridge.js';
 import type { IssueRef } from '@kanbots/core';
@@ -39,7 +40,9 @@ import {
   subscribeChecksChanged as subscribeChecksChangedEvent,
   type CheckChangeListener,
 } from '../checks-changed.js';
-import { memoryNamespace, type AgentMemoryClient } from '../memory/client.js';
+import type { AgentMemoryClient } from '../memory/client.js';
+import { projectIdFromPath, resolveMemoryConfig } from '../memory/config.js';
+import { createAgentMemoryProvider, type MemoryProvider } from '../memory/provider.js';
 import {
   createAgentMemorySessionBridge,
   type AgentMemorySessionBridge,
@@ -142,6 +145,8 @@ export interface CreateSupervisorOptions {
   memory?: {
     client: AgentMemoryClient;
     getConfig: () => MemoryConfig | undefined;
+    /** Application-facing memory seam (recall/remember). See docs/agent-memory.md. */
+    provider?: MemoryProvider;
   };
   /** Optional seam for tests and alternate memory transports. */
   memorySessionBridge?: AgentMemorySessionBridge;
@@ -157,7 +162,7 @@ export interface StartRunInput {
   prompt: string;
   appendSystemPrompt?: string;
   model?: string;
-  provider?: import('@kanbots/dispatcher').AgentRunProvider;
+  provider?: AgentRunProvider;
   costBudgetUsd?: number | null;
   /** Persona id when dispatched via autopilot. Recorded on agent_runs for
    *  per-persona analytics. */
@@ -212,7 +217,7 @@ export interface StartChatInput {
   prompt: string;
   appendSystemPrompt?: string;
   model?: string;
-  provider?: import('@kanbots/dispatcher').AgentRunProvider;
+  provider?: AgentRunProvider;
   costBudgetUsd?: number | null;
   /**
    * Extra args appended to the underlying `claude` invocation. Used by the
@@ -466,17 +471,13 @@ function applyKanbotsCommand(
     const rest = trimmed.replace(new RegExp(`^/${spec.token}\\s*`), '').trim();
     return {
       prompt: rest.length > 0 ? rest : spec.fallbackPrompt,
-      appendSystemPrompt: [appendSystemPrompt, spec.systemPrompt]
-        .filter(Boolean)
-        .join('\n\n'),
+      appendSystemPrompt: [appendSystemPrompt, spec.systemPrompt].filter(Boolean).join('\n\n'),
     };
   }
   return { prompt, appendSystemPrompt };
 }
 
-export async function createSupervisor(
-  opts: CreateSupervisorOptions,
-): Promise<AgentSupervisor> {
+export async function createSupervisor(opts: CreateSupervisorOptions): Promise<AgentSupervisor> {
   const { store } = opts;
   const resolveRepoPath = (): string =>
     typeof opts.repoPath === 'function' ? opts.repoPath() : opts.repoPath;
@@ -490,8 +491,7 @@ export async function createSupervisor(
   // When the credential probe is omitted (tests), treat every provider as
   // credentialed so resolution collapses to the legacy explicit → default →
   // claude-code chain.
-  const hasCreds: (id: AgentRunProvider) => boolean =
-    opts.hasProviderCredentials ?? (() => true);
+  const hasCreds: (id: AgentRunProvider) => boolean = opts.hasProviderCredentials ?? (() => true);
   const memoryBridge =
     opts.memorySessionBridge ??
     (opts.memory
@@ -605,11 +605,7 @@ export async function createSupervisor(
     memoryBridge?.endChatSession(chatSessionId);
   }
 
-  function observeRunStarted(
-    run: AgentRun,
-    cwd: string,
-    title: string | null | undefined,
-  ): void {
+  function observeRunStarted(run: AgentRun, cwd: string, title: string | null | undefined): void {
     if (!memoryBridge) return;
     const project = runMemoryProjects.get(run.id);
     if (!project) return;
@@ -681,7 +677,10 @@ export async function createSupervisor(
         try {
           store.events.append(event.input);
         } catch (fallbackErr) {
-          console.error(`[kanbots] event persistence fallback failed for run ${runId}`, fallbackErr);
+          console.error(
+            `[kanbots] event persistence fallback failed for run ${runId}`,
+            fallbackErr,
+          );
         }
       }
     }
@@ -760,7 +759,11 @@ export async function createSupervisor(
     emitter.emit(COOLDOWN_CHANNEL, snapshotCooldown());
   }
 
-  function applyRateLimit(reason: CooldownState['reason'], retryAfterMs: number | null, message: string): void {
+  function applyRateLimit(
+    reason: CooldownState['reason'],
+    retryAfterMs: number | null,
+    message: string,
+  ): void {
     consecutiveHits += 1;
     const backoffIdx = Math.min(consecutiveHits - 1, COOLDOWN_BACKOFF_MS.length - 1);
     const backoff = COOLDOWN_BACKOFF_MS[backoffIdx] ?? COOLDOWN_MAX_MS;
@@ -778,10 +781,13 @@ export async function createSupervisor(
       clearTimeout(cooldownClearTimer);
       cooldownClearTimer = null;
     }
-    cooldownClearTimer = setTimeout(() => {
-      cooldownClearTimer = null;
-      emitCooldown();
-    }, Math.max(0, (cooldownUntilMs ?? Date.now()) - Date.now()) + 50);
+    cooldownClearTimer = setTimeout(
+      () => {
+        cooldownClearTimer = null;
+        emitCooldown();
+      },
+      Math.max(0, (cooldownUntilMs ?? Date.now()) - Date.now()) + 50,
+    );
     emitCooldown();
   }
 
@@ -881,34 +887,49 @@ export async function createSupervisor(
     return { prompt: parts.join('\n\n'), briefing };
   }
 
+  /**
+   * Canonical AgentMemory `project` id for this workspace. Comes from
+   * AGENTMEMORY_PROJECT when set, otherwise the repository folder name — the
+   * same id OpenCode/Claude use over MCP, so both sides share one memory.
+   */
+  function memoryProjectId(repoPath: string): string {
+    return memoryProvider()?.getConfig().project ?? projectIdFromPath(repoPath);
+  }
+
+  /**
+   * Application memory seam. Callers that only wire the legacy
+   * `{ client, getConfig }` pair get a provider derived from it, so the
+   * workspace `memory` section keeps working without an explicit provider.
+   */
+  let fallbackMemoryProvider: MemoryProvider | null = null;
+  function memoryProvider(): MemoryProvider | null {
+    const memory = opts.memory;
+    if (!memory) return null;
+    if (memory.provider) return memory.provider;
+    fallbackMemoryProvider ??= createAgentMemoryProvider({
+      client: memory.client,
+      getConfig: () => resolveMemoryConfig({ workspace: memory.getConfig() }),
+    });
+    return fallbackMemoryProvider;
+  }
+
   async function recallMemoryBlock(input: {
     query: string;
     repoPath: string;
     budgetUsd: number | null;
   }): Promise<string | null> {
     try {
-      const memory = opts.memory;
-      if (!memory?.getConfig()?.enabled) return null;
-      // v1: per-repo via repoPath; workspaceId/team scoping is a future refinement per ADR-0004.
-      const project = memoryNamespace({ workspaceId: 'default', repoId: input.repoPath });
-      const topK = input.budgetUsd !== null && input.budgetUsd < 0.5 ? 1 : 3;
-      const hits = await memory.client.smartSearch({
+      const provider = memoryProvider();
+      if (!provider || !provider.getConfig().enabled) return null;
+      // Cost-aware recall (ADR-0005): a tight budget gets one item, otherwise a
+      // short list. The provider applies the configured character cap.
+      const limit = input.budgetUsd !== null && input.budgetUsd < 0.5 ? 1 : 3;
+      return await provider.recallContext({
         query: input.query,
-        namespace: project,
-        topK,
+        project: memoryProjectId(input.repoPath),
+        limit,
+        agentId: 'kodra',
       });
-      if (hits.length === 0) return null;
-      const lines = hits.slice(0, topK).map((hit) => {
-        const content = hit.content.replace(/\s+/g, ' ').trim().slice(0, 400);
-        const score = hit.score === undefined ? 'n/a' : String(hit.score);
-        return `- ${content} (score ${score})`;
-      });
-      const block = [
-        'RELEVANT_PROJECT_MEMORY — context recalled from prior runs on this repo:',
-        ...lines,
-        'You also have `memory_recall` / `memory_smart_search` MCP tools for deeper queries.',
-      ].join('\n');
-      return block.slice(0, 1600);
     } catch {
       return null;
     }
@@ -1178,7 +1199,7 @@ export async function createSupervisor(
       // Awaiting-input is non-terminal so we leave success_signal alone there;
       // promotion can later upgrade `completed_clean` → `promoted`, and a
       // failed check can downgrade it to `completed_with_failed_checks`.
-      const successSignal: import('@kanbots/local-store').SuccessSignal | null =
+      const successSignal: SuccessSignal | null =
         status === 'awaiting_input'
           ? null
           : entry.budgetExceeded
@@ -1253,10 +1274,7 @@ export async function createSupervisor(
           (summary.result?.tokenUsage?.output ?? 0) > 0 ||
           (entry.latestResultText ?? '').trim().length > 0 ||
           entry.specText.trim().length > 0;
-        const interrupted =
-          project &&
-          hadContent &&
-          (status === 'failed' || status === 'stopped');
+        const interrupted = project && hadContent && (status === 'failed' || status === 'stopped');
         const completed =
           status === 'complete' && updated.sessionId && project && issueNumber !== undefined;
         if (completed || interrupted) {
@@ -1264,33 +1282,41 @@ export async function createSupervisor(
             (async () => {
               try {
                 const memory = opts.memory;
-                if (!memory?.getConfig()?.enabled) return;
+                const provider = memoryProvider();
+                if (!memory || !provider || !provider.getConfig().enabled) return;
+                const provenance = {
+                  ...(updated.branchName ? { branch: updated.branchName } : {}),
+                };
                 if (interrupted) {
-                  await memory.client.save({
+                  await provider.remember({
                     content:
                       `Run #${updated.id}${issueNumber !== undefined ? ` (issue #${issueNumber})` : ''} ` +
                       `${status === 'failed' ? 'failed' : 'was stopped'} mid-work. ` +
                       `Reason: ${(exitReason ?? 'unknown').slice(0, 300)}. ` +
                       `Branch: ${updated.branchName ?? 'n/a'}.`,
-                    namespace: project,
-                    kind: 'run-summary',
-                    metadata: {
-                      runId: updated.id,
-                      branchName: updated.branchName,
-                      interrupted: true,
-                    },
+                    project,
+                    kind: 'run_summary',
+                    confidence: 'observation',
+                    source: 'agent',
+                    agentId: 'kodra',
+                    concepts: [`run:${updated.id}`, 'interrupted'],
+                    provenance,
                   });
                   return;
                 }
                 const session = await memory.client.getSession(updated.sessionId!);
                 if (session === null || !session.hasContent) {
-                  await memory.client.save({
+                  await provider.remember({
                     content:
                       `Run #${updated.id} (issue #${issueNumber}) completed. ` +
                       `Branch: ${updated.branchName ?? 'unknown'}. Status: complete.`,
-                    namespace: project,
-                    kind: 'run-summary',
-                    metadata: { runId: updated.id, branchName: updated.branchName },
+                    project,
+                    kind: 'run_summary',
+                    confidence: 'observation',
+                    source: 'agent',
+                    agentId: 'kodra',
+                    concepts: [`run:${updated.id}`],
+                    provenance,
                   });
                 }
               } catch {
@@ -1399,9 +1425,7 @@ export async function createSupervisor(
     // and fall back to the thread-wide check otherwise (kept for
     // legacy issue-style chats that don't ride on sessions yet).
     if (input.chatSessionId !== undefined) {
-      const sessionActive = store.agentRuns.findActiveForChatSession(
-        input.chatSessionId,
-      );
+      const sessionActive = store.agentRuns.findActiveForChatSession(input.chatSessionId);
       if (sessionActive !== null) {
         throw threadAlreadyActiveError(sessionActive);
       }
@@ -1416,14 +1440,9 @@ export async function createSupervisor(
     let run = store.agentRuns.create({
       threadId: input.threadId,
       status: 'starting',
-      ...(input.chatSessionId !== undefined
-        ? { chatSessionId: input.chatSessionId }
-        : {}),
+      ...(input.chatSessionId !== undefined ? { chatSessionId: input.chatSessionId } : {}),
     });
-    runMemoryProjects.set(
-      run.id,
-      memoryNamespace({ workspaceId: 'default', repoId: resolveRepoPath() }),
-    );
+    runMemoryProjects.set(run.id, memoryProjectId(resolveRepoPath()));
     const budget = resolveBudget(input.costBudgetUsd);
     const provider = resolveProvider(input.provider);
     run = store.agentRuns.update(run.id, {
@@ -1477,9 +1496,7 @@ export async function createSupervisor(
     // resume here. Issue-style threads (chatSessionId NULL) still use
     // the thread-wide check below.
     if (existing.chatSessionId !== null) {
-      const sessionActive = store.agentRuns.findActiveForChatSession(
-        existing.chatSessionId,
-      );
+      const sessionActive = store.agentRuns.findActiveForChatSession(existing.chatSessionId);
       if (sessionActive !== null && sessionActive.id !== input.runId) {
         throw threadAlreadyActiveError(sessionActive);
       }
@@ -1504,7 +1521,7 @@ export async function createSupervisor(
       // Resume always reuses the original provider; providers without
       // session events (no sessionId persisted) can't be resumed, so
       // this guard is implicit.
-      ...(existing.provider ? { provider: existing.provider as import('@kanbots/dispatcher').AgentRunProvider } : {}),
+      ...(existing.provider ? { provider: existing.provider as AgentRunProvider } : {}),
       ...(input.extraArgs !== undefined ? { extraArgs: input.extraArgs } : {}),
       ...(input.env !== undefined ? { env: input.env } : {}),
     });
@@ -1529,9 +1546,7 @@ export async function createSupervisor(
     // thread (one per session), so scope the conflict check to the
     // session when one is provided — mirrors the startChat path.
     if (input.chatSessionId !== undefined) {
-      const sessionActive = store.agentRuns.findActiveForChatSession(
-        input.chatSessionId,
-      );
+      const sessionActive = store.agentRuns.findActiveForChatSession(input.chatSessionId);
       if (sessionActive !== null) {
         throw threadAlreadyActiveError(sessionActive);
       }
@@ -1547,15 +1562,15 @@ export async function createSupervisor(
     let run = store.agentRuns.create({
       threadId: input.threadId,
       status: 'starting',
-      ...(input.chatSessionId !== undefined
-        ? { chatSessionId: input.chatSessionId }
-        : {}),
+      ...(input.chatSessionId !== undefined ? { chatSessionId: input.chatSessionId } : {}),
     });
     if (input.cleanup) runCleanups.set(run.id, input.cleanup);
-    const branch = input.branchName ?? defaultBranchName({
-      issueNumber: input.issueNumber,
-      runId: run.id,
-    });
+    const branch =
+      input.branchName ??
+      defaultBranchName({
+        issueNumber: input.issueNumber,
+        runId: run.id,
+      });
     // Multi-repo: when the caller passes a workspace_repos.id, the run
     // worktrees against that repo's path instead of the host-level
     // default. Falls back silently to the host repoPath if the id is
@@ -1567,16 +1582,15 @@ export async function createSupervisor(
       if (repoRow) repoPath = repoRow.repoPath;
     }
     // v1: per-repo via repoPath; workspaceId/team scoping is a future refinement per ADR-0004.
-    runMemoryProjects.set(
-      run.id,
-      memoryNamespace({ workspaceId: 'default', repoId: repoPath }),
-    );
+    runMemoryProjects.set(run.id, memoryProjectId(repoPath));
     runIssueNumbers.set(run.id, input.issueNumber);
-    const worktreePath = input.worktreePath ?? defaultWorktreePath({
-      repoPath,
-      issueNumber: input.issueNumber,
-      runId: run.id,
-    });
+    const worktreePath =
+      input.worktreePath ??
+      defaultWorktreePath({
+        repoPath,
+        issueNumber: input.issueNumber,
+        runId: run.id,
+      });
     // Persist branch + worktree before the slow worktree-creation awaits so
     // that any `listActiveForRepo` read during that window sees a row with
     // branchName populated, not null.
@@ -1720,9 +1734,7 @@ export async function createSupervisor(
       // Resume must reuse the original provider — otherwise an opencode
       // run's ses_* session id gets fed to claude's --resume (or vice
       // versa) and the resume fails.
-      ...(existing.provider
-        ? { provider: existing.provider as import('@kanbots/dispatcher').AgentRunProvider }
-        : {}),
+      ...(existing.provider ? { provider: existing.provider as AgentRunProvider } : {}),
     });
 
     const run = store.agentRuns.update(input.runId, {
@@ -1751,8 +1763,7 @@ export async function createSupervisor(
       const payload = candidate.payload as { question?: unknown };
       const value = candidate.resolvedValue as { value?: unknown } | null;
       return (
-        payload.question === 'Approve this acceptance criteria list?' &&
-        value?.value === 'approve'
+        payload.question === 'Approve this acceptance criteria list?' && value?.value === 'approve'
       );
     });
     if (!card) return;
@@ -1789,10 +1800,7 @@ export async function createSupervisor(
         timer = setTimeout(() => resolveTimeout('timeout'), forceResolveAt);
         if (timer && typeof timer.unref === 'function') timer.unref();
       });
-      const outcome = await Promise.race([
-        entry.handle.done.then(() => 'done' as const),
-        guarded,
-      ]);
+      const outcome = await Promise.race([entry.handle.done.then(() => 'done' as const), guarded]);
       if (timer) clearTimeout(timer);
       if (outcome === 'timeout' && active.has(runId)) {
         // Child is unkillable (e.g. <defunct> waiting on a zombie parent).

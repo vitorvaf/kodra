@@ -1,11 +1,6 @@
 export const PACKAGE_NAME = '@kanbots/llm';
 
-export {
-  MODELS,
-  findModel,
-  modelsForProvider,
-  recommendedModel,
-} from './catalogue.js';
+export { MODELS, findModel, modelsForProvider, recommendedModel } from './catalogue.js';
 
 export { acpAdapter } from './adapters/acp.js';
 export { ampCliAdapter } from './adapters/amp-cli.js';
@@ -39,8 +34,4 @@ export type {
   ValidateResult,
 } from './types.js';
 
-export type {
-  AgentKey,
-  SlashCommand,
-  SlashCommandSource,
-} from './slashCommands.js';
+export type { AgentKey, SlashCommand, SlashCommandSource } from './slashCommands.js';

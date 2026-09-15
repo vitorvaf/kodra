@@ -385,7 +385,10 @@ export async function dismissCloudPrompt(): Promise<void> {
   const existing = await readConfig();
   const now = new Date().toISOString();
   if (existing !== null && existing.token_id.length > 0) {
-    const updated: CloudConfigFileV1 = { ...(existing as CloudConfigFileV1), prompt_dismissed_at: now };
+    const updated: CloudConfigFileV1 = {
+      ...(existing as CloudConfigFileV1),
+      prompt_dismissed_at: now,
+    };
     await writeConfig(updated);
     return;
   }

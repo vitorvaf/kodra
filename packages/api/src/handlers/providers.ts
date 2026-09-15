@@ -76,9 +76,7 @@ export async function save(
   // The app never stores API keys — each CLI either drives its own OAuth
   // (`claude-code`, `codex-cli`, etc.) or reads a well-known env var.
   if (parsed.apiKey !== undefined && parsed.apiKey !== null && parsed.apiKey !== '') {
-    throw badRequest(
-      `${id} does not accept an API key here. ${apiKeyHintFor(id)}`,
-    );
+    throw badRequest(`${id} does not accept an API key here. ${apiKeyHintFor(id)}`);
   }
 
   const patch: Parameters<typeof deps.store.providers.update>[1] = {};
@@ -312,10 +310,7 @@ function apiKeyHintFor(id: ProviderId): string {
   }
 }
 
-function detectProviderCredentials(
-  id: ProviderId,
-  deps: ProvidersHandlerDeps,
-): boolean {
+function detectProviderCredentials(id: ProviderId, deps: ProvidersHandlerDeps): boolean {
   switch (id) {
     case 'claude-code':
       return deps.providers.hasClaudeCodeCredentials();

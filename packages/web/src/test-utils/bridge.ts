@@ -1,9 +1,4 @@
-import type {
-  ChannelArgs,
-  ChannelName,
-  ChannelResult,
-  KanbotsBridge,
-} from '../global.js';
+import type { ChannelArgs, ChannelName, ChannelResult, KanbotsBridge } from '../global.js';
 
 type Handlers = {
   [C in ChannelName]?: (args: ChannelArgs<C>) => Promise<ChannelResult<C>>;
@@ -234,8 +229,7 @@ export function installFakeBridge(opts: InstallOptions = {}): FakeBridge {
     cloudRunsGet: () => Promise.reject(new Error('fake bridge: no cloud runs')),
     cloudRunsStreamStart: () => Promise.resolve({ subscriptionId: 'fake' }),
     cloudRunsStreamStop: () => Promise.resolve(),
-    cloudCostToday: () =>
-      Promise.resolve({ totalUsd: 0, since: new Date().toISOString() }),
+    cloudCostToday: () => Promise.resolve({ totalUsd: 0, since: new Date().toISOString() }),
     cloudProjectBindingGet: () => Promise.resolve(null),
     cloudProjectBindingSet: () =>
       Promise.resolve({ localRepoPath: '/tmp', updatedAt: new Date().toISOString() }),
@@ -249,8 +243,7 @@ export function installFakeBridge(opts: InstallOptions = {}): FakeBridge {
   const bridge: FakeBridge = {
     ...lifecycleDefaults,
     ...opts.lifecycle,
-    updaterGetState: () =>
-      Promise.resolve({ status: 'idle' as const, currentVersion: '0.0.0' }),
+    updaterGetState: () => Promise.resolve({ status: 'idle' as const, currentVersion: '0.0.0' }),
     updaterCheck: () => Promise.resolve(),
     updaterDownload: () => Promise.resolve(),
     updaterInstall: () => Promise.resolve(),

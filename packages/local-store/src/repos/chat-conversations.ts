@@ -1,9 +1,5 @@
 import type { Db } from '../db.js';
-import type {
-  ChatConversation,
-  ChatConversationId,
-  ThreadId,
-} from '../types.js';
+import type { ChatConversation, ChatConversationId, ThreadId } from '../types.js';
 
 export const CHAT_REPO_OWNER = '__chat__';
 export const CHAT_REPO_NAME = '__chat__';
@@ -73,9 +69,9 @@ export class ChatConversationsRepo {
   }
 
   findById(id: ChatConversationId): ChatConversation | null {
-    const row = this.db
-      .prepare('SELECT * FROM chat_conversations WHERE id = ?')
-      .get(id) as ChatConversationRow | undefined;
+    const row = this.db.prepare('SELECT * FROM chat_conversations WHERE id = ?').get(id) as
+      | ChatConversationRow
+      | undefined;
     return row ? rowTo(row) : null;
   }
 
@@ -88,17 +84,13 @@ export class ChatConversationsRepo {
 
   list(): ChatConversation[] {
     const rows = this.db
-      .prepare(
-        'SELECT * FROM chat_conversations ORDER BY last_message_at DESC, id DESC',
-      )
+      .prepare('SELECT * FROM chat_conversations ORDER BY last_message_at DESC, id DESC')
       .all() as ChatConversationRow[];
     return rows.map(rowTo);
   }
 
   rename(id: ChatConversationId, title: string): ChatConversation {
-    this.db
-      .prepare('UPDATE chat_conversations SET title = ? WHERE id = ?')
-      .run(title, id);
+    this.db.prepare('UPDATE chat_conversations SET title = ? WHERE id = ?').run(title, id);
     const c = this.findById(id);
     if (!c) throw new Error(`chat conversation ${id} not found`);
     return c;
@@ -115,9 +107,9 @@ export class ChatConversationsRepo {
     if (!conv) return;
     this.db.transaction(() => {
       const messageIds = (
-        this.db
-          .prepare('SELECT id FROM messages WHERE thread_id = ?')
-          .all(conv.threadId) as Array<{ id: number }>
+        this.db.prepare('SELECT id FROM messages WHERE thread_id = ?').all(conv.threadId) as Array<{
+          id: number;
+        }>
       ).map((r) => r.id);
       const runIds = (
         this.db

@@ -117,9 +117,13 @@ export function startAgentRun(opts: StartAgentRunOptions): AgentRunHandle {
   const spawnFn = opts.spawn ?? nodeSpawn;
 
   const args = adapter.buildArgs({
-    ...(opts.resumeFromSessionId !== undefined ? { resumeFromSessionId: opts.resumeFromSessionId } : {}),
+    ...(opts.resumeFromSessionId !== undefined
+      ? { resumeFromSessionId: opts.resumeFromSessionId }
+      : {}),
     ...(opts.allowedTools !== undefined ? { allowedTools: opts.allowedTools } : {}),
-    ...(opts.appendSystemPrompt !== undefined ? { appendSystemPrompt: opts.appendSystemPrompt } : {}),
+    ...(opts.appendSystemPrompt !== undefined
+      ? { appendSystemPrompt: opts.appendSystemPrompt }
+      : {}),
     ...(opts.model !== undefined ? { model: opts.model } : {}),
     ...(opts.extraArgs !== undefined ? { extraArgs: opts.extraArgs } : {}),
   });
@@ -324,8 +328,7 @@ export function startAgentRun(opts: StartAgentRunOptions): AgentRunHandle {
     stop(arg?: StopOptions | NodeJS.Signals): void {
       if (killedByStop) return;
       killedByStop = true;
-      const stopOpts: StopOptions =
-        typeof arg === 'string' ? { signal: arg } : (arg ?? {});
+      const stopOpts: StopOptions = typeof arg === 'string' ? { signal: arg } : (arg ?? {});
       const signal = stopOpts.signal ?? 'SIGTERM';
       const gracefulTimeoutMs = stopOpts.gracefulTimeoutMs ?? DEFAULT_GRACEFUL_TIMEOUT_MS;
       stopEscalation = signal === 'SIGKILL' ? 'sigkill' : 'sigterm';

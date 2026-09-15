@@ -18,7 +18,7 @@ import {
   type Server,
 } from 'node:http';
 import { performance } from 'node:perf_hooks';
-import { writeFile, mkdir, readFile } from 'node:fs/promises';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { release, arch, cpus, totalmem } from 'node:os';
@@ -338,9 +338,7 @@ async function main(): Promise<void> {
       `  direct: mean=${fmt(direct.meanTotal)}ms p50=${fmt(direct.p50Total)} p95=${fmt(direct.p95Total)} p99=${fmt(direct.p99Total)}`,
     );
     console.log(`[latency] ${scenario.key} proxy…`);
-    const proxied = summarize(
-      await runSequential(proxy.port, scenario.path, SEQ_REQUESTS, WARMUP),
-    );
+    const proxied = summarize(await runSequential(proxy.port, scenario.path, SEQ_REQUESTS, WARMUP));
     console.log(
       `  proxy:  mean=${fmt(proxied.meanTotal)}ms p50=${fmt(proxied.p50Total)} p95=${fmt(proxied.p95Total)} p99=${fmt(proxied.p99Total)}`,
     );
@@ -429,8 +427,7 @@ function rowLatency(
   if (!direct || !proxied) return `| ${label} | n/a | n/a | n/a |`;
   const d = `${fmt(direct.p50Total, 2)} / ${fmt(direct.p95Total, 2)} / ${fmt(direct.p99Total, 2)}`;
   const p = `${fmt(proxied.p50Total, 2)} / ${fmt(proxied.p95Total, 2)} / ${fmt(proxied.p99Total, 2)}`;
-  const overhead =
-    `${fmt(proxied.p50Total - direct.p50Total, 2)} / ${fmt(proxied.p95Total - direct.p95Total, 2)} / ${fmt(proxied.p99Total - direct.p99Total, 2)}`;
+  const overhead = `${fmt(proxied.p50Total - direct.p50Total, 2)} / ${fmt(proxied.p95Total - direct.p95Total, 2)} / ${fmt(proxied.p99Total - direct.p99Total, 2)}`;
   return `| ${label} | ${d} | ${p} | ${overhead} |`;
 }
 

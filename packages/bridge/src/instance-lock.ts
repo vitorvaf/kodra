@@ -105,9 +105,7 @@ function defaultTryBindPort(port: number): Promise<BoundPort | null> {
   });
 }
 
-export async function acquireInstanceLock(
-  opts: InstanceLockOptions,
-): Promise<InstanceLockHandle> {
+export async function acquireInstanceLock(opts: InstanceLockOptions): Promise<InstanceLockHandle> {
   const range = opts.range ?? DEFAULT_RANGE;
   const isPidAlive = opts.hooks?.isPidAlive ?? defaultIsPidAlive;
   const tryBindPort = opts.hooks?.tryBindPort ?? defaultTryBindPort;

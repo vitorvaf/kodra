@@ -11,12 +11,7 @@ import type {
   PreviewStatePayload as ApiPreviewStatePayload,
   ThreadPayload,
 } from '@kanbots/api';
-import type {
-  CreateIssueInput,
-  Issue as CoreIssue,
-  IssueRef,
-  StatusKey,
-} from '@kanbots/core';
+import type { Issue as CoreIssue, IssueRef, StatusKey } from '@kanbots/core';
 
 export type { CreateIssueInput, IssueRef, StatusKey } from '@kanbots/core';
 

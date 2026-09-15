@@ -33,12 +33,12 @@ If the postinstall got skipped (some `npx` cache paths do this, as does
 
 ## Supported platforms
 
-| OS | Arch | Asset |
-| --- | --- | --- |
-| macOS | arm64 (Apple Silicon) | `kanbots-<version>-mac-arm64.zip` |
-| macOS | x64 (Intel) | `kanbots-<version>-mac-x64.zip` |
-| Linux | x64 | `kanbots-<version>-linux-x64.AppImage` |
-| Windows | x64 | `kanbots-<version>-win-x64.exe` (manual install — see below) |
+| OS      | Arch                  | Asset                                                        |
+| ------- | --------------------- | ------------------------------------------------------------ |
+| macOS   | arm64 (Apple Silicon) | `kanbots-<version>-mac-arm64.zip`                            |
+| macOS   | x64 (Intel)           | `kanbots-<version>-mac-x64.zip`                              |
+| Linux   | x64                   | `kanbots-<version>-linux-x64.AppImage`                       |
+| Windows | x64                   | `kanbots-<version>-win-x64.exe` (manual install — see below) |
 
 ### macOS notes
 
@@ -75,7 +75,7 @@ npm version <new-version> --no-git-tag-version
 npm publish --access public
 ```
 
-The version in `npx-cli/package.json` *is* the version the postinstall looks
+The version in `npx-cli/package.json` _is_ the version the postinstall looks
 for, so bump it to match the release tag exactly.
 
 ## License

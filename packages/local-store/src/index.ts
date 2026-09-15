@@ -131,10 +131,7 @@ export type {
   UpsertLearningInput,
   UpsertLearningResult,
 } from './repos/learnings.js';
-export {
-  hashLearningContent,
-  normaliseLearningContent,
-} from './repos/learnings.js';
+export { hashLearningContent, normaliseLearningContent } from './repos/learnings.js';
 export type { AppendDiffHunkInput } from './repos/diff-hunks.js';
 export { makeSnapshotId } from './repos/diff-hunks.js';
 export type {
@@ -154,10 +151,7 @@ export {
   type CreateLocalIssueInput,
   type UpdateLocalIssuePatch,
 } from './repos/local-issues.js';
-export type {
-  AddIssueRelationInput,
-  IssueRelation,
-} from './repos/issue-relations.js';
+export type { AddIssueRelationInput, IssueRelation } from './repos/issue-relations.js';
 export { LocalIssueSource, type LocalIssueSourceOptions } from './local-issue-source.js';
 
 export type { ProviderConfigPatch, ProviderSettingsPatch } from './repos/providers.js';
@@ -174,10 +168,7 @@ export type { UpsertSentryImportInput } from './repos/sentry-imports.js';
 
 export type { Workspace, CreateWorkspaceInput } from './repos/workspaces.js';
 export type { Folder, CreateFolderInput } from './repos/folders.js';
-export type {
-  WorkspaceRepo,
-  AddWorkspaceRepoInput,
-} from './repos/workspace-repos.js';
+export type { WorkspaceRepo, AddWorkspaceRepoInput } from './repos/workspace-repos.js';
 
 export {
   describeKanbotsDir,

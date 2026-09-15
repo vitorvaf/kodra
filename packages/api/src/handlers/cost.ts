@@ -79,26 +79,21 @@ export function resetUsageCaches(): void {
   resetAntigravityTokenMemo();
 }
 
-function cached(
-  cache: UsageCacheEntry | null,
-  now: number,
-): AgentUsageResult | null {
+function cached(cache: UsageCacheEntry | null, now: number): AgentUsageResult | null {
   return cache && cache.expiresAt > now ? cache.payload : null;
 }
 
-function saveCache(
-  payload: AgentUsageResult,
-  now: number,
-  success: boolean,
-): UsageCacheEntry {
+function saveCache(payload: AgentUsageResult, now: number, success: boolean): UsageCacheEntry {
   return {
     expiresAt: now + (success ? USAGE_CACHE_MS : FAILURE_CACHE_MS),
     payload,
   };
 }
 
-function unavailable(provider: string, source: AgentUsageResult['source'] = 'unavailable'):
-  AgentUsageResult {
+function unavailable(
+  provider: string,
+  source: AgentUsageResult['source'] = 'unavailable',
+): AgentUsageResult {
   return { provider, source, windows: [] };
 }
 
@@ -487,9 +482,8 @@ export function mapAgyQuotaSummary(raw: unknown): UsageWindowInfo[] {
     if (!isRecord(group) || !Array.isArray(group.buckets)) {
       throw new Error('Invalid Antigravity quota group');
     }
-    const groupName = typeof group.displayName === 'string' && group.displayName
-      ? group.displayName
-      : 'Quota';
+    const groupName =
+      typeof group.displayName === 'string' && group.displayName ? group.displayName : 'Quota';
     group.buckets.forEach((bucket, bucketIndex) => {
       if (!isRecord(bucket)) throw new Error('Invalid Antigravity quota bucket');
       if (bucket.disabled === true) return;
@@ -589,9 +583,8 @@ export async function fetchAgyUsage(): Promise<AgentUsageResult> {
       agyCache = saveCache(result, now, false);
       return result;
     }
-    const refreshToken = typeof credentials.refresh_token === 'string'
-      ? credentials.refresh_token
-      : null;
+    const refreshToken =
+      typeof credentials.refresh_token === 'string' ? credentials.refresh_token : null;
 
     // Prefer the keyring token while it is still valid; otherwise reuse a
     // memoized refresh within its lifetime, and only then hit Google OAuth.
@@ -634,15 +627,12 @@ export async function fetchAgyUsage(): Promise<AgentUsageResult> {
             }
           }
         }
-        const project = isRecord(load) && typeof load.cloudaicompanionProject === 'string'
-          ? load.cloudaicompanionProject
-          : await readAgyProjectFallback();
+        const project =
+          isRecord(load) && typeof load.cloudaicompanionProject === 'string'
+            ? load.cloudaicompanionProject
+            : await readAgyProjectFallback();
         if (!project) throw new Error('No Antigravity project available');
-        const summary = await agyPost(
-          'retrieveUserQuotaSummary',
-          { project },
-          accessToken,
-        );
+        const summary = await agyPost('retrieveUserQuotaSummary', { project }, accessToken);
         const result: AgentUsageResult = {
           provider: AGY_PROVIDER,
           source: 'live',
@@ -669,9 +659,7 @@ export async function fetchAgyUsage(): Promise<AgentUsageResult> {
         }
         const result = unavailable(
           AGY_PROVIDER,
-          error instanceof UsageHttpError && error.status === 401
-            ? 'unauthorized'
-            : 'unavailable',
+          error instanceof UsageHttpError && error.status === 401 ? 'unauthorized' : 'unavailable',
         );
         agyCache = saveCache(result, now, false);
         return result;
@@ -697,11 +685,16 @@ export function mapCopilotUsage(raw: unknown): {
   windows: UsageWindowInfo[];
 } {
   if (!isRecord(raw)) return { plan: null, windows: [] };
-  const premium = isRecord(raw.quota_snapshots)
-    && isRecord(raw.quota_snapshots.premium_interactions)
-    ? raw.quota_snapshots.premium_interactions
-    : null;
-  if (!premium || premium.unlimited === true || !isNumber(premium.entitlement) || premium.entitlement <= 0) {
+  const premium =
+    isRecord(raw.quota_snapshots) && isRecord(raw.quota_snapshots.premium_interactions)
+      ? raw.quota_snapshots.premium_interactions
+      : null;
+  if (
+    !premium ||
+    premium.unlimited === true ||
+    !isNumber(premium.entitlement) ||
+    premium.entitlement <= 0
+  ) {
     return {
       plan: typeof raw.copilot_plan === 'string' ? raw.copilot_plan : null,
       windows: [],
@@ -732,18 +725,18 @@ export function mapCopilotUsage(raw: unknown): {
     }
   }
   const remaining = isNumber(premium.remaining) ? premium.remaining : null;
-  const detail = remaining === null
-    ? null
-    : `${remaining} / ${premium.entitlement}`;
+  const detail = remaining === null ? null : `${remaining} / ${premium.entitlement}`;
   return {
     plan: typeof raw.copilot_plan === 'string' ? raw.copilot_plan : null,
-    windows: [{
-      id: 'monthly',
-      label: 'monthly',
-      pct: clamp(1 - remainingFraction),
-      resetsAt,
-      detail,
-    }],
+    windows: [
+      {
+        id: 'monthly',
+        label: 'monthly',
+        pct: clamp(1 - remainingFraction),
+        resetsAt,
+        detail,
+      },
+    ],
   };
 }
 
@@ -768,15 +761,17 @@ export async function fetchCopilotUsage(): Promise<AgentUsageResult> {
       return result;
     }
     // This is an undocumented GitHub Copilot endpoint.
-    const mapped = mapCopilotUsage(await requestJson(COPILOT_ENDPOINT, {
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: 'application/json',
-        'Editor-Version': 'vscode/1.96.2',
-        'Editor-Plugin-Version': 'copilot-chat/0.26.7',
-        'X-Github-Api-Version': '2025-04-01',
-      },
-    }));
+    const mapped = mapCopilotUsage(
+      await requestJson(COPILOT_ENDPOINT, {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/json',
+          'Editor-Version': 'vscode/1.96.2',
+          'Editor-Plugin-Version': 'copilot-chat/0.26.7',
+          'X-Github-Api-Version': '2025-04-01',
+        },
+      }),
+    );
     const result: AgentUsageResult = {
       provider: COPILOT_PROVIDER,
       source: 'live',

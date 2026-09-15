@@ -111,11 +111,13 @@ export function createAgentMemorySessionBridge(
   function scheduleDrain(): void {
     if (drainScheduled || draining) return;
     drainScheduled = true;
-    void Promise.resolve().then(drain).catch(() => {
-      // Final guard for unexpected failures in queue bookkeeping.
-      drainScheduled = false;
-      draining = false;
-    });
+    void Promise.resolve()
+      .then(drain)
+      .catch(() => {
+        // Final guard for unexpected failures in queue bookkeeping.
+        drainScheduled = false;
+        draining = false;
+      });
   }
 
   function enqueue(operation: Operation): boolean {
@@ -237,7 +239,6 @@ export function createAgentMemorySessionBridge(
         input.hookType,
         input.data,
       ),
-    endCardSession: (threadId) =>
-      endSession(startedCards, threadId, memoryCardSessionId(threadId)),
+    endCardSession: (threadId) => endSession(startedCards, threadId, memoryCardSessionId(threadId)),
   };
 }

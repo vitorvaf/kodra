@@ -169,10 +169,7 @@ function countTouchedDescendants(
  * (case-insensitive). A dir is also added if any descendant matches —
  * lets us keep the tree shape so users can see *why* a query matched.
  */
-function computeMatchedPaths(
-  query: string,
-  children: ChildrenCache,
-): ReadonlySet<string> {
+function computeMatchedPaths(query: string, children: ChildrenCache): ReadonlySet<string> {
   const matched = new Set<string>();
   if (query === '') return matched;
   const needle = query.toLowerCase();
@@ -483,10 +480,7 @@ function RepoSwitcher({ repos, focused, onPick }: RepoSwitcherProps) {
   }, [open]);
 
   const handleOpenInIde = useCallback(
-    async (
-      e: React.MouseEvent<HTMLButtonElement>,
-      repoId: number,
-    ): Promise<void> => {
+    async (e: React.MouseEvent<HTMLButtonElement>, repoId: number): Promise<void> => {
       // Stop the menu item click handler from firing — Open-in-IDE is
       // an inline secondary action and shouldn't switch focus to the row.
       e.stopPropagation();
@@ -656,9 +650,7 @@ export function WorkspaceTree({
     loading: new Set<string>(),
   }));
   const [query, setQuery] = useState('');
-  const liveTouchedRef = useRef(
-    new Map<string, { worktreePath: string | null }>(),
-  );
+  const liveTouchedRef = useRef(new Map<string, { worktreePath: string | null }>());
   const [, forceRender] = useReducer((n: number) => n + 1, 0);
 
   // 1. Resolve the active repo root once, plus a periodic re-check so
@@ -749,19 +741,17 @@ export function WorkspaceTree({
   useEffect(() => {
     const bridge = getBridge();
     if (!bridge) return;
-    const unsubscribe = bridge.workspaceSubscribeTouched(
-      ({ filePath, worktreePath }) => {
-        // Convert absolute paths into repo-relative ones if possible —
-        // the renderer doesn't always know `rootPath` is a prefix.
-        let key = filePath;
-        if (rootPath !== null && filePath.startsWith(rootPath)) {
-          key = filePath.slice(rootPath.length).replace(/^[\\/]+/, '');
-        }
-        key = key.replace(/\\/g, '/');
-        liveTouchedRef.current.set(key, { worktreePath });
-        forceRender();
-      },
-    );
+    const unsubscribe = bridge.workspaceSubscribeTouched(({ filePath, worktreePath }) => {
+      // Convert absolute paths into repo-relative ones if possible —
+      // the renderer doesn't always know `rootPath` is a prefix.
+      let key = filePath;
+      if (rootPath !== null && filePath.startsWith(rootPath)) {
+        key = filePath.slice(rootPath.length).replace(/^[\\/]+/, '');
+      }
+      key = key.replace(/\\/g, '/');
+      liveTouchedRef.current.set(key, { worktreePath });
+      forceRender();
+    });
     return () => unsubscribe();
   }, [rootPath]);
 
@@ -802,9 +792,7 @@ export function WorkspaceTree({
   if (rootPath === null) {
     return (
       <div className="kb-tree-empty" role="status">
-        <p style={{ margin: 0 }}>
-          No local repo bound to this cloud project.
-        </p>
+        <p style={{ margin: 0 }}>No local repo bound to this cloud project.</p>
         {onOpenCloudSettings ? (
           <button
             type="button"
@@ -837,16 +825,10 @@ export function WorkspaceTree({
           title="Refresh worktree status"
         >
           <span className="kb-tree-header-name">{header.name}</span>
-          {header.subtitle ? (
-            <span className="kb-tree-header-sub">{header.subtitle}</span>
-          ) : null}
+          {header.subtitle ? <span className="kb-tree-header-sub">{header.subtitle}</span> : null}
         </button>
       ) : null}
-      <RepoSwitcher
-        repos={repos}
-        focused={focused}
-        onPick={(id) => setFocusedRepoId(id)}
-      />
+      <RepoSwitcher repos={repos} focused={focused} onPick={(id) => setFocusedRepoId(id)} />
       {folders && folders.length > 0 ? (
         <div role="list" aria-label="Workspace folders">
           {folders.map((folder) => (
@@ -862,7 +844,9 @@ export function WorkspaceTree({
               <span className="kb-tree-caret" aria-hidden>
                 {folder.current ? '●' : '○'}
               </span>
-              <span className="kb-tree-icon" aria-hidden>📁</span>
+              <span className="kb-tree-icon" aria-hidden>
+                📁
+              </span>
               <span className="kb-tree-name">{folder.name}</span>
             </button>
           ))}

@@ -37,8 +37,7 @@ export interface OpencodeLoginNotImplemented {
 export async function startOpencodeLogin(): Promise<OpencodeLoginNotImplemented> {
   return {
     ok: false,
-    error:
-      'Run `opencode auth` in your terminal to authorize OpenCode, then reopen this dialog.',
+    error: 'Run `opencode auth` in your terminal to authorize OpenCode, then reopen this dialog.',
   };
 }
 

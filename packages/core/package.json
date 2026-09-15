@@ -11,7 +11,11 @@
     "url": "git+https://github.com/leodavinci1/kanbots.git",
     "directory": "packages/core"
   },
-  "keywords": ["kanbots", "kanban", "github-issues"],
+  "keywords": [
+    "kanbots",
+    "kanban",
+    "github-issues"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -24,7 +28,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",

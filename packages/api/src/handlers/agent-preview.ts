@@ -64,8 +64,7 @@ export async function startRunPreview(
     };
   }
 
-  const startImpl: StartPreviewImpl =
-    deps.startPreviewImpl ?? ((opts) => startPreview(opts));
+  const startImpl: StartPreviewImpl = deps.startPreviewImpl ?? ((opts) => startPreview(opts));
 
   // Per-repo dev-server override, set via Settings → Repos. Falls back to
   // dispatcher's default `pnpm dev` if the user hasn't configured one.

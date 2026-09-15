@@ -256,9 +256,7 @@ describe('diff_hunk synthesis from tool_use', () => {
       JSON.stringify({
         type: 'assistant',
         message: {
-          content: [
-            { type: 'tool_use', id: 'toolu_x', name: toolName, input },
-          ],
+          content: [{ type: 'tool_use', id: 'toolu_x', name: toolName, input }],
         },
       }),
     );

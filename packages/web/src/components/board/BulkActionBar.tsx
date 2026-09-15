@@ -143,13 +143,7 @@ function StatusDropdown({
   );
 }
 
-function LabelsDropdown({
-  busy,
-  onApply,
-}: {
-  busy: boolean;
-  onApply: (labels: string[]) => void;
-}) {
+function LabelsDropdown({ busy, onApply }: { busy: boolean; onApply: (labels: string[]) => void }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const wrapRef = useRef<HTMLDivElement | null>(null);

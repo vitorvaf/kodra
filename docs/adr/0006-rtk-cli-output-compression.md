@@ -39,7 +39,7 @@ to the cost axis established in ADR-0001; there is no quality/memory effect.
 - RTK's hook lives in the **user's agent config** (`~/.claude/settings.json`
   etc.), not per-worktree. A spawned agent reads that config (unless kanbots
   overrides it with explicit `--mcp-config` / settings flags — see ADR-0003),
-  so in the common case RTK is *already active* for kanbots-spawned agents
+  so in the common case RTK is _already active_ for kanbots-spawned agents
   once the user has run `rtk init -g`.
 - The transparent-rewrite surface area is non-zero: a command RTK doesn't
   handle well, or a filter that drops a signal the agent needed, can cause
@@ -62,7 +62,7 @@ themselves. No kanbots code, no per-worktree manipulation, no auto-install.**
    how to verify).
 
 2. **Detection, not management.** On startup, kanbots checks whether `rtk` is
-   on `PATH` (and is the *right* rtk — see the name-collision note). If
+   on `PATH` (and is the _right_ rtk — see the name-collision note). If
    present, the UI shows "RTK: active" in Settings; if absent, nothing — no
    nag, no prompt. This is informational parity with ADR-0002's
    agentmemory detection, not a dependency.
@@ -91,6 +91,7 @@ themselves. No kanbots code, no per-worktree manipulation, no auto-install.**
 ## Alternatives Considered
 
 ### Option A — kanbots auto-installs RTK and runs `rtk init` per agent
+
 Rejected. (a) RTK's hook is global by design; per-agent injection fights the
 grain. (b) Forces an external binary download on every kanbots install. (c)
 The user can already do this in one command; automating it saves little and
@@ -99,6 +100,7 @@ kind of magic that's hard to debug when it goes wrong — better the user opts
 in explicitly.
 
 ### Option B — kanbots wraps commands itself (`rtk <cmd>` at the spawn layer)
+
 Rejected. The agent, not kanbots, decides which shell commands to run inside
 the worktree. kanbots only spawns the top-level agent process; it doesn't see
 the agent's internal `Bash` tool calls (those appear as `tool_use`/`tool_result`
@@ -107,12 +109,14 @@ would require intercepting and re-executing every `tool_use` — a deep change
 to the dispatcher with no benefit over RTK's own PreToolUse hook.
 
 ### Option C — Per-worktree `.claude/settings.json` with the RTK hook
+
 Considered for isolation scenarios. Rejected for v1: agents spawned by
 kanbots read the user's global config in the common case, so a per-worktree
-override is redundant unless we *also* want to disable RTK in some
+override is redundant unless we _also_ want to disable RTK in some
 worktrees — which is Option-A territory and not needed yet.
 
 ### Option D — Out of scope entirely (don't even document)
+
 Rejected. RTK is a real cost win for exactly the workload kanbots generates
 (agent runs full of build/test/git output), and the user has explicitly
 asked for it in scope (ADR-0001). Documenting it costs almost nothing and
@@ -121,6 +125,7 @@ makes the cost-optimization axis of the fork real.
 ## Consequences
 
 **Positive:**
+
 - Zero kanbots code changes for v1 — lowest-effort integration of all six
   component ADRs.
 - Users who want it install it once; users who don't are unaffected.
@@ -130,6 +135,7 @@ makes the cost-optimization axis of the fork real.
   kanbots adopts it with no rewrite.
 
 **Negative:**
+
 - The benefit is only realized for users who read the docs and install RTK
   themselves. Users who don't will see no cost improvement and may not know
   why.
@@ -143,9 +149,10 @@ makes the cost-optimization axis of the fork real.
   `assumeInstalled` flag is a hint, not a measurement.
 
 **Neutral:**
+
 - Adds one docs page (`docs/rtk.md`) and one optional `config.json` flag.
 - The detection check is a `which rtk` + `rtk --version` on startup; cheap,
-   non-blocking, fails silently.
+  non-blocking, fails silently.
 - Independent of ADRs 0002–0005 (agentmemory). Can be done first, last, or
   never without affecting the memory work.
 

@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  getBridge,
-  type RecentCloudWorkspace,
-} from '../desktop-bridge.js';
+import { getBridge, type RecentCloudWorkspace } from '../desktop-bridge.js';
 import { Logo } from '../components/Logo.js';
 import type { OrgSummary, ProjectSummary } from '@kanbots/cloud-client';
 
@@ -122,8 +119,8 @@ export function CloudWorkspacePicker({
           <Logo size={28} withWordmark />
         </h1>
         <p className="picker-sub">
-          Pick a Kodra Cloud project to open. Tasks and runs are stored on the cloud
-          and shared with your team.
+          Pick a Kodra Cloud project to open. Tasks and runs are stored on the cloud and shared with
+          your team.
         </p>
 
         {error !== null ? (
@@ -134,9 +131,7 @@ export function CloudWorkspacePicker({
 
         {recents.length > 0 ? (
           <section style={{ marginBottom: 18 }}>
-            <h2 style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 6 }}>
-              Recent
-            </h2>
+            <h2 style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 6 }}>Recent</h2>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 4 }}>
               {recents.map((r) => (
                 <li key={`${r.orgSlug}/${r.projectSlug}`}>
@@ -148,9 +143,7 @@ export function CloudWorkspacePicker({
                     style={{ width: '100%', textAlign: 'left' }}
                   >
                     <strong>{r.projectDisplayName}</strong>{' '}
-                    <span style={{ color: 'var(--ink-3)' }}>
-                      · {r.orgDisplayName}
-                    </span>
+                    <span style={{ color: 'var(--ink-3)' }}>· {r.orgDisplayName}</span>
                   </button>
                 </li>
               ))}
@@ -159,9 +152,7 @@ export function CloudWorkspacePicker({
         ) : null}
 
         <section>
-          <h2 style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 6 }}>
-            Your orgs
-          </h2>
+          <h2 style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 6 }}>Your orgs</h2>
           {orgs === null ? (
             <div style={{ color: 'var(--ink-3)', fontSize: 13 }}>Loading…</div>
           ) : orgs.length === 0 ? (
@@ -179,7 +170,14 @@ export function CloudWorkspacePicker({
                     padding: 12,
                   }}
                 >
-                  <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <header
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 8,
+                    }}
+                  >
                     <strong>{org.display_name}</strong>
                     <span style={{ color: 'var(--ink-3)', fontSize: 12 }}>{org.role}</span>
                   </header>
@@ -188,7 +186,15 @@ export function CloudWorkspacePicker({
                       No projects yet.
                     </div>
                   ) : (
-                    <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 8px 0', display: 'grid', gap: 4 }}>
+                    <ul
+                      style={{
+                        listStyle: 'none',
+                        padding: 0,
+                        margin: '0 0 8px 0',
+                        display: 'grid',
+                        gap: 4,
+                      }}
+                    >
                       {projects.map((p) => (
                         <li key={p.slug}>
                           <button
@@ -305,11 +311,7 @@ export function CloudWorkspacePicker({
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              className="kb-btn ghost"
-              onClick={() => setCreatingOrg(true)}
-            >
+            <button type="button" className="kb-btn ghost" onClick={() => setCreatingOrg(true)}>
               + New org
             </button>
           )}

@@ -17,9 +17,11 @@ This is the line someone greps for years later.
 ## Alternatives Considered
 
 ### Option A — name
+
 What it is. Pros. Cons.
 
 ### Option B — name
+
 What it is. Pros. Cons.
 
 (Include the chosen option here too, with its trade-offs explicit.)

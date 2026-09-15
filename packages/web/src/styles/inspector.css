@@ -820,7 +820,9 @@
   border-radius: 4px;
   cursor: pointer;
 }
-.kb-preview-frame .pf-device-btn:hover { color: var(--ink-1); }
+.kb-preview-frame .pf-device-btn:hover {
+  color: var(--ink-1);
+}
 .kb-preview-frame .pf-device-btn.is-active {
   background: var(--bg-3);
   color: var(--ink);

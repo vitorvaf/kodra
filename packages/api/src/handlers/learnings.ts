@@ -58,10 +58,7 @@ export async function deleteLearning(
   return deps.store.learnings.softDelete(parsed.id);
 }
 
-export async function update(
-  deps: HandlerDeps,
-  args: UpdateLearningArgs,
-): Promise<Learning> {
+export async function update(deps: HandlerDeps, args: UpdateLearningArgs): Promise<Learning> {
   const parsed = parseArgs(updateSchema, args);
   const existing = deps.store.learnings.findById(parsed.id);
   if (!existing) throw notFound(`learning ${parsed.id} not found`);

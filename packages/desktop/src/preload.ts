@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import type { ChannelArgs, ChannelName, ChannelResult } from '@kanbots/api';
+import type { ChannelArgs, ChannelName, ChannelResult, WorkspaceFolderPayload } from '@kanbots/api';
 import type {
   AgentRunListResponse,
   AgentRunSummary,
@@ -45,22 +45,20 @@ const api: KanbotsBridge = {
       { ok: true } | { ok: false; error: string }
     >,
   addFolder: (input: { name: string; path: string; defaultBranch?: string }) =>
-    ipcRenderer.invoke('kanbots:add-folder', input) as Promise<
-      import('@kanbots/api').WorkspaceFolderPayload
-    >,
+    ipcRenderer.invoke('kanbots:add-folder', input) as Promise<WorkspaceFolderPayload>,
   removeFolder: (id: string) =>
     ipcRenderer.invoke('kanbots:remove-folder', id) as Promise<{ ok: boolean }>,
   closeWorkspace: () => ipcRenderer.invoke('kanbots:close-workspace') as Promise<void>,
   recentWorkspaces: () =>
     ipcRenderer.invoke('kanbots:recent-workspaces') as Promise<RecentWorkspace[]>,
   minimizeWindow: () => ipcRenderer.invoke('kanbots:window-minimize') as Promise<void>,
-  toggleMaximizeWindow: () =>
-    ipcRenderer.invoke('kanbots:window-toggle-maximize') as Promise<void>,
+  toggleMaximizeWindow: () => ipcRenderer.invoke('kanbots:window-toggle-maximize') as Promise<void>,
   closeWindow: () => ipcRenderer.invoke('kanbots:window-close') as Promise<void>,
   updaterGetState: () =>
-    ipcRenderer.invoke(`${INVOKE_PREFIX}${UPDATER_GET_STATE_CHANNEL}`, undefined) as Promise<
-      UpdaterState
-    >,
+    ipcRenderer.invoke(
+      `${INVOKE_PREFIX}${UPDATER_GET_STATE_CHANNEL}`,
+      undefined,
+    ) as Promise<UpdaterState>,
   updaterCheck: () =>
     ipcRenderer.invoke(`${INVOKE_PREFIX}${UPDATER_CHECK_CHANNEL}`, undefined) as Promise<void>,
   updaterDownload: () =>
@@ -155,16 +153,10 @@ const api: KanbotsBridge = {
     ipcRenderer.invoke('kanbots:cloud:projects-list', orgSlug) as Promise<ProjectListResponse>,
   cloudProjectsCreate: (args: { orgSlug: string; body: CreateProjectRequest }) =>
     ipcRenderer.invoke('kanbots:cloud:projects-create', args) as Promise<ProjectSummary>,
-  cloudCardsList: (args: {
-    orgSlug: string;
-    projectSlug: string;
-    query?: ListCardsQuery;
-  }) => ipcRenderer.invoke('kanbots:cloud:cards-list', args) as Promise<CardListResponse>,
-  cloudCardsCreate: (args: {
-    orgSlug: string;
-    projectSlug: string;
-    body: CreateCardRequest;
-  }) => ipcRenderer.invoke('kanbots:cloud:cards-create', args) as Promise<CardSummary>,
+  cloudCardsList: (args: { orgSlug: string; projectSlug: string; query?: ListCardsQuery }) =>
+    ipcRenderer.invoke('kanbots:cloud:cards-list', args) as Promise<CardListResponse>,
+  cloudCardsCreate: (args: { orgSlug: string; projectSlug: string; body: CreateCardRequest }) =>
+    ipcRenderer.invoke('kanbots:cloud:cards-create', args) as Promise<CardSummary>,
   cloudCardsGet: (args: { orgSlug: string; projectSlug: string; number: number }) =>
     ipcRenderer.invoke('kanbots:cloud:cards-get', args) as Promise<CardSummary>,
   cloudCardsUpdate: (args: {
@@ -236,10 +228,7 @@ const api: KanbotsBridge = {
     >,
   workspaceWorktreeStatus: (args: { rootPath: string }) =>
     ipcRenderer.invoke('kanbots:workspace:worktree-status', args) as Promise<{
-      files: Record<
-        string,
-        { status: 'M' | 'A' | 'D' | 'R' | '??' | 'U'; worktrees: string[] }
-      >;
+      files: Record<string, { status: 'M' | 'A' | 'D' | 'R' | '??' | 'U'; worktrees: string[] }>;
       worktrees: string[];
     }>,
   workspaceSubscribeTouched: (
@@ -315,19 +304,15 @@ const api: KanbotsBridge = {
     ipcRenderer.invoke('kanbots:open-cloud-workspace', args) as Promise<
       { ok: true } | { ok: false; error: string }
     >,
-  closeCloudWorkspace: () =>
-    ipcRenderer.invoke('kanbots:close-cloud-workspace') as Promise<void>,
+  closeCloudWorkspace: () => ipcRenderer.invoke('kanbots:close-cloud-workspace') as Promise<void>,
   recentCloudWorkspaces: () =>
     ipcRenderer.invoke('kanbots:recent-cloud-workspaces') as Promise<RecentCloudWorkspace[]>,
   cloudProjectBindingGet: (args: { orgSlug: string; projectSlug: string }) =>
-    ipcRenderer.invoke('kanbots:cloud:project-binding-get', args) as Promise<
-      { localRepoPath: string; updatedAt: string } | null
-    >,
-  cloudProjectBindingSet: (args: {
-    orgSlug: string;
-    projectSlug: string;
-    localRepoPath: string;
-  }) =>
+    ipcRenderer.invoke('kanbots:cloud:project-binding-get', args) as Promise<{
+      localRepoPath: string;
+      updatedAt: string;
+    } | null>,
+  cloudProjectBindingSet: (args: { orgSlug: string; projectSlug: string; localRepoPath: string }) =>
     ipcRenderer.invoke('kanbots:cloud:project-binding-set', args) as Promise<{
       localRepoPath: string;
       updatedAt: string;

@@ -80,18 +80,15 @@ export function useCardSelection(): CardSelectionAPI {
     [setAnchorBoth],
   );
 
-  const remove = useCallback(
-    (n: IssueRef): void => {
-      setSelected((prev) => {
-        const next = new Set(prev);
-        const existing = [...next].find((selectedRef) => sameIssue(selectedRef, n));
-        if (existing === undefined) return prev;
-        next.delete(existing);
-        return next;
-      });
-    },
-    [],
-  );
+  const remove = useCallback((n: IssueRef): void => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const existing = [...next].find((selectedRef) => sameIssue(selectedRef, n));
+      if (existing === undefined) return prev;
+      next.delete(existing);
+      return next;
+    });
+  }, []);
 
   const clear = useCallback((): void => {
     setSelected((prev) => (prev.size === 0 ? prev : new Set()));
@@ -100,8 +97,7 @@ export function useCardSelection(): CardSelectionAPI {
 
   const selectRange = useCallback(
     (from: IssueRef | null, to: IssueRef, byPosition: readonly IssueRef[]): void => {
-      const fromIdx =
-        from === null ? -1 : byPosition.findIndex((n) => String(n) === String(from));
+      const fromIdx = from === null ? -1 : byPosition.findIndex((n) => String(n) === String(from));
       const toIdx = byPosition.findIndex((n) => String(n) === String(to));
       if (toIdx === -1) return;
       if (fromIdx === -1) {
@@ -116,10 +112,7 @@ export function useCardSelection(): CardSelectionAPI {
         const next = new Set(prev);
         for (let i = lo; i <= hi; i++) {
           const n = byPosition[i];
-          if (
-            n !== undefined &&
-            ![...next].some((selectedRef) => sameIssue(selectedRef, n))
-          ) {
+          if (n !== undefined && ![...next].some((selectedRef) => sameIssue(selectedRef, n))) {
             next.add(n);
           }
         }

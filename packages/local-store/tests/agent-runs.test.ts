@@ -128,9 +128,9 @@ describe('AgentRunsRepo', () => {
       expect(
         store.agentRuns.findLatestResumableForChatSession(chatSessionId, 'claude-code')?.id,
       ).toBe(claude.id);
-      expect(
-        store.agentRuns.findLatestResumableForChatSession(chatSessionId, 'agy-cli')?.id,
-      ).toBe(agy.id);
+      expect(store.agentRuns.findLatestResumableForChatSession(chatSessionId, 'agy-cli')?.id).toBe(
+        agy.id,
+      );
     });
 
     it('returns null when no resumable row exists', () => {

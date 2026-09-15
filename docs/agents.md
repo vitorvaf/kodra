@@ -13,11 +13,11 @@ encapsulates argument construction, stream parsing, and decision
 plumbing — the rest of the dispatcher doesn't care which CLI is
 underneath.
 
-| Agent | Invocation | Notes |
-| --- | --- | --- |
-| Claude Code | `claude -p` | Reuses your `claude /login` credentials. Best default. |
-| Codex | `codex exec` | Requires `codex` on `PATH`. Sign in via "Sign in with codex" or `OPENAI_API_KEY`. Issue drafting and Sentry analysis still run on Claude. |
-| Antigravity CLI | `agy -p` | Requires `agy` on `PATH` (version 1.1.1+ for piped output). Uses browser OAuth on first launch or the configured Gemini API key. |
+| Agent           | Invocation   | Notes                                                                                                                                     |
+| --------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code     | `claude -p`  | Reuses your `claude /login` credentials. Best default.                                                                                    |
+| Codex           | `codex exec` | Requires `codex` on `PATH`. Sign in via "Sign in with codex" or `OPENAI_API_KEY`. Issue drafting and Sentry analysis still run on Claude. |
+| Antigravity CLI | `agy -p`     | Requires `agy` on `PATH` (version 1.1.1+ for piped output). Uses browser OAuth on first launch or the configured Gemini API key.          |
 
 You pick which one to use per dispatch from the **AI providers** modal:
 
@@ -82,16 +82,16 @@ equivalent, and Antigravity's `stream-json`). The dispatcher's
 [`stream-parser`](../packages/dispatcher/src/stream-parser.ts) classifies
 each line into one of:
 
-| Event | Meaning |
-| --- | --- |
-| `text` | Assistant message text |
-| `tool_use` | Tool call (Read, Edit, Bash, …) |
-| `tool_result` | Tool result body |
-| `session` | Session id (used to resume runs) |
-| `decision` | Pending decision prompt — the run pauses |
-| `result` | End of run, with success/failure and cost |
-| `rate_limit` | Provider rate-limit signal — see [cooldown](#rate-limits) |
-| `parse_error` | A line we couldn't parse |
+| Event         | Meaning                                                   |
+| ------------- | --------------------------------------------------------- |
+| `text`        | Assistant message text                                    |
+| `tool_use`    | Tool call (Read, Edit, Bash, …)                           |
+| `tool_result` | Tool result body                                          |
+| `session`     | Session id (used to resume runs)                          |
+| `decision`    | Pending decision prompt — the run pauses                  |
+| `result`      | End of run, with success/failure and cost                 |
+| `rate_limit`  | Provider rate-limit signal — see [cooldown](#rate-limits) |
+| `parse_error` | A line we couldn't parse                                  |
 
 Events are persisted into the `agent_events` table and broadcast over the
 `agent-runs:events:subscribe` IPC channel. The UI replays from the table
@@ -120,11 +120,11 @@ Either CLI can technically `Edit` or `Write` to any path the user can
 access. Kodra watches every `tool_use` and compares the target path
 to the worktree root. Behaviour is governed by **containment mode**:
 
-| Mode | Effect on out-of-worktree edits |
-| --- | --- |
-| `off` | Allowed, no surface |
-| `warn` (default) | Logged as a warning event in the thread |
-| `pause` | Run pauses with a decision; you choose to allow or stop |
+| Mode             | Effect on out-of-worktree edits                         |
+| ---------------- | ------------------------------------------------------- |
+| `off`            | Allowed, no surface                                     |
+| `warn` (default) | Logged as a warning event in the thread                 |
+| `pause`          | Run pauses with a decision; you choose to allow or stop |
 
 Set it per-workspace with `containmentMode` in `.kanbots/config.json`, or
 per-process via `KANBOTS_CONTAINMENT_MODE=pause` (etc.) in the
@@ -144,9 +144,9 @@ Two budgets, both optional:
 // .kanbots/config.json
 {
   "defaults": {
-    "runCostBudgetUsd": 2.50,        // single run cap
-    "sessionCostBudgetUsd": 25.00    // autopilot session cap
-  }
+    "runCostBudgetUsd": 2.5, // single run cap
+    "sessionCostBudgetUsd": 25.0, // autopilot session cap
+  },
 }
 ```
 
@@ -173,12 +173,12 @@ re-sending the full history.
 
 When a run finishes you have three ways to land its work:
 
-| Action | What it does |
-| --- | --- |
-| **Promote commit** | Stages the tip of the worktree's branch and merges/cherry-picks onto the active branch in your main checkout. Worktree is removed. |
-| **Open draft PR** | (GitHub mode only) Pushes the branch to `origin` and opens a draft PR via Octokit. Worktree stays. |
-| **Reveal worktree** | Opens the worktree path in your file manager so you can inspect or hand-edit before promoting. |
-| **Discard** | Stops the run if active, removes the worktree, deletes the branch. |
+| Action              | What it does                                                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Promote commit**  | Stages the tip of the worktree's branch and merges/cherry-picks onto the active branch in your main checkout. Worktree is removed. |
+| **Open draft PR**   | (GitHub mode only) Pushes the branch to `origin` and opens a draft PR via Octokit. Worktree stays.                                 |
+| **Reveal worktree** | Opens the worktree path in your file manager so you can inspect or hand-edit before promoting.                                     |
+| **Discard**         | Stops the run if active, removes the worktree, deletes the branch.                                                                 |
 
 Promotion is the **only** path through which agent commits reach your
 real branches. Even with `bypassPermissions`, the pre-push hook
@@ -235,7 +235,7 @@ interface FeatureDevConfig {
   personas: AutopilotPersonaSnapshot[];
   model?: string;
   effort?: AutopilotEffort;
-  parallelism?: number;            // 1–4; clamped, default 1
+  parallelism?: number; // 1–4; clamped, default 1
   sessionCostBudgetUsd?: number;
 }
 

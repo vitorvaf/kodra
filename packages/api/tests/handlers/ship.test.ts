@@ -6,17 +6,17 @@ describe('ship:status', () => {
   it('throws BadRequest when repoPath is not configured', async () => {
     const { handlers, source } = makeHandlerTestKit();
     source.setIssue(issueFixture(7, 'card'));
-    await expect(
-      handlers['ship:status']({ issueNumber: 7 }),
-    ).rejects.toMatchObject({ name: 'BadRequest' });
+    await expect(handlers['ship:status']({ issueNumber: 7 })).rejects.toMatchObject({
+      name: 'BadRequest',
+    });
   });
 
   it('throws NotFound when no thread exists for the issue', async () => {
     const { handlers, source } = makeHandlerTestKit({ repoPath: '/tmp/no-repo' });
     source.setIssue(issueFixture(7, 'card'));
-    await expect(
-      handlers['ship:status']({ issueNumber: 7 }),
-    ).rejects.toMatchObject({ name: 'NotFound' });
+    await expect(handlers['ship:status']({ issueNumber: 7 })).rejects.toMatchObject({
+      name: 'NotFound',
+    });
   });
 
   it('throws NotFound when thread has no agent runs', async () => {
@@ -29,9 +29,9 @@ describe('ship:status', () => {
       repoName: 'hello',
       issueNumber: 7,
     });
-    await expect(
-      handlers['ship:status']({ issueNumber: 7 }),
-    ).rejects.toMatchObject({ name: 'NotFound' });
+    await expect(handlers['ship:status']({ issueNumber: 7 })).rejects.toMatchObject({
+      name: 'NotFound',
+    });
   });
 });
 
@@ -62,18 +62,16 @@ describe('ship:create-pr', () => {
       branchName: 'kodra/issue-7',
     });
     // FakeIssueSource has no openDraftPR — exactly the local-only case.
-    await expect(
-      handlers['ship:create-pr']({ issueNumber: 7 }),
-    ).rejects.toMatchObject({ name: 'BadRequest' });
+    await expect(handlers['ship:create-pr']({ issueNumber: 7 })).rejects.toMatchObject({
+      name: 'BadRequest',
+    });
   });
 
   it('calls openDraftPR with run branch as head and issue context', async () => {
     const { handlers, store, source } = makeHandlerTestKit({
       repoPath: '/tmp/no-repo',
     });
-    source.setIssue(
-      issueFixture(7, 'card', { body: 'Task body lives here.' }),
-    );
+    source.setIssue(issueFixture(7, 'card', { body: 'Task body lives here.' }));
     const openDraftPR = vi.fn().mockResolvedValue({
       number: 42,
       title: 'card (#7)',
@@ -88,8 +86,7 @@ describe('ship:create-pr', () => {
     // interface declares openDraftPR as optional; FakeIssueSource omits
     // it by default, so adding it at test time mirrors the real
     // GitHub-only behavior.
-    (source as unknown as { openDraftPR: typeof openDraftPR }).openDraftPR =
-      openDraftPR;
+    (source as unknown as { openDraftPR: typeof openDraftPR }).openDraftPR = openDraftPR;
 
     const thread = store.threads.create({
       repoOwner: 'octo',

@@ -28,8 +28,6 @@ describe('cards:resolve', () => {
 
   it('throws NotFound for a missing card', async () => {
     const { handlers } = makeHandlerTestKit();
-    await expect(
-      handlers['cards:resolve']({ cardId: 9999, value: 'x' }),
-    ).rejects.toThrow();
+    await expect(handlers['cards:resolve']({ cardId: 9999, value: 'x' })).rejects.toThrow();
   });
 });

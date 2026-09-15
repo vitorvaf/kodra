@@ -533,9 +533,7 @@ async function readFirstLine(path: string): Promise<string | null> {
 }
 
 function cap(text: string): string {
-  return text.length > DESCRIPTION_CAP
-    ? `${text.slice(0, DESCRIPTION_CAP - 1)}…`
-    : text;
+  return text.length > DESCRIPTION_CAP ? `${text.slice(0, DESCRIPTION_CAP - 1)}…` : text;
 }
 
 /**
@@ -546,5 +544,5 @@ function cap(text: string): string {
 function isValidCommandName(name: string): boolean {
   if (name.length === 0) return false;
   if (name.startsWith('.')) return false;
-  return /^[A-Za-z0-9_:.\-]+$/.test(name);
+  return /^[A-Za-z0-9_:.-]+$/.test(name);
 }

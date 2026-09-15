@@ -1,12 +1,5 @@
 import type { Db } from '../db.js';
-import type {
-  AgentRunId,
-  ChatSessionId,
-  Message,
-  MessageId,
-  Role,
-  ThreadId,
-} from '../types.js';
+import type { AgentRunId, ChatSessionId, Message, MessageId, Role, ThreadId } from '../types.js';
 
 interface MessageRow {
   id: number;

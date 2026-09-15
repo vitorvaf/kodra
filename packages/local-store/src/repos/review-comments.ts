@@ -101,14 +101,7 @@ export class ReviewCommentsRepo {
           (run_id, file_path, line_number, side, body, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
       )
-      .run(
-        input.runId,
-        input.filePath,
-        input.lineNumber,
-        input.side,
-        input.body,
-        createdAt,
-      );
+      .run(input.runId, input.filePath, input.lineNumber, input.side, input.body, createdAt);
     const row = this.db
       .prepare('SELECT * FROM review_comments WHERE id = ?')
       .get(Number(result.lastInsertRowid)) as ReviewCommentRow;
@@ -120,9 +113,9 @@ export class ReviewCommentsRepo {
   }
 
   findById(id: number): ReviewComment | null {
-    const row = this.db
-      .prepare('SELECT * FROM review_comments WHERE id = ?')
-      .get(id) as ReviewCommentRow | undefined;
+    const row = this.db.prepare('SELECT * FROM review_comments WHERE id = ?').get(id) as
+      | ReviewCommentRow
+      | undefined;
     return row ? rowToComment(row) : null;
   }
 

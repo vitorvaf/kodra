@@ -34,11 +34,7 @@ import type { HandlerDeps } from './types.js';
  */
 function buildSubIssueCountMap(deps: HandlerDeps): Map<IssueRef, number> {
   if (!deps.config.repoPath) return new Map();
-  const { workspace } = bootstrapWorkspace(
-    deps.store,
-    deps.config,
-    deps.config.repoPath,
-  );
+  const { workspace } = bootstrapWorkspace(deps.store, deps.config, deps.config.repoPath);
   return deps.store.issueRelations.countChildrenByParent(workspace.id);
 }
 
@@ -124,10 +120,7 @@ const listRunsSchema = z
 const dispatchSchema = z
   .object({
     number: issueRefSchema,
-    fromStatus: z
-      .enum(['backlog', 'todo', 'inProgress', 'review', 'done'])
-      .nullable()
-      .optional(),
+    fromStatus: z.enum(['backlog', 'todo', 'inProgress', 'review', 'done']).nullable().optional(),
     model: z.string().min(1).max(120).optional(),
     provider: PROVIDER_ENUM.optional(),
     repoId: z.number().int().positive().optional(),
@@ -208,10 +201,7 @@ export interface DispatchArgs {
   repoId?: number;
 }
 
-export async function list(
-  deps: HandlerDeps,
-  args: ListIssuesArgs,
-): Promise<DecoratedIssue[]> {
+export async function list(deps: HandlerDeps, args: ListIssuesArgs): Promise<DecoratedIssue[]> {
   const parsed = parseArgs(issueListSchema, args ?? {});
   const listArgs: { state?: 'open' | 'closed' | 'all'; folderId?: string } = {};
   if (parsed.state !== undefined) listArgs.state = parsed.state;
@@ -230,9 +220,7 @@ export async function list(
   );
 }
 
-export async function listArchived(
-  deps: HandlerDeps,
-): Promise<DecoratedIssue[]> {
+export async function listArchived(deps: HandlerDeps): Promise<DecoratedIssue[]> {
   // Archived = closed issue carrying the 'archived' label. We pull the closed
   // set from the source and filter client-side so the same filter works for
   // both the local store and GitHub.
@@ -257,20 +245,13 @@ export async function listArchived(
   );
 }
 
-export async function get(
-  deps: HandlerDeps,
-  args: GetIssueArgs,
-): Promise<IssueDetail> {
+export async function get(deps: HandlerDeps, args: GetIssueArgs): Promise<IssueDetail> {
   const parsed = parseArgs(issueGetSchema, args);
   const [issue, comments] = await Promise.all([
     deps.source.getIssue(parsed.number),
     deps.source.listComments(parsed.number),
   ]);
-  const thread = deps.store.threads.findByIssue(
-    deps.config.owner,
-    deps.config.repo,
-    parsed.number,
-  );
+  const thread = deps.store.threads.findByIssue(deps.config.owner, deps.config.repo, parsed.number);
   const threadPayload = thread ? buildThreadPayload(deps, thread.id) : null;
   const activeRunMap = buildActiveRunMap(deps);
   const sentryMeta = lookupSentryMeta(deps, parsed.number);
@@ -287,10 +268,7 @@ export async function get(
   };
 }
 
-export async function create(
-  deps: HandlerDeps,
-  args: CreateIssueArgs,
-): Promise<DecoratedIssue> {
+export async function create(deps: HandlerDeps, args: CreateIssueArgs): Promise<DecoratedIssue> {
   const parsed = parseArgs(issueCreateSchema, args);
   const input: CreateIssueInput = {
     title: parsed.title,
@@ -316,19 +294,14 @@ export async function create(
   return decorateIssue(issue);
 }
 
-export async function patch(
-  deps: HandlerDeps,
-  args: PatchIssueArgs,
-): Promise<DecoratedIssue> {
+export async function patch(deps: HandlerDeps, args: PatchIssueArgs): Promise<DecoratedIssue> {
   const parsed = parseArgs(issuePatchSchema, args);
   const updates: UpdateIssuePatch = {
     ...(parsed.patch.title !== undefined ? { title: parsed.patch.title } : {}),
     ...(parsed.patch.body !== undefined ? { body: parsed.patch.body } : {}),
     ...(parsed.patch.state !== undefined ? { state: parsed.patch.state } : {}),
     ...(parsed.patch.labels !== undefined ? { labels: parsed.patch.labels } : {}),
-    ...(parsed.patch.assignees !== undefined
-      ? { assignees: parsed.patch.assignees }
-      : {}),
+    ...(parsed.patch.assignees !== undefined ? { assignees: parsed.patch.assignees } : {}),
   };
   const issue = await deps.source.updateIssue(parsed.number, updates);
   const sentryMeta = lookupSentryMeta(deps, parsed.number);
@@ -354,10 +327,7 @@ export async function patch(
   return decorated;
 }
 
-export async function addComment(
-  deps: HandlerDeps,
-  args: AddCommentArgs,
-): Promise<Comment> {
+export async function addComment(deps: HandlerDeps, args: AddCommentArgs): Promise<Comment> {
   const parsed = parseArgs(addCommentSchema, args);
   return deps.source.addComment(parsed.number, parsed.body);
 }
@@ -387,9 +357,7 @@ export async function postMessage(
       throw notFound(`chat session ${parsed.chatSessionId} not found`);
     }
     if (session.threadId !== thread.id) {
-      throw notFound(
-        `chat session ${parsed.chatSessionId} does not belong to thread ${thread.id}`,
-      );
+      throw notFound(`chat session ${parsed.chatSessionId} does not belong to thread ${thread.id}`);
     }
     chatSessionId = parsed.chatSessionId;
   }
@@ -470,26 +438,16 @@ export async function postMessage(
   };
 }
 
-export async function listRuns(
-  deps: HandlerDeps,
-  args: ListRunsArgs,
-): Promise<AgentRun[]> {
+export async function listRuns(deps: HandlerDeps, args: ListRunsArgs): Promise<AgentRun[]> {
   const parsed = parseArgs(listRunsSchema, args);
-  const thread = deps.store.threads.findByIssue(
-    deps.config.owner,
-    deps.config.repo,
-    parsed.number,
-  );
+  const thread = deps.store.threads.findByIssue(deps.config.owner, deps.config.repo, parsed.number);
   if (!thread) return [];
   const runs = deps.store.agentRuns.listByThread(thread.id);
   runs.sort((a, b) => b.id - a.id);
   return runs;
 }
 
-export async function dispatch(
-  deps: HandlerDeps,
-  args: DispatchArgs,
-): Promise<DispatchResult> {
+export async function dispatch(deps: HandlerDeps, args: DispatchArgs): Promise<DispatchResult> {
   const parsed = parseArgs(dispatchSchema, args);
   const fromStatus = parsed.fromStatus ?? null;
 
@@ -507,10 +465,7 @@ export async function dispatch(
 
   const active = deps.store.agentRuns.findActiveForThread(thread.id);
   if (active !== null) {
-    throw alreadyActive(
-      `agent run #${active.id} is already ${active.status}`,
-      active,
-    );
+    throw alreadyActive(`agent run #${active.id} is already ${active.status}`, active);
   }
 
   const priorRuns = deps.store.agentRuns.listByThread(thread.id);
@@ -611,14 +566,9 @@ function sentryImportToPayload(row: {
   };
 }
 
-export function buildActiveRunMap(
-  deps: HandlerDeps,
-): Map<IssueRef, IssueActiveRunPayload> {
+export function buildActiveRunMap(deps: HandlerDeps): Map<IssueRef, IssueActiveRunPayload> {
   const out = new Map<IssueRef, IssueActiveRunPayload>();
-  const active = deps.store.agentRuns.listActiveForRepo(
-    deps.config.owner,
-    deps.config.repo,
-  );
+  const active = deps.store.agentRuns.listActiveForRepo(deps.config.owner, deps.config.repo);
   if (active.length === 0) return out;
   const runIds = active.map((r) => r.id);
   const latestTool = deps.store.events.findLatestToolUseByRun(runIds);
@@ -671,16 +621,8 @@ export function buildActiveRunMap(
             | 'fail'
             | 'running'
             | 'idle',
-          tests: (checkMap.get('tests')?.status ?? 'idle') as
-            | 'pass'
-            | 'fail'
-            | 'running'
-            | 'idle',
-          lint: (checkMap.get('lint')?.status ?? 'idle') as
-            | 'pass'
-            | 'fail'
-            | 'running'
-            | 'idle',
+          tests: (checkMap.get('tests')?.status ?? 'idle') as 'pass' | 'fail' | 'running' | 'idle',
+          lint: (checkMap.get('lint')?.status ?? 'idle') as 'pass' | 'fail' | 'running' | 'idle',
         }
       : null;
     out.set(row.issueNumber, {
@@ -701,10 +643,7 @@ export function buildActiveRunMap(
   return out;
 }
 
-export function buildThreadPayload(
-  deps: HandlerDeps,
-  threadId: number,
-): ThreadPayload | null {
+export function buildThreadPayload(deps: HandlerDeps, threadId: number): ThreadPayload | null {
   const thread = deps.store.threads.findById(threadId);
   if (!thread) return null;
   const activeRun = deps.store.agentRuns.findActiveForThread(thread.id);
@@ -768,8 +707,7 @@ function buildDispatchKickoff(
   } else if (fromStatus === 'done') {
     context =
       'The user moved this task from Done back to In Progress. It was previously considered finished but the user wants more work on it.';
-    question =
-      'This task was Done and is now In Progress again. What should change?';
+    question = 'This task was Done and is now In Progress again. What should change?';
     options = [
       { value: 'investigate', label: 'Investigate what changed and reopen the work' },
       { value: 'extend', label: 'Extend the existing implementation' },
@@ -779,8 +717,7 @@ function buildDispatchKickoff(
   } else if (hasPriorRuns) {
     context =
       'The user moved this task to In Progress. There are prior agent runs on this thread but the task never reached Review. The work may be partial.';
-    question =
-      'This task has prior runs that did not finish. How should I proceed?';
+    question = 'This task has prior runs that did not finish. How should I proceed?';
     options = [
       { value: 'continue', label: 'Continue from where the prior runs left off' },
       { value: 'fresh', label: 'Start fresh and ignore prior runs' },
@@ -788,8 +725,7 @@ function buildDispatchKickoff(
       { value: 'clarify', label: 'Ask for clarification first' },
     ];
   } else {
-    context =
-      'The user just moved this task to In Progress. This is the first agent run for it.';
+    context = 'The user just moved this task to In Progress. This is the first agent run for it.';
     question = 'Ready to start. How should I approach this?';
     options = [
       { value: 'proceed', label: 'Proceed with the description as written' },
@@ -817,10 +753,7 @@ ${decisionJson}
 End your turn after emitting the block. The user's choice will arrive as the next message and you will resume from there.`;
 }
 
-function dispatchSummary(
-  fromStatus: StatusKey | null,
-  hasPriorRuns: boolean,
-): string {
+function dispatchSummary(fromStatus: StatusKey | null, hasPriorRuns: boolean): string {
   if (fromStatus === 'review') return 'Moved from Review back to In Progress.';
   if (fromStatus === 'done') return 'Moved from Done back to In Progress.';
   if (hasPriorRuns) return 'Moved to In Progress (prior runs exist).';

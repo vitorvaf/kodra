@@ -36,9 +36,7 @@ function createPlanningTracker(): PlanningTracker {
 
   function plannerEventToActivity(event: PlannerEvent): AutopilotPlanningEvent {
     if (event.kind === 'tool') {
-      const text = event.summary
-        ? `${event.name} ${event.summary}`
-        : event.name;
+      const text = event.summary ? `${event.name} ${event.summary}` : event.name;
       return { kind: 'tool', text, at: new Date().toISOString() };
     }
     return { kind: 'thought', text: event.text, at: new Date().toISOString() };
@@ -237,11 +235,7 @@ export function createAutopilotManager(opts: AutopilotManagerOpts): AutopilotMan
     const issue = await source.createIssue({
       title,
       body,
-      labels: [
-        'type:autopilot',
-        `subtype:${input.kind}`,
-        'status:in-progress',
-      ],
+      labels: ['type:autopilot', `subtype:${input.kind}`, 'status:in-progress'],
     });
 
     const session = store.autopilotSessions.create({
@@ -311,7 +305,7 @@ export function createAutopilotManager(opts: AutopilotManagerOpts): AutopilotMan
         const stopReason = budgetError
           ? budgetError.reason
           : signal.aborted
-            ? finalSession.stopReason ?? 'stopped'
+            ? (finalSession.stopReason ?? 'stopped')
             : null;
         const settled = store.autopilotSessions.update(session.id, {
           status: budgetError || signal.aborted ? 'stopped' : 'completed',
@@ -500,10 +494,7 @@ function defaultTitleFor(kind: AutopilotKind, config: AutopilotConfig): string {
     return `Autopilot — Feature Dev (${names})`;
   }
   if (kind === 'qa' && config.kind === 'qa') {
-    const parts = [
-      ...config.checks.map((c) => c.kind),
-      ...(config.liveUi ? ['live-ui'] : []),
-    ];
+    const parts = [...config.checks.map((c) => c.kind), ...(config.liveUi ? ['live-ui'] : [])];
     return `Autopilot — QA (${parts.join(', ')})`;
   }
   return `Autopilot — ${kind}`;

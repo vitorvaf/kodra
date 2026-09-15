@@ -1,12 +1,5 @@
-import {
-  detectRateLimit as detectRateLimitFromText,
-  type StreamEvent,
-} from '../stream-parser.js';
-import type {
-  AgentCliAdapter,
-  BuildArgsInput,
-  ComposePromptInput,
-} from './types.js';
+import { detectRateLimit as detectRateLimitFromText, type StreamEvent } from '../stream-parser.js';
+import type { AgentCliAdapter, BuildArgsInput, ComposePromptInput } from './types.js';
 
 /**
  * Qwen Code CLI adapter. Spawns `qwen-code` and parses its line-delimited

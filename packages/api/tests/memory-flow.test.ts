@@ -10,7 +10,7 @@ import { openStoreInMemory, type MemoryConfig, type Store } from '@kanbots/local
 import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createSupervisor, type CreateSupervisorOptions } from '../src/agent-runs/supervisor.js';
-import type { AgentMemoryClient, MemoryHit } from '../src/memory/client.js';
+import type { AgentMemoryClient, MemoryHit, RememberMemoryInput } from '../src/memory/client.js';
 import type { AgentMemorySessionBridge } from '../src/memory/session-bridge.js';
 import { issueFixture } from './helpers/fixtures.js';
 import { makeHandlerTestKit } from './helpers/make-handlers.js';
@@ -65,16 +65,19 @@ function makeHandle(pid: number): TestHandle {
   return handle as TestHandle;
 }
 
-function makeMemoryClient(input: {
-  hits?: MemoryHit[];
-  session?: { hasContent: boolean } | null;
-  searchError?: boolean;
-  sessionError?: boolean;
-} = {}): {
+function makeMemoryClient(
+  input: {
+    hits?: MemoryHit[];
+    session?: { hasContent: boolean } | null;
+    searchError?: boolean;
+    sessionError?: boolean;
+  } = {},
+): {
   memory: NonNullable<CreateSupervisorOptions['memory']>;
-  saves: Array<Parameters<AgentMemoryClient['save']>[0]>;
+  /** Writes that reached AgentMemory's `/remember` through the MemoryProvider. */
+  saves: Array<RememberMemoryInput>;
 } {
-  const saves: Array<Parameters<AgentMemoryClient['save']>[0]> = [];
+  const saves: Array<RememberMemoryInput> = [];
   const client: AgentMemoryClient = {
     health: async () => true,
     version: async () => 'test',
@@ -86,14 +89,20 @@ function makeMemoryClient(input: {
       if (input.sessionError) throw new Error('session unavailable');
       return input.session ?? null;
     },
-    save: async (saveInput) => {
-      saves.push(saveInput);
-      return true;
+    save: async () => true,
+    remember: async (rememberInput) => {
+      saves.push(rememberInput);
+      return { id: `mem_${saves.length}`, similarTo: null };
     },
+    forget: async () => true,
+    teamShare: async () => true,
+    teamFeed: async () => [],
     sessionStart: async () => true,
     observe: async () => true,
     sessionEnd: async () => true,
   };
+  // No explicit provider: the supervisor and handlers derive one from the
+  // legacy { client, getConfig } pair, which is what this flow exercises.
   return {
     memory: { client, getConfig: () => enabledConfig },
     saves,
@@ -178,7 +187,9 @@ describe('agent memory flow', () => {
 
     expect(run.status).toBe('running');
     expect(calls[0]?.appendSystemPrompt).toContain('RELEVANT_PROJECT_MEMORY');
-    expect(calls[0]?.appendSystemPrompt).toContain('Prefer the existing repository service boundary.');
+    expect(calls[0]?.appendSystemPrompt).toContain(
+      'Prefer the existing repository service boundary.',
+    );
     expect(calls[0]?.appendSystemPrompt).toContain('Run focused API tests before the full suite.');
   });
 
@@ -301,7 +312,11 @@ describe('agent memory flow', () => {
     const store = openStoreInMemory();
     stores.push(store);
     const { supervisor, handles } = await buildSupervisor(store);
-    const run = await supervisor.start({ threadId: makeThread(store), issueNumber: 7, prompt: 'Keep working' });
+    const run = await supervisor.start({
+      threadId: makeThread(store),
+      issueNumber: 7,
+      prompt: 'Keep working',
+    });
 
     handles[0]!.emitEvent({
       kind: 'result',
@@ -336,8 +351,10 @@ describe('agent memory flow', () => {
     await vi.waitFor(() => expect(memory.saves).toHaveLength(1));
 
     expect(memory.saves[0]).toMatchObject({
-      kind: 'run-summary',
-      metadata: { runId: run.id },
+      type: 'workflow',
+      project: 'repo',
+      agentId: 'kodra',
+      concepts: expect.arrayContaining([`run:${run.id}`, 'kind:run_summary', 'scope:private']),
     });
   });
 
@@ -346,7 +363,11 @@ describe('agent memory flow', () => {
     stores.push(store);
     const memory = makeMemoryClient({ session: { hasContent: true } });
     const { supervisor, handles } = await buildSupervisor(store, memory.memory);
-    await supervisor.start({ threadId: makeThread(store), issueNumber: 7, prompt: 'Complete this task' });
+    await supervisor.start({
+      threadId: makeThread(store),
+      issueNumber: 7,
+      prompt: 'Complete this task',
+    });
     handles[0]!.emitEvent({ kind: 'session', sessionId: 'session-full', model: null });
     handles[0]!.emitClose();
     await handles[0]!.done;
@@ -359,16 +380,20 @@ describe('agent memory flow', () => {
     stores.push(store);
     const memory = makeMemoryClient();
     const { supervisor, handles } = await buildSupervisor(store, memory.memory);
-    const run = await supervisor.start({ threadId: makeThread(store), issueNumber: 7, prompt: 'Fail this task' });
+    const run = await supervisor.start({
+      threadId: makeThread(store),
+      issueNumber: 7,
+      prompt: 'Fail this task',
+    });
     handles[0]!.emitEvent({ kind: 'text', text: 'Started implementing the requested change.' });
     handles[0]!.emitClose(1);
     await handles[0]!.done;
     await vi.waitFor(() => expect(memory.saves).toHaveLength(1));
 
     expect(memory.saves[0]).toMatchObject({
-      kind: 'run-summary',
+      type: 'workflow',
       content: expect.stringContaining(`Run #${run.id} (issue #7) failed mid-work`),
-      metadata: { runId: run.id, interrupted: true },
+      concepts: expect.arrayContaining([`run:${run.id}`, 'interrupted']),
     });
   });
 
@@ -377,7 +402,11 @@ describe('agent memory flow', () => {
     stores.push(store);
     const memory = makeMemoryClient({ session: { hasContent: false } });
     const { supervisor, handles } = await buildSupervisor(store, memory.memory);
-    await supervisor.start({ threadId: makeThread(store), issueNumber: 7, prompt: 'Fail this task' });
+    await supervisor.start({
+      threadId: makeThread(store),
+      issueNumber: 7,
+      prompt: 'Fail this task',
+    });
     handles[0]!.emitClose(1);
     await handles[0]!.done;
     await Promise.resolve();
@@ -389,7 +418,11 @@ describe('agent memory flow', () => {
     stores.push(store);
     const memory = makeMemoryClient({ sessionError: true });
     const { supervisor, handles } = await buildSupervisor(store, memory.memory);
-    await supervisor.start({ threadId: makeThread(store), issueNumber: 7, prompt: 'Complete this task' });
+    await supervisor.start({
+      threadId: makeThread(store),
+      issueNumber: 7,
+      prompt: 'Complete this task',
+    });
     handles[0]!.emitEvent({ kind: 'session', sessionId: 'session-unavailable', model: null });
     handles[0]!.emitClose();
     await handles[0]!.done;
@@ -401,7 +434,11 @@ describe('agent memory flow', () => {
     const memory = makeMemoryClient();
     const kit = makeHandlerTestKit({}, { memory: memory.memory });
     kit.source.setIssue(issueFixture(7, 'decision task'));
-    const thread = kit.store.threads.create({ repoOwner: 'octo', repoName: 'hello', issueNumber: 7 });
+    const thread = kit.store.threads.create({
+      repoOwner: 'octo',
+      repoName: 'hello',
+      issueNumber: 7,
+    });
     const run = kit.store.agentRuns.create({ threadId: thread.id });
     kit.store.agentRuns.update(run.id, { status: 'awaiting_input' });
     const message = kit.store.messages.create({
@@ -420,7 +457,14 @@ describe('agent memory flow', () => {
     await vi.waitFor(() => expect(memory.saves).toHaveLength(1));
 
     expect(result.card.status).toBe('resolved');
-    expect(memory.saves[0]).toMatchObject({ kind: 'decision' });
+    expect(memory.saves[0]).toMatchObject({
+      type: 'architecture',
+      concepts: expect.arrayContaining([
+        'kind:decision',
+        'confidence:confirmed',
+        'source:developer',
+      ]),
+    });
     expect(memory.saves[0]?.content).toContain('Path A');
   });
 
@@ -431,10 +475,19 @@ describe('agent memory flow', () => {
       { memory: { ...memory.memory, getConfig: () => ({ ...enabledConfig, enabled: false }) } },
     );
     kit.source.setIssue(issueFixture(7, 'decision task'));
-    const thread = kit.store.threads.create({ repoOwner: 'octo', repoName: 'hello', issueNumber: 7 });
+    const thread = kit.store.threads.create({
+      repoOwner: 'octo',
+      repoName: 'hello',
+      issueNumber: 7,
+    });
     const run = kit.store.agentRuns.create({ threadId: thread.id });
     kit.store.agentRuns.update(run.id, { status: 'awaiting_input' });
-    const message = kit.store.messages.create({ threadId: thread.id, role: 'agent', body: 'pick', agentRunId: run.id });
+    const message = kit.store.messages.create({
+      threadId: thread.id,
+      role: 'agent',
+      body: 'pick',
+      agentRunId: run.id,
+    });
     const card = kit.store.cards.create({
       messageId: message.id,
       type: 'decision',

@@ -342,10 +342,13 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
     ],
   );
 
-  const handleCardOpen = useCallback((n: IssueRef): void => {
-    setSelectedNumberRef.current(n);
-    onOpenDetail?.(n);
-  }, [onOpenDetail]);
+  const handleCardOpen = useCallback(
+    (n: IssueRef): void => {
+      setSelectedNumberRef.current(n);
+      onOpenDetail?.(n);
+    },
+    [onOpenDetail],
+  );
 
   const backlogColumnProps = useMemo(
     () => ({
@@ -577,9 +580,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
       dispatchIssuesRefetch();
       const failed = results.filter((r) => r.status === 'rejected').length;
       if (failed > 0) {
-        throw new Error(
-          `${failed} of ${targets.length} card(s) failed to dispatch`,
-        );
+        throw new Error(`${failed} of ${targets.length} card(s) failed to dispatch`);
       }
     });
   }
@@ -587,21 +588,15 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
   async function bulkArchive(): Promise<void> {
     const targets = [...cardSelection.selected];
     if (targets.length === 0) return;
-    const ok = window.confirm(
-      `Archive ${targets.length} card${targets.length === 1 ? '' : 's'}?`,
-    );
+    const ok = window.confirm(`Archive ${targets.length} card${targets.length === 1 ? '' : 's'}?`);
     if (!ok) return;
     await withBulkBusy(async () => {
-      const results = await Promise.allSettled(
-        targets.map((n) => api.archiveIssue(n)),
-      );
+      const results = await Promise.allSettled(targets.map((n) => api.archiveIssue(n)));
       dispatchIssuesRefetch();
       cardSelection.clear();
       const failed = results.filter((r) => r.status === 'rejected').length;
       if (failed > 0) {
-        throw new Error(
-          `${failed} of ${targets.length} card(s) failed to archive`,
-        );
+        throw new Error(`${failed} of ${targets.length} card(s) failed to archive`);
       }
     });
   }
@@ -674,7 +669,8 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
           backlogCount: list.filter((i) => i.status === 'backlog').length,
           sortMode,
           onToggleHasAgent: filterApi.toggleHasAgent,
-          onTogglePriority: (p) => filterApi.togglePriority(p as (typeof filterApi.availablePriorities)[number]),
+          onTogglePriority: (p) =>
+            filterApi.togglePriority(p as (typeof filterApi.availablePriorities)[number]),
           onToggleArea: filterApi.toggleArea,
           onToggleIncludeBacklog: filterApi.toggleIncludeBacklog,
           onChangeSortMode: setSortMode,

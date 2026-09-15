@@ -214,33 +214,20 @@ function readLegacyTweaks(): Tweaks {
     if (!isRecord(parsed)) return TWEAK_DEFAULTS;
     return {
       theme:
-        parsed.theme === 'paper' || parsed.theme === 'dark'
-          ? parsed.theme
-          : TWEAK_DEFAULTS.theme,
+        parsed.theme === 'paper' || parsed.theme === 'dark' ? parsed.theme : TWEAK_DEFAULTS.theme,
       accentHue:
         typeof parsed.accentHue === 'number'
           ? migrateAccentHue(parsed.accentHue)
           : TWEAK_DEFAULTS.accentHue,
-      showRail:
-        typeof parsed.showRail === 'boolean'
-          ? parsed.showRail
-          : TWEAK_DEFAULTS.showRail,
-      showTray:
-        typeof parsed.showTray === 'boolean'
-          ? parsed.showTray
-          : TWEAK_DEFAULTS.showTray,
+      showRail: typeof parsed.showRail === 'boolean' ? parsed.showRail : TWEAK_DEFAULTS.showRail,
+      showTray: typeof parsed.showTray === 'boolean' ? parsed.showTray : TWEAK_DEFAULTS.showTray,
     };
   } catch {
     return TWEAK_DEFAULTS;
   }
 }
 
-const SORT_MODES: readonly BoardSortMode[] = [
-  'manual',
-  'priority',
-  'createdAt',
-  'updatedAt',
-];
+const SORT_MODES: readonly BoardSortMode[] = ['manual', 'priority', 'createdAt', 'updatedAt'];
 
 function readLegacyBoardPrefs(): BoardPrefs {
   const rawSort = safeGetItem(LEGACY_KEYS.boardSortMode);
@@ -283,16 +270,13 @@ function readLegacyBoardViews(): Record<string, WorkspaceBoardViews> {
       try {
         const parsed = JSON.parse(raw);
         if (!isRecord(parsed)) continue;
-        const views = Array.isArray(parsed.views)
-          ? parsed.views.filter(isBoardView)
-          : [];
+        const views = Array.isArray(parsed.views) ? parsed.views.filter(isBoardView) : [];
         const activeViewId =
           typeof parsed.activeViewId === 'string' &&
           views.some((view) => view.id === parsed.activeViewId)
             ? parsed.activeViewId
             : null;
-        const seeded =
-          safeGetItem(`${LEGACY_KEYS.boardViewsSeedPrefix}${workspaceId}`) === '1';
+        const seeded = safeGetItem(`${LEGACY_KEYS.boardViewsSeedPrefix}${workspaceId}`) === '1';
         out[workspaceId] = { views, activeViewId, seeded };
       } catch {
         // skip malformed entry
@@ -355,18 +339,15 @@ export const usePrefsStore = create<PrefsState & PrefsActions>()(
       setDiffMode: (mode) => set((s) => ({ diff: { ...s.diff, mode } })),
       setDiffIgnoreWhitespace: (value) =>
         set((s) => ({ diff: { ...s.diff, ignoreWhitespace: value } })),
-      setDiffPref: (key, value) =>
-        set((s) => ({ diff: { ...s.diff, [key]: value } })),
+      setDiffPref: (key, value) => set((s) => ({ diff: { ...s.diff, [key]: value } })),
 
       setFocusedRepoId: (id) => set({ focusedRepoId: id }),
       setCurrentFolderId: (id) => set({ currentFolderId: id }),
 
-      setTweak: (key, value) =>
-        set((s) => ({ tweaks: { ...s.tweaks, [key]: value } })),
+      setTweak: (key, value) => set((s) => ({ tweaks: { ...s.tweaks, [key]: value } })),
       resetTweaks: () => set({ tweaks: TWEAK_DEFAULTS }),
 
-      setBoardSortMode: (mode) =>
-        set((s) => ({ board: { ...s.board, sortMode: mode } })),
+      setBoardSortMode: (mode) => set((s) => ({ board: { ...s.board, sortMode: mode } })),
       setBoardIncludeBacklog: (value) =>
         set((s) => ({ board: { ...s.board, includeBacklog: value } })),
 
@@ -375,8 +356,7 @@ export const usePrefsStore = create<PrefsState & PrefsActions>()(
 
       setActiveBoardView: (workspaceId, id) =>
         set((s) => {
-          const ws =
-            s.boardViews[workspaceId] ?? { views: [], activeViewId: null, seeded: false };
+          const ws = s.boardViews[workspaceId] ?? { views: [], activeViewId: null, seeded: false };
           if (id !== null && !ws.views.some((v) => v.id === id)) return s;
           if (ws.activeViewId === id) return s;
           return {
@@ -389,12 +369,10 @@ export const usePrefsStore = create<PrefsState & PrefsActions>()(
 
       upsertBoardView: (workspaceId, view) =>
         set((s) => {
-          const ws =
-            s.boardViews[workspaceId] ?? { views: [], activeViewId: null, seeded: false };
+          const ws = s.boardViews[workspaceId] ?? { views: [], activeViewId: null, seeded: false };
           const idx = ws.views.findIndex((v) => v.id === view.id);
-          const views = idx === -1
-            ? [...ws.views, view]
-            : ws.views.map((v) => (v.id === view.id ? view : v));
+          const views =
+            idx === -1 ? [...ws.views, view] : ws.views.map((v) => (v.id === view.id ? view : v));
           return {
             boardViews: {
               ...s.boardViews,
@@ -458,8 +436,7 @@ export const usePrefsStore = create<PrefsState & PrefsActions>()(
 
       markWorkspaceSeeded: (workspaceId) =>
         set((s) => {
-          const ws =
-            s.boardViews[workspaceId] ?? { views: [], activeViewId: null, seeded: false };
+          const ws = s.boardViews[workspaceId] ?? { views: [], activeViewId: null, seeded: false };
           if (ws.seeded) return s;
           return {
             boardViews: {
@@ -575,8 +552,7 @@ hydrateFromLegacyIfDefault();
 
 export const useDiffPrefs_select = () => usePrefsStore((s) => s.diff);
 export const useDiffMode = () => usePrefsStore((s) => s.diff.mode);
-export const useDiffIgnoreWhitespace = () =>
-  usePrefsStore((s) => s.diff.ignoreWhitespace);
+export const useDiffIgnoreWhitespace = () => usePrefsStore((s) => s.diff.ignoreWhitespace);
 
 export const useFocusedRepoId = () => usePrefsStore((s) => s.focusedRepoId);
 
@@ -586,12 +562,7 @@ export const useTweaksState = () => usePrefsStore((s) => s.tweaks);
 
 export const useBoardPrefs = () => usePrefsStore((s) => s.board);
 export const useBoardSortMode = () => usePrefsStore((s) => s.board.sortMode);
-export const useBoardIncludeBacklog = () =>
-  usePrefsStore((s) => s.board.includeBacklog);
+export const useBoardIncludeBacklog = () => usePrefsStore((s) => s.board.includeBacklog);
 
-export const useWorkspaceBoardViews = (
-  workspaceId: string | null,
-): WorkspaceBoardViews | null =>
-  usePrefsStore((s) =>
-    workspaceId === null ? null : (s.boardViews[workspaceId] ?? null),
-  );
+export const useWorkspaceBoardViews = (workspaceId: string | null): WorkspaceBoardViews | null =>
+  usePrefsStore((s) => (workspaceId === null ? null : (s.boardViews[workspaceId] ?? null)));

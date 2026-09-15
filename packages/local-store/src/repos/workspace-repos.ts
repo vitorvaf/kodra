@@ -38,25 +38,21 @@ export class WorkspaceReposRepo {
 
   listByWorkspace(workspaceId: string): WorkspaceRepo[] {
     const rows = this.db
-      .prepare(
-        'SELECT * FROM workspace_repos WHERE workspace_id = ? ORDER BY added_at, id',
-      )
+      .prepare('SELECT * FROM workspace_repos WHERE workspace_id = ? ORDER BY added_at, id')
       .all(workspaceId) as WorkspaceRepoRow[];
     return rows.map(rowToRepo);
   }
 
   findById(id: number): WorkspaceRepo | null {
-    const row = this.db
-      .prepare('SELECT * FROM workspace_repos WHERE id = ?')
-      .get(id) as WorkspaceRepoRow | undefined;
+    const row = this.db.prepare('SELECT * FROM workspace_repos WHERE id = ?').get(id) as
+      | WorkspaceRepoRow
+      | undefined;
     return row ? rowToRepo(row) : null;
   }
 
   findPrimary(workspaceId: string): WorkspaceRepo | null {
     const row = this.db
-      .prepare(
-        'SELECT * FROM workspace_repos WHERE workspace_id = ? AND is_primary = 1 LIMIT 1',
-      )
+      .prepare('SELECT * FROM workspace_repos WHERE workspace_id = ? AND is_primary = 1 LIMIT 1')
       .get(workspaceId) as WorkspaceRepoRow | undefined;
     return row ? rowToRepo(row) : null;
   }
@@ -69,9 +65,7 @@ export class WorkspaceReposRepo {
    */
   add(input: AddWorkspaceRepoInput): WorkspaceRepo {
     const existing = this.db
-      .prepare(
-        'SELECT * FROM workspace_repos WHERE workspace_id = ? AND repo_path = ?',
-      )
+      .prepare('SELECT * FROM workspace_repos WHERE workspace_id = ? AND repo_path = ?')
       .get(input.workspaceId, input.repoPath) as WorkspaceRepoRow | undefined;
     if (existing) return rowToRepo(existing);
 
@@ -134,21 +128,15 @@ export class WorkspaceReposRepo {
    */
   setPrimary(workspaceId: string, repoId: number): void {
     const owns = this.db
-      .prepare(
-        'SELECT 1 FROM workspace_repos WHERE id = ? AND workspace_id = ?',
-      )
+      .prepare('SELECT 1 FROM workspace_repos WHERE id = ? AND workspace_id = ?')
       .get(repoId, workspaceId);
     if (!owns) {
-      throw new Error(
-        `workspace_repo ${repoId} does not belong to workspace ${workspaceId}`,
-      );
+      throw new Error(`workspace_repo ${repoId} does not belong to workspace ${workspaceId}`);
     }
     const clear = this.db.prepare(
       'UPDATE workspace_repos SET is_primary = 0 WHERE workspace_id = ? AND is_primary = 1',
     );
-    const set = this.db.prepare(
-      'UPDATE workspace_repos SET is_primary = 1 WHERE id = ?',
-    );
+    const set = this.db.prepare('UPDATE workspace_repos SET is_primary = 1 WHERE id = ?');
     this.db.transaction(() => {
       clear.run(workspaceId);
       set.run(repoId);

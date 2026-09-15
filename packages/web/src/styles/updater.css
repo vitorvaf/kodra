@@ -253,11 +253,7 @@
   /* Modal-head surface mix (modals.css) overlaid with the toast head's
      mint tint — the family tie between the two updater surfaces. */
   background:
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--running) 9%, transparent),
-      transparent 60%
-    ),
+    linear-gradient(to right, color-mix(in srgb, var(--running) 9%, transparent), transparent 60%),
     linear-gradient(180deg, color-mix(in oklch, var(--bg) 88%, var(--bg-1)), var(--bg));
 }
 .kb-upd-m-title {

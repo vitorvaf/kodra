@@ -74,16 +74,8 @@ export function TweaksPanel({
 
       <div className="kb-tweaks-section">
         <div className="kb-tweaks-label">Layout</div>
-        <Toggle
-          label="Sidebar"
-          on={tweaks.showRail}
-          onChange={(v) => onSet('showRail', v)}
-        />
-        <Toggle
-          label="Decision tray"
-          on={tweaks.showTray}
-          onChange={(v) => onSet('showTray', v)}
-        />
+        <Toggle label="Sidebar" on={tweaks.showRail} onChange={(v) => onSet('showRail', v)} />
+        <Toggle label="Decision tray" on={tweaks.showTray} onChange={(v) => onSet('showTray', v)} />
       </div>
 
       <BudgetsSection />
@@ -136,9 +128,7 @@ function BudgetsSection() {
         if (cancelled) return;
         setBudgets(b);
         setRunDraft(b.runCostBudgetUsd != null ? String(b.runCostBudgetUsd) : '');
-        setSessionDraft(
-          b.sessionCostBudgetUsd != null ? String(b.sessionCostBudgetUsd) : '',
-        );
+        setSessionDraft(b.sessionCostBudgetUsd != null ? String(b.sessionCostBudgetUsd) : '');
       })
       .catch(() => undefined);
     return () => {
@@ -181,31 +171,15 @@ function BudgetsSection() {
     <div className="kb-tweaks-section">
       <div className="kb-tweaks-label">Cost budgets (USD)</div>
       <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 8 }}>
-        Auto-stops a run or autopilot session when its spend hits the cap.
-        Leave blank to disable.
+        Auto-stops a run or autopilot session when its spend hits the cap. Leave blank to disable.
       </div>
-      <BudgetField
-        label="Per run"
-        value={runDraft}
-        onChange={setRunDraft}
-      />
-      <BudgetField
-        label="Per autopilot session"
-        value={sessionDraft}
-        onChange={setSessionDraft}
-      />
+      <BudgetField label="Per run" value={runDraft} onChange={setRunDraft} />
+      <BudgetField label="Per autopilot session" value={sessionDraft} onChange={setSessionDraft} />
       <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button
-          type="button"
-          className="kb-btn"
-          onClick={() => void save()}
-          disabled={saving}
-        >
+        <button type="button" className="kb-btn" onClick={() => void save()} disabled={saving}>
           {saving ? 'Saving…' : 'Save budgets'}
         </button>
-        {error ? (
-          <span style={{ color: 'var(--failed)', fontSize: 11 }}>{error}</span>
-        ) : null}
+        {error ? <span style={{ color: 'var(--failed)', fontSize: 11 }}>{error}</span> : null}
       </div>
     </div>
   );

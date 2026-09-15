@@ -5,9 +5,7 @@ import { badRequest, notFound, parseArgs } from './errors.js';
 import { issueRefSchema } from '../issue-ref.js';
 import type { HandlerDeps } from './types.js';
 
-const listSchema = z
-  .object({ issueNumber: issueRefSchema })
-  .strict();
+const listSchema = z.object({ issueNumber: issueRefSchema }).strict();
 
 const replySchema = z
   .object({
@@ -55,11 +53,7 @@ async function resolveLinkedPull(
   }
   const findOpenPull = deps.source.findOpenPullForBranch;
   if (typeof findOpenPull !== 'function') return null;
-  const thread = deps.store.threads.findByIssue(
-    deps.config.owner,
-    deps.config.repo,
-    issueNumber,
-  );
+  const thread = deps.store.threads.findByIssue(deps.config.owner, deps.config.repo, issueNumber);
   if (!thread) return null;
   const runs = deps.store.agentRuns.listByThread(thread.id);
   // listByThread is ASC by id; walk newest-first so we prefer the most
@@ -142,7 +136,9 @@ export async function list(
 
   // Stable sort: oldest-first matches GitHub's thread display + the
   // local thread tab's chronological ordering.
-  out.sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id - b.id));
+  out.sort((a, b) =>
+    a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id - b.id,
+  );
 
   return {
     linkedPullNumber: linked.number,

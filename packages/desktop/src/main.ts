@@ -9,6 +9,9 @@ import { promisify } from 'node:util';
 import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron';
 import {
   createAgentMemoryClient,
+  createMemoryProvider,
+  projectIdFromPath,
+  resolveMemoryConfig,
   createAutopilotManager,
   createChatHandlers,
   createCurator,
@@ -57,14 +60,11 @@ import {
   readWorkspaceConfig,
   resolveGitUserName,
   writeWorkspaceConfig,
+  type MemoryConfig,
   type Store,
   type WorkspaceConfig,
 } from '@kanbots/local-store';
-import {
-  cancelClaudeLogin,
-  isClaudeAuthenticated,
-  startClaudeLogin,
-} from './claude-auth.js';
+import { cancelClaudeLogin, isClaudeAuthenticated, startClaudeLogin } from './claude-auth.js';
 import {
   cancelCodexLogin,
   CODEX_AUTH_PATH,
@@ -168,21 +168,12 @@ import {
   type UserMe,
 } from '@kanbots/cloud-client';
 import { watchDbFile, type DbWatcher } from './db-watcher.js';
-import {
-  createSubscriptionRegistry,
-  type OwnedSubscriptionRegistry,
-} from './ipc/subscriptions.js';
+import { createSubscriptionRegistry, type OwnedSubscriptionRegistry } from './ipc/subscriptions.js';
 import { CHANNEL_PREFIX, DEVICE_CHAT_CHANNELS, registerHandlers } from './ipc/register.js';
-import {
-  closeProvidersStoreForShutdown,
-  registerProvidersIpc,
-} from './providers-ipc.js';
+import { closeProvidersStoreForShutdown, registerProvidersIpc } from './providers-ipc.js';
 import { registerCloudComposerHandlers } from './cloud-composer.js';
 import { startCloudRun, type CloudRunHandle } from './cloud-run-dispatcher.js';
-import {
-  broadcastWorkspaceTouched,
-  registerWorkspaceTreeIpc,
-} from './workspace-tree-ipc.js';
+import { broadcastWorkspaceTouched, registerWorkspaceTreeIpc } from './workspace-tree-ipc.js';
 import { SentryPoller } from './sentry-poller.js';
 import {
   decryptToken,
@@ -355,8 +346,7 @@ const chatWindows = new Set<BrowserWindow>();
 let deviceChatStore: Store | null = null;
 let deviceChatSupervisor: AgentSupervisor | null = null;
 
-const DEFAULT_CLOUD_BASE_URL =
-  process.env['KANBOTS_CLOUD_BASE_URL'] ?? 'https://app.kanbots.dev';
+const DEFAULT_CLOUD_BASE_URL = process.env['KANBOTS_CLOUD_BASE_URL'] ?? 'https://app.kanbots.dev';
 const DEFAULT_AGENTMEMORY_BASE_URL = 'http://localhost:3111';
 
 /**
@@ -686,24 +676,43 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
   // Keep this accessor tied to the live workspace config variable. The
   // settings handlers replace `config` after writing .kanbots/config.json,
   // so MCP composition and future memory consumers see the latest values.
-  const getMemoryConfig = () => config.memory;
+  // AGENTMEMORY_* environment variables override the workspace `memory`
+  // section, so a developer can point the app at a shared server without
+  // editing .kodra/config.json. See docs/agent-memory.md.
+  const resolveMemory = () => {
+    const resolved = resolveMemoryConfig({ env: process.env, workspace: config.memory });
+    return { ...resolved, project: resolved.project ?? projectIdFromPath(gitRoot) };
+  };
+  const getMemoryConfig = (): MemoryConfig | undefined => {
+    const resolved = resolveMemory();
+    if (!resolved.enabled && config.memory === undefined) return undefined;
+    return {
+      enabled: resolved.enabled,
+      provider: 'agentmemory',
+      url: resolved.url,
+      secret: resolved.secret,
+      scope: resolved.teamId !== null ? 'team' : (config.memory?.scope ?? 'shared'),
+      teamId: resolved.teamId,
+    };
+  };
+  const startupMemory = resolveMemory();
   const memoryClient = createAgentMemoryClient({
-    baseUrl: config.memory?.url ?? DEFAULT_AGENTMEMORY_BASE_URL,
-    ...(config.memory?.secret !== undefined ? { secret: config.memory.secret } : {}),
+    baseUrl: startupMemory.url,
+    secret: startupMemory.secret,
+    timeoutMs: startupMemory.timeoutMs,
   });
+  const memoryProvider = createMemoryProvider({ getConfig: resolveMemory });
   const memoryStatus = {
     available: false,
     version: null as string | null,
-    url: config.memory?.url ?? DEFAULT_AGENTMEMORY_BASE_URL,
+    url: startupMemory.url,
   };
   void (async () => {
     const available = await memoryClient.health();
     const version = available ? await memoryClient.version() : null;
     memoryStatus.available = available;
     memoryStatus.version = version;
-    console.log(
-      `[main] agentmemory: ${available ? `running (${version})` : 'not detected'}`,
-    );
+    console.log(`[main] agentmemory: ${available ? `running (${version})` : 'not detected'}`);
   })();
 
   await closeActiveWorkspace();
@@ -775,7 +784,7 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
     defaultRunCostBudgetUsd: () => budgetsState.runCostBudgetUsd,
     houseRules: () => houseRulesState.houseRules,
     acpCommand: () => acpCommandState.acpCommand,
-    memory: { client: memoryClient, getConfig: getMemoryConfig },
+    memory: { client: memoryClient, getConfig: getMemoryConfig, provider: memoryProvider },
     onRunStatusChange: async (run) => {
       try {
         await maybeNotifyRunStatus(run, store, source);
@@ -938,7 +947,7 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
       analyzeSentryError,
       sentry: sentryRuntime,
       providers: providersRuntime,
-      memory: { client: memoryClient, getConfig: getMemoryConfig },
+      memory: { client: memoryClient, getConfig: getMemoryConfig, provider: memoryProvider },
       memoryStatus: () => ({ ...memoryStatus }),
       ...(chatTools ? { chatTools } : {}),
       budgets: {
@@ -954,9 +963,7 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
             sessionCostBudgetUsd: input.sessionCostBudgetUsd,
           };
           const next: WorkspaceConfig =
-            config.mode === 'github'
-              ? { ...config, defaults }
-              : { ...config, defaults };
+            config.mode === 'github' ? { ...config, defaults } : { ...config, defaults };
           await writeWorkspaceConfig(gitRoot, next);
           config = next;
           if (activeWorkspace && activeWorkspace.repoPath === gitRoot) {
@@ -1284,29 +1291,26 @@ function registerDeviceChatIpc(): void {
     });
     return handlers;
   }
-  const channels: Array<keyof ChatHandlers> = [
-    ...DEVICE_CHAT_CHANNELS,
-  ] as Array<keyof ChatHandlers>;
+  const channels: Array<keyof ChatHandlers> = [...DEVICE_CHAT_CHANNELS] as Array<
+    keyof ChatHandlers
+  >;
   for (const channel of channels) {
-    ipcMain.handle(
-      `kanbots:invoke:${channel}`,
-      async (_event, args: unknown) => {
-        try {
-          const map = await getHandlers();
-          // The Handlers map types args per-channel; the IPC bridge passes them
-          // through opaquely so the runtime cast is safe.
-          const fn = map[channel] as (a: unknown) => Promise<unknown>;
-          return await fn(args);
-        } catch (err) {
-          throw new Error(
-            JSON.stringify({
-              code: err instanceof Error && err.name ? err.name : 'Error',
-              message: err instanceof Error ? err.message : String(err),
-            }),
-          );
-        }
-      },
-    );
+    ipcMain.handle(`kanbots:invoke:${channel}`, async (_event, args: unknown) => {
+      try {
+        const map = await getHandlers();
+        // The Handlers map types args per-channel; the IPC bridge passes them
+        // through opaquely so the runtime cast is safe.
+        const fn = map[channel] as (a: unknown) => Promise<unknown>;
+        return await fn(args);
+      } catch (err) {
+        throw new Error(
+          JSON.stringify({
+            code: err instanceof Error && err.name ? err.name : 'Error',
+            message: err instanceof Error ? err.message : String(err),
+          }),
+        );
+      }
+    });
   }
 }
 
@@ -1420,10 +1424,8 @@ function registerIpc(): void {
     // shell out and can take seconds. The deeper checks still run via the
     // dedicated `kanbots:<agent>-auth-status` channels and via the providers
     // handler once the renderer queries it.
-    const codexAuthed =
-      existsSync(CODEX_AUTH_PATH) || Boolean(process.env.OPENAI_API_KEY);
-    const geminiAuthed =
-      existsSync(GEMINI_AUTH_PATH) || Boolean(process.env.GEMINI_API_KEY);
+    const codexAuthed = existsSync(CODEX_AUTH_PATH) || Boolean(process.env.OPENAI_API_KEY);
+    const geminiAuthed = existsSync(GEMINI_AUTH_PATH) || Boolean(process.env.GEMINI_API_KEY);
     const ampAuthed =
       existsSync(AMP_SETTINGS_PATH) ||
       existsSync(AMP_AUTH_PATH) ||
@@ -1675,10 +1677,7 @@ function registerIpc(): void {
 
   ipcMain.handle(
     'kanbots:cloud:orgs-list',
-    async (
-      _event,
-      opts?: { cursor?: string; limit?: number },
-    ): Promise<OrgListResponse> => {
+    async (_event, opts?: { cursor?: string; limit?: number }): Promise<OrgListResponse> => {
       return cloudClient.orgs.list(opts);
     },
   );
@@ -1709,30 +1708,21 @@ function registerIpc(): void {
 
   ipcMain.handle(
     'kanbots:cloud:cards-list',
-    async (
-      _event,
-      args: { orgSlug: string; projectSlug: string; query?: ListCardsQuery },
-    ) => {
+    async (_event, args: { orgSlug: string; projectSlug: string; query?: ListCardsQuery }) => {
       return cloudClient.cards.list(args.orgSlug, args.projectSlug, args.query);
     },
   );
 
   ipcMain.handle(
     'kanbots:cloud:cards-create',
-    async (
-      _event,
-      args: { orgSlug: string; projectSlug: string; body: CreateCardRequest },
-    ) => {
+    async (_event, args: { orgSlug: string; projectSlug: string; body: CreateCardRequest }) => {
       return cloudClient.cards.create(args.orgSlug, args.projectSlug, args.body);
     },
   );
 
   ipcMain.handle(
     'kanbots:cloud:cards-get',
-    async (
-      _event,
-      args: { orgSlug: string; projectSlug: string; number: number },
-    ) => {
+    async (_event, args: { orgSlug: string; projectSlug: string; number: number }) => {
       return cloudClient.cards.get(args.orgSlug, args.projectSlug, args.number);
     },
   );
@@ -1758,12 +1748,9 @@ function registerIpc(): void {
     if (mainWindow) mainWindow.webContents.reloadIgnoringCache();
   });
 
-  ipcMain.handle(
-    'kanbots:recent-cloud-workspaces',
-    async (): Promise<RecentCloudWorkspace[]> => {
-      return readCloudRecents();
-    },
-  );
+  ipcMain.handle('kanbots:recent-cloud-workspaces', async (): Promise<RecentCloudWorkspace[]> => {
+    return readCloudRecents();
+  });
 
   ipcMain.handle(
     'kanbots:cloud:cost-today',
@@ -1811,10 +1798,7 @@ function registerIpc(): void {
 
   ipcMain.handle(
     'kanbots:cloud:project-binding-clear',
-    async (
-      _event,
-      args: { orgSlug: string; projectSlug: string },
-    ): Promise<void> => {
+    async (_event, args: { orgSlug: string; projectSlug: string }): Promise<void> => {
       await clearCloudProjectBinding(args.orgSlug, args.projectSlug);
       if (
         activeCloudWorkspace !== null &&
@@ -1839,13 +1823,7 @@ function registerIpc(): void {
       },
     ): Promise<CardSummary> => {
       const opts = args.ifMatch !== undefined ? { ifMatch: args.ifMatch } : undefined;
-      return cloudClient.cards.update(
-        args.orgSlug,
-        args.projectSlug,
-        args.number,
-        args.body,
-        opts,
-      );
+      return cloudClient.cards.update(args.orgSlug, args.projectSlug, args.number, args.body, opts);
     },
   );
 
@@ -1964,8 +1942,8 @@ function registerIpc(): void {
         throw new Error('No active cloud workspace.');
       }
       if (
-        activeCloudWorkspace.orgSlug !== args.orgSlug
-        || activeCloudWorkspace.projectSlug !== args.projectSlug
+        activeCloudWorkspace.orgSlug !== args.orgSlug ||
+        activeCloudWorkspace.projectSlug !== args.projectSlug
       ) {
         throw new Error('Cloud workspace mismatch — reopen the project and try again.');
       }
@@ -2018,15 +1996,10 @@ function registerIpc(): void {
 
       void (async () => {
         try {
-          const iter = cloudClient.runs.stream(
-            args.orgSlug,
-            args.projectSlug,
-            args.runId,
-            {
-              ...(args.lastEventId !== undefined ? { lastEventId: args.lastEventId } : {}),
-              signal: controller.signal,
-            },
-          );
+          const iter = cloudClient.runs.stream(args.orgSlug, args.projectSlug, args.runId, {
+            ...(args.lastEventId !== undefined ? { lastEventId: args.lastEventId } : {}),
+            signal: controller.signal,
+          });
           for await (const ev of iter) {
             if (sender.isDestroyed()) break;
             // sync-09: stop_signal is the downstream cancel channel.
@@ -2144,20 +2117,14 @@ function registerIpc(): void {
   // These lifecycle-style methods are retained for desktop callers that do
   // not use the generic invoke surface. Delegate to the already-registered
   // workspace handlers so validation and workspace ownership stay identical.
-  ipcMain.handle(
-    'kanbots:add-folder',
-    async (_event, args: ChannelArgs<'folders:add'>) => {
-      if (!activeWorkspace) throw new Error('no active workspace');
-      return activeWorkspace.handlers['folders:add'](args);
-    },
-  );
-  ipcMain.handle(
-    'kanbots:remove-folder',
-    async (_event, id: string) => {
-      if (!activeWorkspace) throw new Error('no active workspace');
-      return activeWorkspace.handlers['folders:remove']({ id });
-    },
-  );
+  ipcMain.handle('kanbots:add-folder', async (_event, args: ChannelArgs<'folders:add'>) => {
+    if (!activeWorkspace) throw new Error('no active workspace');
+    return activeWorkspace.handlers['folders:add'](args);
+  });
+  ipcMain.handle('kanbots:remove-folder', async (_event, id: string) => {
+    if (!activeWorkspace) throw new Error('no active workspace');
+    return activeWorkspace.handlers['folders:remove']({ id });
+  });
 
   ipcMain.handle('kanbots:close-workspace', async (): Promise<void> => {
     await closeActiveWorkspace();
@@ -2375,7 +2342,7 @@ function buildChatToolRuntime(args: {
   toolBridge: ToolBridge;
   runtimeDir: string;
   mcpServerEntry: string;
-  getMemoryConfig: () => import('@kanbots/local-store').MemoryConfig | undefined;
+  getMemoryConfig: () => MemoryConfig | undefined;
 }): ChatToolRuntime {
   const { toolBridge, runtimeDir, mcpServerEntry, getMemoryConfig } = args;
   return {
@@ -2413,10 +2380,7 @@ function buildChatToolRuntime(args: {
         }
       } else if (mcpSupport === 'file') {
         // claude-code-style `--mcp-config <path>` pointing at a JSON file
-        const configPath = join(
-          runtimeDir,
-          `mcp-${randomUUID().slice(0, 8)}.json`,
-        );
+        const configPath = join(runtimeDir, `mcp-${randomUUID().slice(0, 8)}.json`);
         const config = {
           mcpServers: withAgentMemory({ kanbots: mcpServer }, getMemoryConfig()),
         };

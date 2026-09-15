@@ -11,9 +11,7 @@ const NOOP_OPEN = (): void => undefined;
 type LiveState = { currentTool: string | null; currentArg: string | null };
 const cardLiveToolCache = new WeakMap<object, NonNullable<CardProps['liveTool']>>();
 
-function cardLiveTool(
-  live: LiveState | undefined,
-): NonNullable<CardProps['liveTool']> | null {
+function cardLiveTool(live: LiveState | undefined): NonNullable<CardProps['liveTool']> | null {
   if (!live?.currentTool) return null;
   const cached = cardLiveToolCache.get(live);
   if (cached) return cached;
@@ -144,14 +142,14 @@ export function Column({
           <div className="kb-col-empty">—</div>
         ) : (
           issues.map((issue) => {
-            const liveState = issue.activeRun
-              ? liveByRun?.get(issue.activeRun.id)
-              : undefined;
+            const liveState = issue.activeRun ? liveByRun?.get(issue.activeRun.id) : undefined;
             return (
               <Card
                 key={String(issue.number)}
                 issue={issue}
-                selected={selectedNumber !== null && String(selectedNumber) === String(issue.number)}
+                selected={
+                  selectedNumber !== null && String(selectedNumber) === String(issue.number)
+                }
                 multiSelected={selectedKeys?.has(String(issue.number)) ?? false}
                 liveTool={cardLiveTool(liveState)}
                 onSelect={selectCard}
@@ -175,7 +173,11 @@ function SuggestingSkeletonCard({
   const lastTwo = activity.slice(-2);
   const elapsed = useElapsedSeconds(startedAt);
   return (
-    <div className="kb-card kb-card-skeleton" aria-busy="true" aria-label="Claude is suggesting a feature">
+    <div
+      className="kb-card kb-card-skeleton"
+      aria-busy="true"
+      aria-label="Claude is suggesting a feature"
+    >
       <div className="kb-card-row1">
         <span className="kb-skel kb-skel-num" />
         <span className="kb-skel kb-skel-tag" />

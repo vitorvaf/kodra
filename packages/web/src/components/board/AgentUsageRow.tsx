@@ -27,9 +27,7 @@ const PLACEHOLDER_WINDOWS: Record<string, string[]> = {
 };
 
 function fullLabel(provider: string): string {
-  return (
-    PROVIDER_LABELS[provider as keyof typeof PROVIDER_LABELS] ?? provider
-  );
+  return PROVIDER_LABELS[provider as keyof typeof PROVIDER_LABELS] ?? provider;
 }
 
 function shortLabel(provider: string): string {
@@ -103,7 +101,9 @@ function nameTitle(agent: AgentUsageResult): string {
   if (agent.source === 'unauthorized') return `Log in to ${full} to see usage`;
   if (agent.source === 'unavailable') return `${full} usage unavailable`;
   if (agent.windows.length === 0) {
-    const note = agent.plan ? `${agent.plan} plan · no rate-limit windows` : 'no rate-limit windows';
+    const note = agent.plan
+      ? `${agent.plan} plan · no rate-limit windows`
+      : 'no rate-limit windows';
     return `${full} · ${note}`;
   }
   return agent.plan ? `${full} · ${agent.plan} plan` : full;
@@ -127,9 +127,7 @@ function UsageMeter({ agent, win }: { agent: AgentUsageResult; win: UsageWindowI
     nameTitle(agent),
     `${groupName ? `${groupName} · ${win.label}` : `${win.label} window`} · ${display} used`,
     quota,
-    reset
-      ? `Resets in ${reset} (${new Date(win.resetsAt as string).toLocaleString()})`
-      : null,
+    reset ? `Resets in ${reset} (${new Date(win.resetsAt as string).toLocaleString()})` : null,
   ]
     .filter((part): part is string => part !== null)
     .join(' · ');

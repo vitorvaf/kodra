@@ -1,17 +1,5 @@
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type MouseEvent,
-} from 'react';
-import {
-  getBridge,
-  UPDATER_CHANGED_CHANNEL,
-  type UpdaterState,
-} from '../../desktop-bridge.js';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { getBridge, UPDATER_CHANGED_CHANNEL, type UpdaterState } from '../../desktop-bridge.js';
 import { renderMarkdown } from '../../lib/markdown.js';
 import { Logo } from '../Logo.js';
 
@@ -162,7 +150,9 @@ export function UpdateModal() {
     setDismissed(true);
     // Progress belongs to the corner chrome from here — the modal's job
     // ends the moment the download starts.
-    void getBridge()?.updaterDownload().catch(() => undefined);
+    void getBridge()
+      ?.updaterDownload()
+      .catch(() => undefined);
   }
 
   // Backdrop press defers like Escape. mousedown + target check (not

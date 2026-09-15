@@ -57,8 +57,7 @@ function truncateArg(s: string): string {
 }
 
 export function describeToolUse(name: string, rawInput: unknown): ToolHeader {
-  const input: ToolInput =
-    rawInput && typeof rawInput === 'object' ? (rawInput as ToolInput) : {};
+  const input: ToolInput = rawInput && typeof rawInput === 'object' ? (rawInput as ToolInput) : {};
 
   switch (name) {
     case 'Edit':

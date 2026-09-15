@@ -567,7 +567,9 @@ h2 {
   width: 100%;
   color: var(--ink);
   font-family: inherit;
-  transition: background-color 120ms ease, border-color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
 }
 .picker-recent:hover:not(:disabled) {
   background: var(--bg-3);

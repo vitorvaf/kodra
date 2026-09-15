@@ -140,9 +140,10 @@ export function useCloudRunStream(opts: UseCloudRunStreamOpts): AgentRunStreamSt
       }
       if (ev.event === 'error') {
         const message =
-          ev.data && typeof ev.data === 'object' &&
+          ev.data &&
+          typeof ev.data === 'object' &&
           typeof (ev.data as { message?: unknown }).message === 'string'
-            ? ((ev.data as { message: string }).message)
+            ? (ev.data as { message: string }).message
             : 'cloud stream error';
         setState((prev) => ({ ...prev, error: message }));
         return;

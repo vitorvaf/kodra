@@ -1,10 +1,5 @@
 import type { WorkspaceConfig } from '@kanbots/local-store';
-import type {
-  ChannelArgs,
-  ChannelName,
-  ChannelResult,
-  WorkspaceFolderPayload,
-} from '@kanbots/api';
+import type { ChannelArgs, ChannelName, ChannelResult, WorkspaceFolderPayload } from '@kanbots/api';
 import type {
   AgentRunListResponse,
   AgentRunSummary,
@@ -187,7 +182,10 @@ export interface KanbotsBridge {
   cloudOrgsList(opts?: { cursor?: string; limit?: number }): Promise<OrgListResponse>;
   cloudOrgsCreate(body: CreateOrgRequest): Promise<CreateOrgResponse>;
   cloudProjectsList(orgSlug: string): Promise<ProjectListResponse>;
-  cloudProjectsCreate(args: { orgSlug: string; body: CreateProjectRequest }): Promise<ProjectSummary>;
+  cloudProjectsCreate(args: {
+    orgSlug: string;
+    body: CreateProjectRequest;
+  }): Promise<ProjectSummary>;
   openCloudWorkspace(args: {
     orgSlug: string;
     projectSlug: string;
@@ -203,10 +201,7 @@ export interface KanbotsBridge {
     projectSlug: string;
     localRepoPath: string;
   }): Promise<{ localRepoPath: string; updatedAt: string }>;
-  cloudProjectBindingClear(args: {
-    orgSlug: string;
-    projectSlug: string;
-  }): Promise<void>;
+  cloudProjectBindingClear(args: { orgSlug: string; projectSlug: string }): Promise<void>;
   cloudCardsList(args: {
     orgSlug: string;
     projectSlug: string;
@@ -229,11 +224,7 @@ export interface KanbotsBridge {
     body: UpdateCardRequest;
     ifMatch?: string;
   }): Promise<CardSummary>;
-  cloudCardsArchive(args: {
-    orgSlug: string;
-    projectSlug: string;
-    number: number;
-  }): Promise<void>;
+  cloudCardsArchive(args: { orgSlug: string; projectSlug: string; number: number }): Promise<void>;
   cloudCardsUnarchive(args: {
     orgSlug: string;
     projectSlug: string;
@@ -292,13 +283,8 @@ export interface KanbotsBridge {
     rootPath: string;
     relPath: string;
   }): Promise<Array<{ name: string; path: string; type: 'file' | 'dir' }>>;
-  workspaceWorktreeStatus(args: {
-    rootPath: string;
-  }): Promise<{
-    files: Record<
-      string,
-      { status: 'M' | 'A' | 'D' | 'R' | '??' | 'U'; worktrees: string[] }
-    >;
+  workspaceWorktreeStatus(args: { rootPath: string }): Promise<{
+    files: Record<string, { status: 'M' | 'A' | 'D' | 'R' | '??' | 'U'; worktrees: string[] }>;
     worktrees: string[];
   }>;
   workspaceSubscribeTouched(
@@ -346,12 +332,8 @@ export interface KanbotsBridge {
   }): Promise<{ subscriptionId: string }>;
   cloudRunsStreamStop(subscriptionId: string): Promise<void>;
   cloudCostToday(orgSlug: string): Promise<{ totalUsd: number; since: string }>;
-  setNotifyOnRunComplete(
-    enabled: boolean,
-  ): Promise<{ ok: true } | { ok: false; error: string }>;
-  openChat?(
-    conversationId: number | null,
-  ): Promise<{ ok: true } | { ok: false; error: string }>;
+  setNotifyOnRunComplete(enabled: boolean): Promise<{ ok: true } | { ok: false; error: string }>;
+  openChat?(conversationId: number | null): Promise<{ ok: true } | { ok: false; error: string }>;
   invoke<C extends ChannelName>(channel: C, args: ChannelArgs<C>): Promise<ChannelResult<C>>;
   subscribe(eventName: string, listener: (payload: unknown) => void): () => void;
 }

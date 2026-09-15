@@ -11,8 +11,8 @@ describe('agent-runs:checks:list', () => {
 
   it('rejects a non-positive runId via validation', async () => {
     const { handlers } = makeHandlerTestKit();
-    await expect(
-      handlers['agent-runs:checks:list']({ runId: 0 }),
-    ).rejects.toMatchObject({ name: 'ValidationError' });
+    await expect(handlers['agent-runs:checks:list']({ runId: 0 })).rejects.toMatchObject({
+      name: 'ValidationError',
+    });
   });
 });

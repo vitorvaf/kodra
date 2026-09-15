@@ -111,9 +111,7 @@ export interface DraftPrDescriptionInput {
   diffTruncated?: boolean;
 }
 
-export type DraftPrDescriptionFn = (
-  input: DraftPrDescriptionInput,
-) => Promise<DraftedIssue>;
+export type DraftPrDescriptionFn = (input: DraftPrDescriptionInput) => Promise<DraftedIssue>;
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 // Ideation does Glob/Grep/Read across the repo and a verify pass before
@@ -377,7 +375,8 @@ function describeClaudeFailure(stdout: string, resultEvent: unknown): string {
   return oneLine.length > 0 ? `: ${oneLine}` : '';
 }
 
-function summarizeToolUse(name: string, input: unknown): string {  if (!input || typeof input !== 'object') return '';
+function summarizeToolUse(name: string, input: unknown): string {
+  if (!input || typeof input !== 'object') return '';
   const i = input as Record<string, unknown>;
   switch (name) {
     case 'Read': {
@@ -435,7 +434,7 @@ Rules:
 - Output strictly the JSON object matching the schema. No prose outside the JSON.
 `;
 
-export interface CreatePrDescriptionDrafterOptions extends CreateComposerOptions {}
+export type CreatePrDescriptionDrafterOptions = CreateComposerOptions;
 
 export function createPrDescriptionDrafter(
   opts: CreatePrDescriptionDrafterOptions,
@@ -446,9 +445,7 @@ export function createPrDescriptionDrafter(
   const systemPrompt = opts.systemPrompt ?? DEFAULT_PR_DESCRIPTION_SYSTEM_PROMPT;
   const spawn = opts.spawn ?? nodeSpawn;
 
-  return async function draftPrDescription(
-    input: DraftPrDescriptionInput,
-  ): Promise<DraftedIssue> {
+  return async function draftPrDescription(input: DraftPrDescriptionInput): Promise<DraftedIssue> {
     const truncatedNote = input.diffTruncated
       ? '\n\nNote: the diff below was truncated to keep the prompt within token limits. Summarize what you can see and hedge accordingly.'
       : '';
@@ -534,7 +531,10 @@ const STATUS_GROUP_ORDER: ReadonlyArray<{
   { status: 'in-review', heading: 'In review (do not duplicate)' },
   { status: 'todo', heading: 'Up next / todo (do not duplicate)' },
   { status: 'backlog', heading: 'Backlog (do not duplicate)' },
-  { status: 'done', heading: 'Done — already shipped or finished (do not propose anything similar)' },
+  {
+    status: 'done',
+    heading: 'Done — already shipped or finished (do not propose anything similar)',
+  },
   { status: 'closed', heading: 'Recently closed (do not propose anything similar)' },
   { status: 'unlabeled', heading: 'Other open issues (do not duplicate)' },
 ];
@@ -719,7 +719,9 @@ async function spawnCodex(opts: RunCodexOptions, schemaPath: string): Promise<Dr
   }
   if (exitCode !== 0) {
     throw new ComposerError(
-      turnError ? `codex exited with code ${exitCode}: ${turnError}` : `codex exited with code ${exitCode}`,
+      turnError
+        ? `codex exited with code ${exitCode}: ${turnError}`
+        : `codex exited with code ${exitCode}`,
       stderr,
     );
   }
@@ -823,7 +825,11 @@ async function runAdapterCliForDraftedIssue(opts: RunAdapterCliOptions): Promise
         }
       } else if (ev.kind === 'tool_use') {
         if (opts.onEvent) {
-          opts.onEvent({ kind: 'tool', name: ev.name, summary: summarizeToolUse(ev.name, ev.input) });
+          opts.onEvent({
+            kind: 'tool',
+            name: ev.name,
+            summary: summarizeToolUse(ev.name, ev.input),
+          });
         }
       } else if (ev.kind === 'result') {
         if (ev.isError) {
@@ -916,17 +922,6 @@ async function runAdapterCliForDraftedIssue(opts: RunAdapterCliOptions): Promise
   }
   return drafted.data;
 }
-
-/**
- * Structural subset of the worker's StreamEvent union — avoids importing
- * the full discriminated union (which drags supervisor-adjacent types)
- * while keeping the fields the generic runner consumes.
- */
-type StreamEventLike =
-  | { kind: 'text'; text: string }
-  | { kind: 'tool_use'; name: string; input: unknown }
-  | { kind: 'result'; isError: boolean; text: string }
-  | { kind: string; [key: string]: unknown };
 
 function extractFirstJsonObject(text: string): unknown {
   const start = text.indexOf('{');

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { DismissCardResult, ResolveCardResult } from '../bridge.js';
-import { memoryNamespace } from '../memory/client.js';
+import { resolveMemoryConfig } from '../memory/config.js';
+import { createAgentMemoryProvider } from '../memory/provider.js';
 import { badRequest, namedError, notFound, parseArgs } from './errors.js';
 import { buildTaskSystemPrompt } from './issues.js';
 import type { HandlerDeps } from './types.js';
@@ -66,16 +67,24 @@ export async function resolve(
     void Promise.resolve(
       (async () => {
         try {
-          if (!deps.memory?.getConfig()?.enabled) return;
-          // The handler has no reliable physical repo path; use the stable
-          // decisions project until workspace repo paths are exposed here.
-          const project = memoryNamespace({ workspaceId: 'default', repoId: 'decisions' });
-          await deps.memory.client.save({
-            content:
-              `Decision: ${payload?.question ?? '(unspecified question)'} → chose: ${chosen.label}`,
-            namespace: project,
+          const memory = deps.memory;
+          if (!memory) return;
+          const provider =
+            memory.provider ??
+            createAgentMemoryProvider({
+              client: memory.client,
+              getConfig: () => resolveMemoryConfig({ workspace: memory.getConfig() }),
+            });
+          if (!provider.getConfig().enabled) return;
+          // Resolved decisions are the one piece of app-native memory content
+          // (ADR-0005). They are private until a developer promotes them.
+          await provider.remember({
+            content: `Decision: ${payload?.question ?? '(unspecified question)'} → chose: ${chosen.label}`,
             kind: 'decision',
-            metadata: { runId, value: parsed.value },
+            confidence: 'confirmed',
+            source: 'developer',
+            agentId: 'kodra',
+            concepts: [`run:${runId}`],
           });
         } catch {
           // Best-effort memory capture; never block decision resolution.

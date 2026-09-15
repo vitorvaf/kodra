@@ -20,7 +20,7 @@ instead of (or alongside) `claude`.
   resume is best-effort in v1 (see Open questions).
 - Full feature parity for decision cards on day one. Decision cards work
   by detecting `kodra-decision` fenced blocks in assistant text, which
-  Codex *can* be steered into producing via system prompt — but we accept
+  Codex _can_ be steered into producing via system prompt — but we accept
   that some interactive prompts (e.g. Codex's own approval requests) may
   not surface as decision cards in v1.
 - Replacing the Anthropic-shaped `StreamEvent` schema. Codex output is
@@ -59,8 +59,8 @@ The dispatcher is not.
 Add a new enum value `codex-cli` rather than reusing `'openai'`. Reasons:
 
 - `'openai'` already exists in `ProviderId` as a chat-only Messages-API
-  provider that talks directly to `api.openai.com`. Codex is a *local
-  CLI* that exec's `codex` on PATH and runs tools against the worktree —
+  provider that talks directly to `api.openai.com`. Codex is a _local
+  CLI_ that exec's `codex` on PATH and runs tools against the worktree —
   a different transport, different credentials path, different error
   modes. Conflating them would force every codepath to branch on "API
   key vs CLI binary" inside a single id.
@@ -82,7 +82,7 @@ Introduce a small adapter interface in `packages/dispatcher/src/`:
 
 ```ts
 export interface AgentCliAdapter {
-  command: string;                    // 'claude' | 'codex'
+  command: string; // 'claude' | 'codex'
   buildArgs(opts: BuildArgsInput): string[];
   parseLine(line: string): StreamEvent[];
   detectRateLimit?(stderrChunk: string): RateLimitEvent | null;
@@ -139,19 +139,19 @@ The `StreamEvent` union (`stream-parser.ts:3-32`) is the contract every
 downstream consumer (UI, persistence, containment, cost) reads. Map
 Codex's stream into it:
 
-| Existing event       | Codex source                                                      |
-|---|---|
-| `text`               | Assistant text deltas / final assistant message                  |
-| `tool_use`           | Codex's tool/function call event (id, name, input)               |
-| `tool_result`        | Codex's tool result event (`tool_use_id`, content, error flag)   |
-| `session`            | Whatever init/start event Codex emits with a session/run id      |
-| `result`             | Final summary event — total tokens, duration, exit status        |
-| `decision`           | Detected by re-running `extractTextEvents` / `DECISION_BLOCK_RE` over the assistant text — same mechanism as today |
-| `rate_limit`         | Codex error events containing 429 / quota / overloaded markers   |
-| `parse_error`        | Fallback for unrecognized JSON shapes                            |
+| Existing event | Codex source                                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `text`         | Assistant text deltas / final assistant message                                                                    |
+| `tool_use`     | Codex's tool/function call event (id, name, input)                                                                 |
+| `tool_result`  | Codex's tool result event (`tool_use_id`, content, error flag)                                                     |
+| `session`      | Whatever init/start event Codex emits with a session/run id                                                        |
+| `result`       | Final summary event — total tokens, duration, exit status                                                          |
+| `decision`     | Detected by re-running `extractTextEvents` / `DECISION_BLOCK_RE` over the assistant text — same mechanism as today |
+| `rate_limit`   | Codex error events containing 429 / quota / overloaded markers                                                     |
+| `parse_error`  | Fallback for unrecognized JSON shapes                                                                              |
 
 Decision cards keep working "for free" if and only if the system prompt
-instructs Codex to emit ```kodra-decision``` fenced blocks in assistant
+instructs Codex to emit `kodra-decision` fenced blocks in assistant
 text. Verify that Codex's fenced-code passthrough preserves the block
 intact — the current regex (`stream-parser.ts:256`) is permissive but
 expects newline-terminated fences.

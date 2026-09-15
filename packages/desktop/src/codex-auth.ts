@@ -134,7 +134,8 @@ export async function startCodexLogin(): Promise<CodexLoginResult | CodexLoginEr
         settle({ ok: true });
       } else {
         const stderr = entry.stderrBuf.trim();
-        const detail = stderr.length > 0 ? stderr : `codex login exited with code ${code ?? 'null'}`;
+        const detail =
+          stderr.length > 0 ? stderr : `codex login exited with code ${code ?? 'null'}`;
         settle({ ok: false, error: detail });
       }
     });

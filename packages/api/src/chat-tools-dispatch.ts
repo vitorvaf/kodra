@@ -10,10 +10,7 @@ import { issueRefSchema } from './issue-ref.js';
  * a renderer would have made over IPC.
  */
 export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) => {
-  const args = (rawArgs && typeof rawArgs === 'object' ? rawArgs : {}) as Record<
-    string,
-    unknown
-  >;
+  const args = (rawArgs && typeof rawArgs === 'object' ? rawArgs : {}) as Record<string, unknown>;
 
   switch (name) {
     case 'listIssues': {
@@ -30,9 +27,7 @@ export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) 
       if (typeof args.number === 'string') out.number = args.number;
       if (typeof args.body === 'string') out.body = args.body;
       if (Array.isArray(args.labels)) {
-        out.labels = (args.labels as unknown[]).filter(
-          (v): v is string => typeof v === 'string',
-        );
+        out.labels = (args.labels as unknown[]).filter((v): v is string => typeof v === 'string');
       }
       return handlers['issues:create'](out);
     }
@@ -43,9 +38,7 @@ export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) 
       if (typeof args.body === 'string') patch.body = args.body;
       if (args.state === 'open' || args.state === 'closed') patch.state = args.state;
       if (Array.isArray(args.labels)) {
-        patch.labels = (args.labels as unknown[]).filter(
-          (v): v is string => typeof v === 'string',
-        );
+        patch.labels = (args.labels as unknown[]).filter((v): v is string => typeof v === 'string');
       }
       return handlers['issues:patch']({ number, patch });
     }
@@ -125,7 +118,11 @@ export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) 
       const repoOwner = expectString(args, 'repoOwner');
       const repoName = expectString(args, 'repoName');
       const tag = optionalString(args, 'tag') as
-        | 'convention' | 'gotcha' | 'fragile' | 'decision-rationale' | undefined;
+        | 'convention'
+        | 'gotcha'
+        | 'fragile'
+        | 'decision-rationale'
+        | undefined;
       const includeDeleted = optionalBoolean(args, 'includeDeleted');
       const limit = optionalNumber(args, 'limit');
       const payload: Parameters<(typeof handlers)['learnings:list']>[0] = {

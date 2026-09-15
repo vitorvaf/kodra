@@ -40,7 +40,7 @@ local cache for performance.
 - The kanban "status" is encoded as a `status:*` label
   (`status:backlog`, `status:todo`, `status:in-progress`, `status:review`,
   `status:done`). Drag-and-drop edits the labels via the `PATCH
-  /repos/{owner}/{repo}/issues/{n}` endpoint.
+/repos/{owner}/{repo}/issues/{n}` endpoint.
 - The agent state is encoded as an `agent:*` label (`agent:running`,
   `agent:blocked`, `agent:review`, `agent:failed`).
 - These labels are auto-created on first sync if they don't exist.
@@ -83,7 +83,7 @@ interface IssueSource {
   addComment(number: number, body: string): Promise<Comment>;
   createIssue(input: CreateIssueInput): Promise<Issue>;
   updateIssue(number: number, patch: UpdateIssuePatch): Promise<Issue>;
-  openDraftPR?(input: OpenPRInput): Promise<PullRequest>;  // optional
+  openDraftPR?(input: OpenPRInput): Promise<PullRequest>; // optional
 }
 ```
 

@@ -167,13 +167,13 @@ async function parseWorktreeList(rootPath: string): Promise<WorktreeRecord[]> {
     flush();
     return out;
   } catch {
-    return [{ path: rootPath, branch: null, head: null, isMain: true, locked: false, detached: false }];
+    return [
+      { path: rootPath, branch: null, head: null, isMain: true, locked: false, detached: false },
+    ];
   }
 }
 
-async function statusForWorktree(
-  worktreePath: string,
-): Promise<WorktreeFileStatus[]> {
+async function statusForWorktree(worktreePath: string): Promise<WorktreeFileStatus[]> {
   try {
     const { stdout } = await execAsync('git status --porcelain=v1 -z', {
       cwd: worktreePath,
@@ -219,7 +219,8 @@ function cachedWorktreeEnumeration(rootPath: string): Promise<WorktreeRecord[]> 
     entry = { recordsExpiresAt: 0, sweepExpiresAt: 0 };
     worktreeCache.set(key, entry);
   }
-  if (entry.records !== undefined && entry.recordsExpiresAt > now) return Promise.resolve(entry.records);
+  if (entry.records !== undefined && entry.recordsExpiresAt > now)
+    return Promise.resolve(entry.records);
   if (entry.enumerationPromise !== undefined) return entry.enumerationPromise;
 
   const promise = parseWorktreeList(rootPath);
@@ -322,7 +323,10 @@ async function readDirEntries(rootPath: string, relPath: string): Promise<TreeEn
     }
     const isDir = ent.isDirectory();
     if (!isDir && !ent.isFile()) continue;
-    const childRel = (relPath.length === 0 ? ent.name : `${relPath}/${ent.name}`).replace(/\\/g, '/');
+    const childRel = (relPath.length === 0 ? ent.name : `${relPath}/${ent.name}`).replace(
+      /\\/g,
+      '/',
+    );
     out.push({ name: ent.name, path: childRel, type: isDir ? 'dir' : 'file' });
   }
   // Folders first, then files, both alphabetised.
@@ -339,7 +343,8 @@ async function worktreeStatus(rootPath: string): Promise<WorktreeStatusMap> {
 }
 
 let resolveRoot: (() => string | null) | null = null;
-let broadcaster: ((payload: { filePath: string; worktreePath: string | null }) => void) | null = null;
+let broadcaster: ((payload: { filePath: string; worktreePath: string | null }) => void) | null =
+  null;
 const senders = new Set<WebContents>();
 
 export interface WorkspaceTreeIpcOptions {
@@ -363,10 +368,7 @@ export function registerWorkspaceTreeIpc(opts: WorkspaceTreeIpcOptions): void {
 
   ipcMain.handle(
     'kanbots:workspace:read-dir',
-    async (
-      _event,
-      args: { rootPath: string; relPath: string },
-    ): Promise<TreeEntry[]> => {
+    async (_event, args: { rootPath: string; relPath: string }): Promise<TreeEntry[]> => {
       const root = resolveRoot ? resolveRoot() : null;
       // The renderer always sends rootPath echoed back from
       // current-root, but we re-verify against the live root so a
@@ -417,9 +419,10 @@ export function registerWorkspaceTreeIpc(opts: WorkspaceTreeIpcOptions): void {
    */
   ipcMain.handle(
     'kanbots:workspace:list-worktrees',
-    async (_event, args: { rootPath: string }): Promise<
-      Array<WorktreeRecord & { dirtyCount: number }>
-    > => {
+    async (
+      _event,
+      args: { rootPath: string },
+    ): Promise<Array<WorktreeRecord & { dirtyCount: number }>> => {
       const root = resolveRoot ? resolveRoot() : null;
       if (root === null || resolve(args.rootPath) !== resolve(root)) return [];
       const sweep = await cachedWorktreeSweep(root);
@@ -490,8 +493,8 @@ export function registerWorkspaceTreeIpc(opts: WorkspaceTreeIpcOptions): void {
         title: 'Remove worktree?',
         message: `Remove worktree '${target.branch ?? target.path}'?`,
         detail:
-          'This deletes the worktree directory and disconnects the branch from this repo. '
-          + (args.force ? 'Uncommitted changes will be lost.' : ''),
+          'This deletes the worktree directory and disconnects the branch from this repo. ' +
+          (args.force ? 'Uncommitted changes will be lost.' : ''),
         buttons: ['Cancel', 'Remove'],
         defaultId: 0,
         cancelId: 0,
@@ -623,12 +626,24 @@ export function registerWorkspaceTreeIpc(opts: WorkspaceTreeIpcOptions): void {
     }> => {
       const root = resolveRoot ? resolveRoot() : null;
       if (root === null) {
-        return { content: null, size: 0, truncated: false, isBinary: false, error: 'no active workspace' };
+        return {
+          content: null,
+          size: 0,
+          truncated: false,
+          isBinary: false,
+          error: 'no active workspace',
+        };
       }
       const rootAbs = resolve(root);
       const fileAbs = resolveSafe(rootAbs, args.filePath);
       if (fileAbs === null) {
-        return { content: null, size: 0, truncated: false, isBinary: false, error: 'path escapes workspace' };
+        return {
+          content: null,
+          size: 0,
+          truncated: false,
+          isBinary: false,
+          error: 'path escapes workspace',
+        };
       }
       try {
         const st = await stat(fileAbs);

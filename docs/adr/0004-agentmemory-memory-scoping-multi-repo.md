@@ -9,7 +9,7 @@
 
 agentmemory has **no native per-repository isolation.** All memories live in
 one SQLite store under `~/.agentmemory/data/` (overridable via `--data-dir` /
-`AGENTMEMORY_DATA_DIR`). What it *does* offer:
+`AGENTMEMORY_DATA_DIR`). What it _does_ offer:
 
 - **Session-ID scoping** — observations are keyed `mem:obs:${sessionId}`.
 - **Team namespace** — `mem:team:${teamId}:shared` for cross-agent shared
@@ -24,12 +24,12 @@ one SQLite store under `~/.agentmemory/data/` (overridable via `--data-dir` /
 kanbots, meanwhile, has these natural scopes (confirmed by
 `packages/local-store/src/repos/` and `supervisor.ts`):
 
-| kanbots scope | Where it lives | Example |
-| --- | --- | --- |
-| Conversation / chat session | `chat_sessions` table, pinned provider+model | standalone chat panel |
-| Issue thread | `threads` + `messages` tables | one issue's discussion |
-| Agent run | `agent_runs` row, one per `claude -p` invocation | a single dispatch |
-| Workspace repo | `workspace_repos`, resolved via `repoId` in dispatch | multi-repo workspace |
+| kanbots scope               | Where it lives                                       | Example                |
+| --------------------------- | ---------------------------------------------------- | ---------------------- |
+| Conversation / chat session | `chat_sessions` table, pinned provider+model         | standalone chat panel  |
+| Issue thread                | `threads` + `messages` tables                        | one issue's discussion |
+| Agent run                   | `agent_runs` row, one per `claude -p` invocation     | a single dispatch      |
+| Workspace repo              | `workspace_repos`, resolved via `repoId` in dispatch | multi-repo workspace   |
 
 The hard question: when an agent run on repo A finishes, what should the next
 run (on repo A, repo B, or a different issue in repo A) be able to recall?
@@ -105,17 +105,20 @@ session namespace. Per-workspace isolation available as an opt-in.**
 ## Alternatives Considered
 
 ### Option A — Per-repo agentmemory instance (one daemon per repo)
+
 Rejected as default. Multiplies processes, ports (3111/3112/3113/49134 × N
 repos), and engine downloads. The iii-engine port conflict (`:49134`) makes
 running several instances on one host painful. Kept as Option 3 above for the
 rare case that demands it.
 
 ### Option B — Global namespace, no scoping (everything recalls everything)
+
 Rejected. Predictable cross-contamination: an agent on a brand-new repo would
 hallucinate patterns from an unrelated project. The continuity benefit is
 real but must be bounded by repo boundaries by default.
 
 ### Option C — kanbots-side filtering layer on top of a global store
+
 Considered. Every recall goes through a kanbots shim that filters memories by
 repo before returning them to the agent. Rejected for v1: it duplicates
 agentmemory's own scoping machinery, adds latency to every recall, and
@@ -124,12 +127,14 @@ The session-namespace approach (Decision 1) achieves the same effect using
 agentmemory's built-in mechanism.
 
 ### Option D — Per-agent isolation by default (Claude's memory ≠ Codex's memory)
+
 Rejected as default. Breaks the cross-agent continuity benefit, which is one
 of the main reasons to integrate memory at all. Kept as an advanced toggle.
 
 ## Consequences
 
 **Positive:**
+
 - Sensible default: an agent on repo X recalls repo X, nothing else, with
   zero config.
 - Cross-agent continuity works automatically within a repo.
@@ -139,18 +144,20 @@ of the main reasons to integrate memory at all. Kept as an advanced toggle.
   burdening the common case.
 
 **Negative:**
+
 - The session-ID and namespace encoding is a kanbots convention layered on
   agentmemory. If agentmemory changes its namespace scheme upstream, the
   mapping breaks. Mitigation: pin the agentmemory version (ADR-0002 already
   records version awareness) and keep the encoding in one place.
-- Deterministic session IDs mean a re-run with the same key *resumes* rather
-  than *creates* — need to confirm agentmemory's session semantics match
+- Deterministic session IDs mean a re-run with the same key _resumes_ rather
+  than _creates_ — need to confirm agentmemory's session semantics match
   kanbots's run identity (each `agent_runs` row gets a fresh `runId`, so
   collisions are avoided, but worth a test).
 - The `scope: "global"` footgun exists. Mitigate by warning in the UI when
   it's selected.
 
 **Neutral:**
+
 - `config.json` gains `scope` and optional `teamId` fields (validated by
   `workspace.ts`, unknown keys warned per existing convention).
 - ADR-0005 depends on this: the recall call in the prompt-prefix injection

@@ -8,23 +8,14 @@ import { issueRefSchema } from '../issue-ref.js';
 import type { IssueRef } from '@kanbots/core';
 import type { HandlerDeps } from './types.js';
 
-export async function pending(
-  deps: HandlerDeps,
-): Promise<PendingDecisionPayload[]> {
-  const rows = deps.store.cards.listPendingForRepo(
-    deps.config.owner,
-    deps.config.repo,
-  );
+export async function pending(deps: HandlerDeps): Promise<PendingDecisionPayload[]> {
+  const rows = deps.store.cards.listPendingForRepo(deps.config.owner, deps.config.repo);
   const out: PendingDecisionPayload[] = [];
   for (const { card, agentRunId, issueNumber } of rows) {
     const payload = card.payload as
       | { question?: string; options?: Array<{ value?: string; label?: string }> }
       | undefined;
-    if (
-      !payload ||
-      typeof payload.question !== 'string' ||
-      !Array.isArray(payload.options)
-    ) {
+    if (!payload || typeof payload.question !== 'string' || !Array.isArray(payload.options)) {
       continue;
     }
     const options = payload.options
@@ -46,9 +37,7 @@ export async function pending(
   return out;
 }
 
-const specsGetSchema = z
-  .object({ issueNumber: issueRefSchema })
-  .strict();
+const specsGetSchema = z.object({ issueNumber: issueRefSchema }).strict();
 
 export async function getSpec(
   deps: HandlerDeps,

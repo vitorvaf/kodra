@@ -15,6 +15,7 @@ interface AgentRunRow {
   thread_id: number;
   worktree_path: string | null;
   branch_name: string | null;
+  base_branch: string | null;
   pid: number | null;
   status: string;
   started_at: string;
@@ -50,6 +51,7 @@ function rowToAgentRun(row: AgentRunRow): AgentRun {
     threadId: row.thread_id,
     worktreePath: row.worktree_path,
     branchName: row.branch_name,
+    baseBranch: row.base_branch,
     pid: row.pid,
     status: row.status as AgentRunStatus,
     startedAt: row.started_at,
@@ -81,6 +83,7 @@ export interface CreateAgentRunInput {
   status?: AgentRunStatus;
   worktreePath?: string;
   branchName?: string;
+  baseBranch?: string | null;
   /** Chat-session scope for runs that belong to a multi-session chat. */
   chatSessionId?: ChatSessionId | null;
 }
@@ -89,6 +92,7 @@ export interface UpdateAgentRunPatch {
   status?: AgentRunStatus;
   worktreePath?: string | null;
   branchName?: string | null;
+  baseBranch?: string | null;
   pid?: number | null;
   endedAt?: string | null;
   tokenUsageInput?: number | null;
@@ -116,6 +120,7 @@ const PATCH_COLUMNS: Record<keyof UpdateAgentRunPatch, string> = {
   status: 'status',
   worktreePath: 'worktree_path',
   branchName: 'branch_name',
+  baseBranch: 'base_branch',
   pid: 'pid',
   endedAt: 'ended_at',
   tokenUsageInput: 'token_usage_input',
@@ -149,21 +154,23 @@ export class AgentRunsRepo {
     const status = input.status ?? 'starting';
     const worktreePath = input.worktreePath ?? null;
     const branchName = input.branchName ?? null;
+    const baseBranch = input.baseBranch ?? null;
     const chatSessionId = input.chatSessionId ?? null;
 
     const result = this.db
       .prepare(
         `INSERT INTO agent_runs
-           (thread_id, status, started_at, worktree_path, branch_name, success_signal, chat_session_id)
-         VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
-      )
-      .run(input.threadId, status, startedAt, worktreePath, branchName, chatSessionId);
+           (thread_id, status, started_at, worktree_path, branch_name, base_branch, success_signal, chat_session_id)
+         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
+       )
+      .run(input.threadId, status, startedAt, worktreePath, branchName, baseBranch, chatSessionId);
 
     return {
       id: Number(result.lastInsertRowid),
       threadId: input.threadId,
       worktreePath,
       branchName,
+      baseBranch,
       pid: null,
       status,
       startedAt,

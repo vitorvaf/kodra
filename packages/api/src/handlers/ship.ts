@@ -82,6 +82,7 @@ async function resolveRun(
   run: {
     id: number;
     branchName: string | null;
+    baseBranch: string | null;
     worktreePath: string | null;
     threadId: number;
   };
@@ -125,7 +126,7 @@ export async function status(deps: HandlerDeps, args: unknown): Promise<ShipStat
   const { run, repoPath } = await resolveRun(deps, parsed.issueNumber);
 
   const branches = await listLocalBranches(repoPath);
-  const defaultMergeTarget = await detectLocalBase(repoPath).catch(() => 'main');
+  const defaultMergeTarget = await detectLocalBase(repoPath, run.baseBranch).catch(() => 'main');
   const availableTargets = branches.filter((b) => b !== run.branchName);
 
   let hasUncommittedChanges = false;

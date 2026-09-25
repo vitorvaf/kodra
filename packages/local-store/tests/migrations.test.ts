@@ -86,6 +86,7 @@ describe('migrations', () => {
       '0031_agy_cli_provider',
       '0032_issue_folders',
       '0033_issue_ref_text',
+      '0034_agent_runs_base_branch',
     ]);
     store.close();
   });

@@ -3,6 +3,8 @@ import { dirname, join } from 'node:path';
 import { EventEmitter } from 'node:events';
 import {
   createWorktree as defaultCreateWorktree,
+  createGitExecutor,
+  createGitRefExists,
   defaultBranchName,
   defaultWorktreePath,
   DEFAULT_GRACEFUL_TIMEOUT_MS,
@@ -19,6 +21,7 @@ import {
   type StartAgentRunOptions,
   type StreamEvent,
   type Worktree,
+  resolveBaseRef,
 } from '@kanbots/dispatcher';
 import { resolveProviderWithCreds } from '../handlers/provider-credentials.js';
 import { describeKanbotsDir } from '@kanbots/local-store';
@@ -203,6 +206,8 @@ export interface StartRunInput {
   worktreePath?: string;
   /** Branch associated with an already-created worktree, if any. */
   branchName?: string | null;
+  /** Preferred base ref for a newly-created worktree. */
+  baseRef?: string;
 }
 
 export interface ResumeRunInput {
@@ -1598,9 +1603,30 @@ export async function createSupervisor(opts: CreateSupervisorOptions): Promise<A
     // unknown — caller-facing validation lives in the IPC handlers, the
     // supervisor stays permissive.
     let repoPath = resolveRepoPath();
+    let workspaceRepoTarget: string | null = null;
     if (input.repoId !== undefined) {
       const repoRow = store.workspaceRepos.findById(input.repoId);
-      if (repoRow) repoPath = repoRow.repoPath;
+      if (repoRow) {
+        repoPath = repoRow.repoPath;
+        workspaceRepoTarget = repoRow.targetBranch;
+      }
+    }
+    const folderDefault = store.folders.findByPath(repoPath)?.defaultBranch ?? null;
+    const baseResolution = await resolveBaseRef({
+      explicit: input.baseRef,
+      repoTarget: workspaceRepoTarget,
+      folderDefault,
+      refExists: createGitRefExists(repoPath),
+      execGit: createGitExecutor(repoPath),
+    });
+    if (baseResolution.ref !== null) {
+      console.info(
+        `[agent-runs] resolved base ref '${baseResolution.ref}' from ${baseResolution.source} for run ${run.id}`,
+      );
+    } else {
+      console.warn(
+        `[agent-runs] could not resolve a base ref for run ${run.id}; falling back to HEAD`,
+      );
     }
     // v1: per-repo via repoPath; workspaceId/team scoping is a future refinement per ADR-0004.
     runMemoryProjects.set(run.id, memoryProjectId(repoPath));
@@ -1617,6 +1643,7 @@ export async function createSupervisor(opts: CreateSupervisorOptions): Promise<A
     // branchName populated, not null.
     run = store.agentRuns.update(run.id, {
       worktreePath,
+      baseBranch: baseResolution.ref,
       ...(input.worktreePath !== undefined
         ? { branchName: input.branchName ?? null }
         : { branchName: branch }),
@@ -1625,7 +1652,12 @@ export async function createSupervisor(opts: CreateSupervisorOptions): Promise<A
     try {
       if (input.worktreePath === undefined) {
         await prepareDir(worktreePath);
-        await makeWorktree({ repoPath, branch, worktreePath });
+        await makeWorktree({
+          repoPath,
+          branch,
+          worktreePath,
+          ...(baseResolution.ref !== null ? { baseRef: baseResolution.ref } : {}),
+        });
         await stampIdentity({
           worktreePath,
           runId: run.id,

@@ -30,6 +30,7 @@ import { migration as m0030 } from './0030-issue-relations.js';
 import { migration as m0031 } from './0031-agy-cli-provider.js';
 import { migration as m0032 } from './0032-issue-folders.js';
 import { migration as m0033 } from './0033-issue-ref-text.js';
+import { migration as m0034 } from './0034-agent-runs-base-branch.js';
 import type { Migration } from './types.js';
 
 // 0019-project-scope.ts is intentionally not imported here — it scaffolds
@@ -70,6 +71,7 @@ export const migrations: readonly Migration[] = [
   m0031,
   m0032,
   m0033,
+  m0034,
 ];
 
 export type { Migration };

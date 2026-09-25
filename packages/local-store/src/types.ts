@@ -148,6 +148,7 @@ export interface AgentRun {
   threadId: ThreadId;
   worktreePath: string | null;
   branchName: string | null;
+  baseBranch: string | null;
   pid: number | null;
   status: AgentRunStatus;
   startedAt: string;

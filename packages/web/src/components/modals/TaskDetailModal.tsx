@@ -942,7 +942,7 @@ function Aside({
         </div>
         <div className="kb-mas-row">
           <span className="k">Base</span>
-          <span className="v mono">main</span>
+          <span className="v mono">{sidebarRun?.baseBranch ?? '—'}</span>
         </div>
       </div>
 

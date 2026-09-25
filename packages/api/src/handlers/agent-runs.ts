@@ -74,7 +74,7 @@ export async function diff(deps: HandlerDeps, args: RunIdArgs): Promise<DiffPayl
   const run = deps.store.agentRuns.findById(parsed.runId);
   if (!run) throw notFound(`agent run ${parsed.runId} not found`);
   if (!run.worktreePath) throw badRequest('run has no worktree');
-  return collectDiff(run.worktreePath, run.branchName);
+  return collectDiff(run.worktreePath, run.branchName, run.baseBranch);
 }
 
 export async function revealWorktree(
@@ -181,7 +181,7 @@ export async function promoteCommit(
   if (!thread) throw badRequest('run has no thread');
   const issue = await deps.source.getIssue(thread.issueNumber);
 
-  const base = await detectLocalBase(repoPath);
+  const base = await detectLocalBase(repoPath, run.baseBranch);
   await ensureBranchAhead(repoPath, base, run.branchName);
 
   const message = `Issue #${issue.number}: ${issue.title}`;
@@ -476,7 +476,7 @@ export async function promotePr(deps: HandlerDeps, args: PromotePrArgs): Promise
     cwd: run.worktreePath,
   });
 
-  const base = (await detectLocalBase(repoPath)).replace(/^origin\//, '');
+  const base = (await detectLocalBase(repoPath, run.baseBranch)).replace(/^origin\//, '');
   // Honor caller-supplied overrides — the renderer's "Create draft PR"
   // modal pre-fills these from an AI draft and lets the user edit before
   // submitting. When neither is provided we fall back to the issue's
@@ -555,7 +555,7 @@ export async function draftPrDescription(
   // Reuse the same diff collector the renderer's file viewer hits so the
   // drafter sees exactly what the user is about to ship — committed +
   // uncommitted + untracked, all framed against the same base.
-  const payload = await collectDiff(run.worktreePath, run.branchName);
+  const payload = await collectDiff(run.worktreePath, run.branchName, run.baseBranch);
   const diffText = payload.files.map((f) => f.patch).join('\n');
   const truncated = truncateForDraft(diffText);
 
@@ -588,7 +588,17 @@ function truncateForDraft(input: string): { text: string; truncated: boolean } {
   return { text, truncated: true };
 }
 
-export async function detectLocalBase(repoPath: string): Promise<string> {
+export async function detectLocalBase(repoPath: string, preferred?: string | null): Promise<string> {
+  if (preferred?.trim()) {
+    try {
+      await execFileAsync('git', ['rev-parse', '--verify', '--quiet', preferred], {
+        cwd: repoPath,
+      });
+      return preferred;
+    } catch {
+      // Fall through to the historical local-branch chain.
+    }
+  }
   for (const ref of ['main', 'master']) {
     try {
       await execFileAsync('git', ['rev-parse', '--verify', ref], { cwd: repoPath });
@@ -600,8 +610,12 @@ export async function detectLocalBase(repoPath: string): Promise<string> {
   throw badRequest('could not find a local main/master branch to promote into');
 }
 
-async function collectDiff(worktreePath: string, branchName: string | null): Promise<DiffPayload> {
-  const base = await detectBase(worktreePath);
+async function collectDiff(
+  worktreePath: string,
+  branchName: string | null,
+  preferred?: string | null,
+): Promise<DiffPayload> {
+  const base = await detectBase(worktreePath, preferred);
   const tracked = await diffAgainstBase(worktreePath, base);
   const untracked = await listUntrackedFiles(worktreePath);
   const files: DiffFile[] = [];
@@ -623,7 +637,15 @@ async function collectDiff(worktreePath: string, branchName: string | null): Pro
   };
 }
 
-async function detectBase(cwd: string): Promise<string> {
+async function detectBase(cwd: string, preferred?: string | null): Promise<string> {
+  if (preferred?.trim()) {
+    try {
+      await execFileAsync('git', ['rev-parse', '--verify', '--quiet', preferred], { cwd });
+      return preferred;
+    } catch {
+      // Fall through to the historical chain.
+    }
+  }
   // Prefer local refs: worktrees are forked from the local branch, and
   // origin/* can be far behind, which would surface unrelated upstream commits
   // as if they were the run's diff.

@@ -60,6 +60,20 @@ export {
 export { setAcpWorkspaceCommand } from './adapters/acp.js';
 
 export {
+  createGitExecutor,
+  createGitRefExists,
+  pickFirstExisting,
+  resolveBaseRef,
+  resolveRemoteHead,
+  REMOTE_PROBE_ORDER,
+  type BaseRefResolution,
+  type BaseRefSource,
+  type GitExecutor,
+  type RefExists,
+  type ResolveBaseRefInput,
+} from './base-ref.js';
+
+export {
   createWorktree,
   removeWorktree,
   resolveWorktreePath,

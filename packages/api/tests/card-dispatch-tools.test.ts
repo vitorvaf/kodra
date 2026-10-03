@@ -102,6 +102,7 @@ describe('card dispatch tool wiring', () => {
       cleanup: () => undefined,
     };
     const providers: string[] = [];
+    const callers: unknown[] = [];
     const thread = kit.store.threads.create({ repoOwner: 'a', repoName: 'b', issueNumber: 7 });
     const deps = {
       ...kit,
@@ -110,8 +111,9 @@ describe('card dispatch tool wiring', () => {
         hasClaudeCodeCredentials: () => true,
       },
       chatTools: {
-        prepareForRun: async ({ provider }: { provider: string }) => {
+        prepareForRun: async ({ provider, caller }: { provider: string; caller: unknown }) => {
           providers.push(provider);
+          callers.push(caller);
           return prepared;
         },
       },
@@ -130,6 +132,7 @@ describe('card dispatch tool wiring', () => {
       cleanup: prepared.cleanup,
     });
     expect(providers).toEqual(['claude-code']);
+    expect(callers).toEqual([{ kind: 'card', issueNumber: 7 }]);
   });
 
   it('keeps the no-chatTools path free of extra spawn options', async () => {

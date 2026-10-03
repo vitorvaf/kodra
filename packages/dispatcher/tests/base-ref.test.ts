@@ -65,9 +65,7 @@ describe('base ref resolution', () => {
   });
 
   it('returns head when no ref exists', async () => {
-    const result = await resolveBaseRef(
-      resolverInput({ refExists: async () => false }),
-    );
+    const result = await resolveBaseRef(resolverInput({ refExists: async () => false }));
 
     expect(result).toEqual({ ref: null, source: 'head' });
   });
@@ -92,8 +90,8 @@ describe('base ref resolution', () => {
   });
 
   it('returns null when remote HEAD lookup fails', async () => {
-    await expect(resolveRemoteHead(async () => Promise.reject(new Error('no remote')))).resolves.toBe(
-      null,
-    );
+    await expect(
+      resolveRemoteHead(async () => Promise.reject(new Error('no remote'))),
+    ).resolves.toBe(null);
   });
 });

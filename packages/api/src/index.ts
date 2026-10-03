@@ -25,6 +25,7 @@ export { bootstrapWorkspace, type WorkspaceBootstrapResult } from './workspace-b
 
 export { startToolBridge, type ToolBridge, type ToolDispatcher } from './tool-bridge.js';
 export { dispatchChatTool } from './chat-tools-dispatch.js';
+export { assertToolAllowed, ToolPermissionError, type ToolCaller } from './tool-policy.js';
 export { issueRefSchema } from './issue-ref.js';
 
 export {

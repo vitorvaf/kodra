@@ -43,11 +43,7 @@ export async function pickFirstExisting(
 
 export async function resolveRemoteHead(execGit: GitExecutor): Promise<string | null> {
   try {
-    const { stdout } = await execGit([
-      'symbolic-ref',
-      '--short',
-      'refs/remotes/origin/HEAD',
-    ]);
+    const { stdout } = await execGit(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']);
     const ref = stdout.trim();
     if (!ref) return null;
     return ref.replace(/^refs\/remotes\//, '');
@@ -57,10 +53,7 @@ export async function resolveRemoteHead(execGit: GitExecutor): Promise<string | 
 }
 
 export async function resolveBaseRef(input: ResolveBaseRefInput): Promise<BaseRefResolution> {
-  const explicit = await pickFirstExisting(
-    [input.explicit ?? ''],
-    input.refExists,
-  );
+  const explicit = await pickFirstExisting([input.explicit ?? ''], input.refExists);
   if (explicit !== null) return { ref: explicit, source: 'explicit' };
 
   const repoTarget = await pickFirstExisting([input.repoTarget ?? ''], input.refExists);

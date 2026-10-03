@@ -1,3 +1,5 @@
+import Alert from '@mui/material/Alert';
+
 export interface BoardErrorBannerProps {
   message: string | null;
   onDismiss: () => void;
@@ -10,31 +12,8 @@ export interface BoardErrorBannerProps {
 export function BoardErrorBanner({ message, onDismiss }: BoardErrorBannerProps) {
   if (message === null) return null;
   return (
-    <div
-      role="alert"
-      style={{
-        padding: '8px 18px',
-        color: 'var(--failed)',
-        fontSize: 12,
-        background: 'oklch(0.7 0.18 25 / 0.08)',
-        borderBottom: '1px solid var(--hairline-soft)',
-      }}
-    >
+    <Alert severity="error" role="alert" onClose={onDismiss} sx={{ mx: 3, mb: 1.5 }}>
       {message}
-      <button
-        type="button"
-        onClick={onDismiss}
-        aria-label="dismiss"
-        style={{
-          marginLeft: 8,
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--failed)',
-          cursor: 'pointer',
-        }}
-      >
-        ×
-      </button>
-    </div>
+    </Alert>
   );
 }

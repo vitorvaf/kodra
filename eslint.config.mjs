@@ -38,11 +38,20 @@ export default [
     },
   },
   {
-    files: ['packages/web/**/*.{ts,tsx}'],
+    files: ['packages/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+    },
+  },
+  {
+    // UI kit adapted from the Able Pro template: its typings lean on `any`
+    // and `{}`; keep them as shipped rather than diverge from upstream.
+    files: ['packages/ui/src/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
     },
   },
   {

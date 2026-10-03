@@ -1,9 +1,16 @@
 import type { ReactNode } from 'react';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import { IconsaxIcon } from '@kanbots/ui';
+import { Add, Flash } from 'iconsax-react';
 import { WorkspaceCostMeter } from './WorkspaceCostMeter.js';
 
 export interface BoardToolbarProps {
-  crumbs: ReactNode;
-  onOpenPalette?: (() => void) | undefined;
+  /** Breadcrumb trail: segments before the last are muted, the last is the page. */
+  crumbs: ReadonlyArray<string>;
   onOpenAutopilot?: (() => void) | undefined;
   onCreate?: (() => void) | undefined;
   createLabel?: string | undefined;
@@ -22,41 +29,12 @@ export interface BoardToolbarProps {
   onOpenCostMeter?: (() => void) | undefined;
 }
 
-const searchIcon = (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.2"
-  >
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-);
-
-const plusIcon = (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-  >
-    <path d="M12 5v14M5 12h14" />
-  </svg>
-);
-
 /**
- * Shared board toolbar: breadcrumbs on the left, command-palette search,
- * Autopilot, and Create buttons on the right. Cloud mode supplies extra
- * trailing actions and disables Autopilot until phase 3.
+ * Board page header: breadcrumbs on the left, cost meter, Autopilot and
+ * Create on the right. Search lives in the app bar.
  */
 export function BoardToolbar({
   crumbs,
-  onOpenPalette,
   onOpenAutopilot,
   onCreate,
   createLabel = 'New task',
@@ -72,36 +50,78 @@ export function BoardToolbar({
   // visible but in its loading-placeholder state.
   const showCostMeter = costTodayUsd !== undefined;
   return (
-    <div className="kb-board-toolbar">
-      <div className="kb-crumbs">{crumbs}</div>
-      <div className="kb-toolbar-actions">
-        <button
-          type="button"
-          className="kb-search"
-          onClick={() => onOpenPalette?.()}
-          aria-label="Open command palette"
-        >
-          {searchIcon}
-          <span>Search issues, branches, agents…</span>
-          <span className="kb-search-kbd">⌘K</span>
-        </button>
-        {showCostMeter ? (
-          <WorkspaceCostMeter totalUsd={costTodayUsd} onClick={onOpenCostMeter} />
-        ) : null}
-        <button
-          type="button"
-          className="kb-btn ghost"
-          onClick={() => onOpenAutopilot?.()}
-          title={autopilotDisabled ? autopilotDisabledTitle : 'Start an autopilot session'}
-          disabled={autopilotDisabled}
-        >
-          Autopilot
-        </button>
-        <button type="button" className="kb-btn primary" onClick={() => onCreate?.()}>
-          {plusIcon} {createLabel} <span className="kb-kbd">{createKbd}</span>
-        </button>
-        {trailingActions}
-      </div>
-    </div>
+    <Stack
+      direction="row"
+      spacing={1.5}
+      sx={{ alignItems: 'center', px: 3, pt: 2.5, pb: 1.5, flexWrap: 'wrap', rowGap: 1 }}
+    >
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline', minWidth: 0 }}>
+        {crumbs.map((crumb, i) => {
+          const last = i === crumbs.length - 1;
+          return (
+            <Stack
+              key={`${i}-${crumb}`}
+              direction="row"
+              spacing={1}
+              sx={{ alignItems: 'baseline' }}
+            >
+              <Typography
+                variant={last ? 'h4' : 'h5'}
+                color={last ? 'text.primary' : 'text.secondary'}
+                noWrap
+              >
+                {crumb}
+              </Typography>
+              {!last ? (
+                <Typography variant="h5" color="text.disabled">
+                  /
+                </Typography>
+              ) : null}
+            </Stack>
+          );
+        })}
+      </Stack>
+      <Box sx={{ flex: 1 }} />
+      {showCostMeter ? (
+        <WorkspaceCostMeter totalUsd={costTodayUsd} onClick={onOpenCostMeter} />
+      ) : null}
+      <Tooltip
+        title={autopilotDisabled ? (autopilotDisabledTitle ?? '') : 'Start an autopilot session'}
+      >
+        <span>
+          <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={<IconsaxIcon icon={Flash} size={18} variant="Bulk" />}
+            onClick={() => onOpenAutopilot?.()}
+            disabled={autopilotDisabled}
+          >
+            Autopilot
+          </Button>
+        </span>
+      </Tooltip>
+      <Button
+        variant="contained"
+        startIcon={<IconsaxIcon icon={Add} size={18} />}
+        onClick={() => onCreate?.()}
+        endIcon={
+          <Box
+            component="kbd"
+            sx={{
+              fontSize: 11,
+              fontFamily: 'var(--ff-mono, monospace)',
+              px: 0.75,
+              borderRadius: 0.5,
+              bgcolor: 'rgba(255,255,255,0.18)',
+            }}
+          >
+            {createKbd}
+          </Box>
+        }
+      >
+        {createLabel}
+      </Button>
+      {trailingActions}
+    </Stack>
   );
 }

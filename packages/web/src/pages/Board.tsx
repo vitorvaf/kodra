@@ -17,6 +17,11 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import { api } from '../api.js';
 import { AutopilotLaunchModal } from '../components/modals/AutopilotLaunchModal.js';
 import { BoardViewsModal } from '../components/modals/BoardViewsModal.js';
@@ -118,13 +123,12 @@ function groupByStatus(issues: Issue[]): GroupedIssues {
 export interface BoardProps {
   onOpenDetail?: (issueNumber: IssueRef) => void;
   onOpenCreate?: () => void;
-  onOpenPalette?: () => void;
   /** Optional handler for the toolbar's workspace cost meter — typically
    *  opens the Stats & cost modal. Omit to render the meter as static. */
   onOpenStats?: () => void;
 }
 
-export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }: BoardProps = {}) {
+export function Board({ onOpenDetail, onOpenCreate, onOpenStats }: BoardProps = {}) {
   const { data: config } = useFetch('config', () => api.config());
   const { issues, loading, error, mutate } = useIssues();
   const { data: costToday, refetch: refetchCostToday } = useFetch('cost:today', () =>
@@ -362,19 +366,27 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
 
   if (loading && issues.length === 0) {
     return (
-      <div className="kb-app" style={{ padding: 32, color: 'var(--ink-2)' }}>
-        Loading…
-      </div>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', p: 4 }}>
+        <CircularProgress size={18} />
+        <Typography color="text.secondary">Loading…</Typography>
+      </Stack>
     );
   }
   if (error) {
     return (
-      <div className="kb-app" style={{ padding: 32 }}>
-        <h2 style={{ color: 'var(--ink)', fontSize: 16, marginBottom: 12 }}>
-          Failed to load issues
-        </h2>
-        <pre style={{ color: 'var(--failed)' }}>{error.message}</pre>
-      </div>
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error">
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            Failed to load issues
+          </Typography>
+          <Box
+            component="pre"
+            sx={{ m: 0, whiteSpace: 'pre-wrap', fontFamily: 'var(--ff-mono, monospace)' }}
+          >
+            {error.message}
+          </Box>
+        </Alert>
+      </Box>
     );
   }
   const activeIssue =
@@ -635,20 +647,12 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <BoardToolbar
-        crumbs={
-          <>
-            {config ? (
-              <>
-                <span>
-                  {config.mode === 'local' ? config.repo : `${config.owner}/${config.repo}`}
-                </span>
-                <span className="kb-sep">/</span>
-              </>
-            ) : null}
-            <span className="kb-crumb-active">Board</span>
-          </>
-        }
-        onOpenPalette={onOpenPalette}
+        crumbs={[
+          ...(config
+            ? [config.mode === 'local' ? config.repo : `${config.owner}/${config.repo}`]
+            : []),
+          'Board',
+        ]}
         onOpenAutopilot={() => setAutopilotLaunchOpen(true)}
         onCreate={onOpenCreate}
         // null while the first fetch is in flight so the meter shows its
@@ -687,7 +691,19 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
       />
       <AgentUsageRow providers={costUsage?.providers ?? []} />
       <BoardErrorBanner message={moveError} onDismiss={() => setMoveError(null)} />
-      <div className="kb-board" onClick={handleBoardBackgroundClick}>
+      <Box
+        onClick={handleBoardBackgroundClick}
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          gap: 2,
+          px: 3,
+          pb: 3,
+          overflowX: 'auto',
+          alignItems: 'stretch',
+        }}
+      >
         {COLUMNS.filter((col) => filterApi.includeBacklog || col.key !== 'backlog').map((col) => (
           <Column
             key={String(col.key)}
@@ -703,7 +719,7 @@ export function Board({ onOpenDetail, onOpenCreate, onOpenPalette, onOpenStats }
             {...(col.key === 'backlog' ? backlogColumnProps : NO_COLUMN_SUGGESTION_PROPS)}
           />
         ))}
-      </div>
+      </Box>
       <DragOverlay dropAnimation={null}>
         {activeIssue ? <CardPreview issue={activeIssue} /> : null}
       </DragOverlay>

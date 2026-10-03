@@ -9,6 +9,9 @@ export default defineConfig({
     // renderer only needs the browser-safe issue-ref helpers.
     alias: {
       '@kanbots/core': fileURLToPath(new URL('../core/src/issue-ref.ts', import.meta.url)),
+      // Bundle the UI kit from source so dev gets HMR and nobody has to keep
+      // packages/ui/dist fresh; typecheck still reads its emitted types.
+      '@kanbots/ui': fileURLToPath(new URL('../ui/src/index.ts', import.meta.url)),
     },
   },
   base: './',

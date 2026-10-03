@@ -2,10 +2,6 @@
    Stats & cost modal
    ========================================================================= */
 
-.kb-stats-modal {
-  max-width: 880px;
-}
-
 .kb-stats-body {
   flex: 1;
   min-height: 0;
@@ -318,8 +314,3 @@
 }
 
 /* Footer hint ------------------------------------------------------------ */
-
-.kb-stats-foot-hint {
-  color: var(--ink-3);
-  font-size: 11.5px;
-}

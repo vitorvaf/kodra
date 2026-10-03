@@ -1,6 +1,7 @@
-import { Logo } from '../Logo.js';
-import { useEffect, useRef, useState, type ChangeEvent, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { api } from '../../api.js';
+import Button from '@mui/material/Button';
+import { ModalFrame } from './ModalFrame.js';
 
 const SCRIPT_MAX_BYTES = 4 * 1024;
 
@@ -62,18 +63,6 @@ export function RepoScriptsSettingsModal({ onClose, autoRun }: RepoScriptsSettin
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') onClose();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  function stopInner(e: MouseEvent<HTMLDivElement>): void {
-    e.stopPropagation();
-  }
 
   const dirty =
     draft.devServer.trim() !== initial.devServer.trim() ||
@@ -154,149 +143,121 @@ export function RepoScriptsSettingsModal({ onClose, autoRun }: RepoScriptsSettin
   }
 
   return (
-    <div
-      className="kb-modal-scrim kb-app"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Repo scripts"
-    >
-      <div className="kb-modal kb-sentry-modal" onClick={stopInner}>
-        <div className="kb-modal-head">
-          <Logo size={11} withWordmark />
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <h2>Repo scripts</h2>
-          <span className="grow" />
-          <button
-            type="button"
-            className="x-btn"
-            onClick={onClose}
-            aria-label="Close (Esc)"
-            title="Close"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 6l12 12M18 6l-12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="kb-modal-body kb-sentry-body">
-          <div className="kb-sentry-hint">
-            Shell commands that run inside the bound repo. Used by the in-app preview and by
-            one-shot setup / cleanup actions in the command palette. Stored in{' '}
-            <code>.kanbots/config.json</code> and executed via the system shell.
-          </div>
-
-          {loading ? <div className="kb-sentry-row">Loading…</div> : null}
-
-          {error ? (
-            <div className="kb-sentry-error" role="alert">
-              {error.message}
-            </div>
-          ) : null}
-
-          {!loading ? (
-            <>
-              <ScriptField
-                label="Dev server"
-                hint="Used by the in-app preview when set, falls back to `pnpm dev` otherwise."
-                value={draft.devServer}
-                placeholder="pnpm dev"
-                onChange={(v) => updateField('devServer', v)}
-                rows={2}
-                overLimit={byteLength(draft.devServer) > SCRIPT_MAX_BYTES}
-                bytes={byteLength(draft.devServer)}
-              />
-              <ScriptField
-                label="Setup"
-                hint="One-shot script run from the command palette. Use for `pnpm i`, env priming, etc."
-                value={draft.setup}
-                placeholder="pnpm i"
-                onChange={(v) => updateField('setup', v)}
-                rows={3}
-                overLimit={byteLength(draft.setup) > SCRIPT_MAX_BYTES}
-                bytes={byteLength(draft.setup)}
-                {...(initial.setup.trim().length > 0 && !dirty
-                  ? { onRun: () => void handleRun('setup') }
-                  : {})}
-                runDisabled={running !== null || dirty}
-                running={running === 'setup'}
-              />
-              <ScriptField
-                label="Cleanup"
-                hint="One-shot script run from the command palette after you're done in this repo."
-                value={draft.cleanup}
-                placeholder="rm -rf .turbo dist"
-                onChange={(v) => updateField('cleanup', v)}
-                rows={3}
-                overLimit={byteLength(draft.cleanup) > SCRIPT_MAX_BYTES}
-                bytes={byteLength(draft.cleanup)}
-                {...(initial.cleanup.trim().length > 0 && !dirty
-                  ? { onRun: () => void handleRun('cleanup') }
-                  : {})}
-                runDisabled={running !== null || dirty}
-                running={running === 'cleanup'}
-              />
-
-              {output ? (
-                <div className="kb-scripts-output" role="region" aria-label="Script output">
-                  <div className="kb-scripts-output-head">
-                    <span className={`kb-scripts-output-status${output.ok ? ' ok' : ' err'}`}>
-                      {output.ok ? '✓ ok' : `✗ exit ${output.exitCode ?? '?'}`}
-                    </span>
-                    <span>{output.kind} script</span>
-                    <span className="grow" />
-                    <button type="button" className="kb-btn ghost" onClick={() => setOutput(null)}>
-                      Dismiss
-                    </button>
-                  </div>
-                  {output.error ? <div className="kb-sentry-error">{output.error}</div> : null}
-                  {output.stdout ? (
-                    <pre className="kb-scripts-output-pane">
-                      {output.stdout}
-                      {output.stdoutTruncated ? '\n…[truncated]' : ''}
-                    </pre>
-                  ) : null}
-                  {output.stderr ? (
-                    <pre className="kb-scripts-output-pane is-err">
-                      {output.stderr}
-                      {output.stderrTruncated ? '\n…[truncated]' : ''}
-                    </pre>
-                  ) : null}
-                </div>
-              ) : null}
-            </>
-          ) : null}
-        </div>
-
-        <div className="kb-modal-foot">
-          <span className="hint">
-            Saved to <code>.kanbots/config.json</code>. Dev-server change takes effect on next
-            preview start.
-          </span>
-          <span className="grow" />
-          <button type="button" className="kb-btn ghost" onClick={onClose}>
+    <ModalFrame
+      title="Repo scripts"
+      ariaLabel="Repo scripts"
+      width={560}
+      onClose={onClose}
+      bodyClassName="kb-sentry-body"
+      footerHint={
+        <>
+          Saved to <code>.kanbots/config.json</code>. Dev-server change takes effect on next preview
+          start.
+        </>
+      }
+      actions={
+        <>
+          <Button color="secondary" onClick={onClose}>
             Close
-          </button>
-          <button
-            type="button"
-            className="kb-btn primary"
+          </Button>
+          <Button
+            variant="contained"
             onClick={() => void handleSave()}
             disabled={saving || !dirty || overLimit}
             title={overLimit ? `One or more scripts exceed ${SCRIPT_MAX_BYTES} bytes` : undefined}
           >
             {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
+          </Button>
+        </>
+      }
+    >
+      <div className="kb-sentry-hint">
+        Shell commands that run inside the bound repo. Used by the in-app preview and by one-shot
+        setup / cleanup actions in the command palette. Stored in <code>.kanbots/config.json</code>{' '}
+        and executed via the system shell.
       </div>
-    </div>
+
+      {loading ? <div className="kb-sentry-row">Loading…</div> : null}
+
+      {error ? (
+        <div className="kb-sentry-error" role="alert">
+          {error.message}
+        </div>
+      ) : null}
+
+      {!loading ? (
+        <>
+          <ScriptField
+            label="Dev server"
+            hint="Used by the in-app preview when set, falls back to `pnpm dev` otherwise."
+            value={draft.devServer}
+            placeholder="pnpm dev"
+            onChange={(v) => updateField('devServer', v)}
+            rows={2}
+            overLimit={byteLength(draft.devServer) > SCRIPT_MAX_BYTES}
+            bytes={byteLength(draft.devServer)}
+          />
+          <ScriptField
+            label="Setup"
+            hint="One-shot script run from the command palette. Use for `pnpm i`, env priming, etc."
+            value={draft.setup}
+            placeholder="pnpm i"
+            onChange={(v) => updateField('setup', v)}
+            rows={3}
+            overLimit={byteLength(draft.setup) > SCRIPT_MAX_BYTES}
+            bytes={byteLength(draft.setup)}
+            {...(initial.setup.trim().length > 0 && !dirty
+              ? { onRun: () => void handleRun('setup') }
+              : {})}
+            runDisabled={running !== null || dirty}
+            running={running === 'setup'}
+          />
+          <ScriptField
+            label="Cleanup"
+            hint="One-shot script run from the command palette after you're done in this repo."
+            value={draft.cleanup}
+            placeholder="rm -rf .turbo dist"
+            onChange={(v) => updateField('cleanup', v)}
+            rows={3}
+            overLimit={byteLength(draft.cleanup) > SCRIPT_MAX_BYTES}
+            bytes={byteLength(draft.cleanup)}
+            {...(initial.cleanup.trim().length > 0 && !dirty
+              ? { onRun: () => void handleRun('cleanup') }
+              : {})}
+            runDisabled={running !== null || dirty}
+            running={running === 'cleanup'}
+          />
+
+          {output ? (
+            <div className="kb-scripts-output" role="region" aria-label="Script output">
+              <div className="kb-scripts-output-head">
+                <span className={`kb-scripts-output-status${output.ok ? ' ok' : ' err'}`}>
+                  {output.ok ? '✓ ok' : `✗ exit ${output.exitCode ?? '?'}`}
+                </span>
+                <span>{output.kind} script</span>
+                <span className="grow" />
+                <button type="button" className="kb-btn ghost" onClick={() => setOutput(null)}>
+                  Dismiss
+                </button>
+              </div>
+              {output.error ? <div className="kb-sentry-error">{output.error}</div> : null}
+              {output.stdout ? (
+                <pre className="kb-scripts-output-pane">
+                  {output.stdout}
+                  {output.stdoutTruncated ? '\n…[truncated]' : ''}
+                </pre>
+              ) : null}
+              {output.stderr ? (
+                <pre className="kb-scripts-output-pane is-err">
+                  {output.stderr}
+                  {output.stderrTruncated ? '\n…[truncated]' : ''}
+                </pre>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      ) : null}
+    </ModalFrame>
   );
 }
 

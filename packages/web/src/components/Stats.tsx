@@ -1,7 +1,8 @@
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
-import { Logo } from './Logo.js';
+import Button from '@mui/material/Button';
+import { ModalFrame } from './modals/ModalFrame.js';
 import type { CostBreakdownItem, CostTimeSeriesPoint, PersonaModelRollupRow } from '@kanbots/api';
 
 export interface StatsProps {
@@ -77,71 +78,35 @@ export function Stats({ onClose }: StatsProps) {
     };
   }, []);
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') onClose?.();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   return (
-    <div
-      className="kb-modal-scrim kb-app"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Stats and cost"
+    <ModalFrame
+      title="Stats & cost"
+      ariaLabel="Stats and cost"
+      width={1100}
+      onClose={() => onClose?.()}
+      footerHint={
+        <>
+          Reads <code>.kanbots/db.sqlite</code> · all data stays on this machine.
+        </>
+      }
+      actions={
+        <Button color="secondary" onClick={() => onClose?.()}>
+          Close
+        </Button>
+      }
     >
-      <div className="kb-modal kb-stats-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="kb-modal-head">
-          <Logo size={11} withWordmark />
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <h2>Stats &amp; cost</h2>
-          <span className="grow" />
-          <button
-            type="button"
-            className="x-btn"
-            onClick={onClose}
-            aria-label="Close (Esc)"
-            title="Close"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 6l12 12M18 6l-12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="kb-stats-body">
-          {error ? (
-            <div className="kb-stats-error" role="alert">
-              {error}
-            </div>
-          ) : data === null ? (
-            <div className="kb-stats-loading">Loading cost data…</div>
-          ) : (
-            <StatsContent data={data} />
-          )}
-        </div>
-
-        <div className="kb-modal-foot">
-          <span className="kb-stats-foot-hint">
-            Reads <code>.kanbots/db.sqlite</code> · all data stays on this machine.
-          </span>
-          <span className="grow" />
-          <button type="button" className="kb-btn ghost" onClick={onClose}>
-            Close
-          </button>
-        </div>
+      <div className="kb-stats-body">
+        {error ? (
+          <div className="kb-stats-error" role="alert">
+            {error}
+          </div>
+        ) : data === null ? (
+          <div className="kb-stats-loading">Loading cost data…</div>
+        ) : (
+          <StatsContent data={data} />
+        )}
       </div>
-    </div>
+    </ModalFrame>
   );
 }
 

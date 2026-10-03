@@ -1,4 +1,3 @@
-import { Logo } from '../Logo.js';
 import {
   useCallback,
   useEffect,
@@ -8,12 +7,13 @@ import {
   type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
-  type MouseEvent,
 } from 'react';
 import { api, getCloudCtx } from '../../api.js';
 import { getBridge } from '../../desktop-bridge.js';
 import { dispatchWorkspaceReposChanged } from '../../hooks/useFocusedRepo.js';
 import type { WorkspaceRepoPayload } from '../../types.js';
+import Button from '@mui/material/Button';
+import { ModalFrame } from './ModalFrame.js';
 
 export interface WorkspaceReposSettingsModalProps {
   onClose: () => void;
@@ -87,10 +87,6 @@ export function WorkspaceReposSettingsModal({ onClose }: WorkspaceReposSettingsM
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-
-  function stopInner(e: MouseEvent<HTMLDivElement>): void {
-    e.stopPropagation();
-  }
 
   async function handlePickFolder(): Promise<void> {
     const bridge = getBridge();
@@ -227,194 +223,166 @@ export function WorkspaceReposSettingsModal({ onClose }: WorkspaceReposSettingsM
   }, [repos]);
 
   return (
-    <div
-      className="kb-modal-scrim kb-app"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Workspace repos"
+    <ModalFrame
+      escapeCloses={false}
+      title="Repos"
+      ariaLabel="Workspace repos"
+      width={560}
+      onClose={onClose}
+      bodyClassName="kb-sentry-body kb-repos-body"
+      footerHint={
+        <>
+          Repos are stored locally in <code>.kanbots/</code>. The target branch is a free-text input
+          for v1; a real branch picker is a follow-up.
+        </>
+      }
+      actions={
+        <Button color="secondary" onClick={onClose}>
+          Close
+        </Button>
+      }
     >
-      <div className="kb-modal kb-sentry-modal kb-repos-modal" onClick={stopInner}>
-        <div className="kb-modal-head">
-          <Logo size={11} withWordmark />
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <h2>Repos</h2>
-          <span className="grow" />
-          <button
-            type="button"
-            className="x-btn"
-            onClick={onClose}
-            aria-label="Close (Esc)"
-            title="Close"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 6l12 12M18 6l-12 12" />
-            </svg>
-          </button>
+      <div className="kb-sentry-hint">
+        Local repos mounted into this workspace. Agent runs target the primary repo by default; add
+        more so the same board can dispatch runs across sibling checkouts (e.g. monorepos split into
+        separate git folders, paired client+server repos).
+      </div>
+
+      {inCloudMode ? (
+        <div className="kb-sentry-warn" role="status">
+          Multi-repo workspaces are a local feature; cloud projects use the binding configured in
+          Cloud Settings.
         </div>
+      ) : null}
 
-        <div className="kb-modal-body kb-sentry-body kb-repos-body">
-          <div className="kb-sentry-hint">
-            Local repos mounted into this workspace. Agent runs target the primary repo by default;
-            add more so the same board can dispatch runs across sibling checkouts (e.g. monorepos
-            split into separate git folders, paired client+server repos).
-          </div>
+      {loading ? <div className="kb-sentry-row">Loading…</div> : null}
 
-          {inCloudMode ? (
-            <div className="kb-sentry-warn" role="status">
-              Multi-repo workspaces are a local feature; cloud projects use the binding configured
-              in Cloud Settings.
+      {error ? (
+        <div className="kb-sentry-error" role="alert">
+          {error.message}
+        </div>
+      ) : null}
+
+      {!inCloudMode && !loading ? (
+        <>
+          {sorted.length === 0 ? (
+            <div className="kb-sentry-row kb-repos-empty">
+              No repos yet. Add the first one below to get started.
             </div>
-          ) : null}
-
-          {loading ? <div className="kb-sentry-row">Loading…</div> : null}
-
-          {error ? (
-            <div className="kb-sentry-error" role="alert">
-              {error.message}
+          ) : (
+            <div className="kb-repos-list">
+              {sorted.map((repo) => (
+                <RepoCard
+                  key={repo.id}
+                  repo={repo}
+                  busy={busyId === repo.id}
+                  removing={removingId === repo.id}
+                  canSetPrimary={!repo.isPrimary && busyId === null && removingId === null}
+                  onSetPrimary={() => void handleSetPrimary(repo.id)}
+                  onRemove={() => void handleRemove(repo)}
+                  onRename={(next) => void handleRenameRepo(repo, next)}
+                  onRetargetBranch={(next) => void handleRetargetBranch(repo, next)}
+                />
+              ))}
             </div>
-          ) : null}
+          )}
 
-          {!inCloudMode && !loading ? (
-            <>
-              {sorted.length === 0 ? (
-                <div className="kb-sentry-row kb-repos-empty">
-                  No repos yet. Add the first one below to get started.
-                </div>
-              ) : (
-                <div className="kb-repos-list">
-                  {sorted.map((repo) => (
-                    <RepoCard
-                      key={repo.id}
-                      repo={repo}
-                      busy={busyId === repo.id}
-                      removing={removingId === repo.id}
-                      canSetPrimary={!repo.isPrimary && busyId === null && removingId === null}
-                      onSetPrimary={() => void handleSetPrimary(repo.id)}
-                      onRemove={() => void handleRemove(repo)}
-                      onRename={(next) => void handleRenameRepo(repo, next)}
-                      onRetargetBranch={(next) => void handleRetargetBranch(repo, next)}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {addOpen ? (
-                <form className="kb-repos-add" onSubmit={(e) => void handleAddSubmit(e)}>
-                  <div className="kb-sentry-label">Add repo</div>
-                  <div className="kb-repos-add-pickrow">
-                    <input
-                      type="text"
-                      className="kb-repos-add-path"
-                      value={addDraft.path}
-                      placeholder="/absolute/path/to/repo"
-                      spellCheck={false}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setAddDraft((d) => ({ ...d, path: e.target.value }))
-                      }
-                    />
-                    <button
-                      type="button"
-                      className="kb-btn ghost"
-                      onClick={() => void handlePickFolder()}
-                      disabled={adding}
-                    >
-                      Pick folder…
-                    </button>
-                  </div>
-                  <div className="kb-repos-add-meta">
-                    <label className="kb-sentry-row">
-                      <span className="kb-sentry-label">Display name</span>
-                      <input
-                        type="text"
-                        value={addDraft.displayName}
-                        placeholder="(defaults to folder name)"
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setAddDraft((d) => ({
-                            ...d,
-                            displayName: e.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="kb-sentry-row">
-                      <span className="kb-sentry-label">Target branch</span>
-                      <input
-                        type="text"
-                        value={addDraft.targetBranch}
-                        placeholder="main"
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setAddDraft((d) => ({
-                            ...d,
-                            targetBranch: e.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                  </div>
-                  {addError ? (
-                    <div className="kb-sentry-error" role="alert">
-                      {addError}
-                    </div>
-                  ) : null}
-                  <div className="kb-repos-add-actions">
-                    <button
-                      type="button"
-                      className="kb-btn ghost"
-                      onClick={() => {
-                        setAddOpen(false);
-                        setAddDraft(EMPTY_ADD_DRAFT);
-                        setAddError(null);
-                      }}
-                      disabled={adding}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="kb-btn primary"
-                      disabled={adding || addDraft.path.trim() === ''}
-                    >
-                      {adding ? 'Adding…' : 'Add repo'}
-                    </button>
-                  </div>
-                </form>
-              ) : (
+          {addOpen ? (
+            <form className="kb-repos-add" onSubmit={(e) => void handleAddSubmit(e)}>
+              <div className="kb-sentry-label">Add repo</div>
+              <div className="kb-repos-add-pickrow">
+                <input
+                  type="text"
+                  className="kb-repos-add-path"
+                  value={addDraft.path}
+                  placeholder="/absolute/path/to/repo"
+                  spellCheck={false}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setAddDraft((d) => ({ ...d, path: e.target.value }))
+                  }
+                />
                 <button
                   type="button"
-                  className="kb-btn ghost kb-repos-add-toggle"
-                  onClick={() => {
-                    setAddOpen(true);
-                    setAddError(null);
-                    void handlePickFolder();
-                  }}
+                  className="kb-btn ghost"
+                  onClick={() => void handlePickFolder()}
+                  disabled={adding}
                 >
-                  + Add repo
+                  Pick folder…
                 </button>
-              )}
-            </>
-          ) : null}
-        </div>
-
-        <div className="kb-modal-foot">
-          <span className="hint">
-            Repos are stored locally in <code>.kanbots/</code>. The target branch is a free-text
-            input for v1; a real branch picker is a follow-up.
-          </span>
-          <span className="grow" />
-          <button type="button" className="kb-btn ghost" onClick={onClose}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+              </div>
+              <div className="kb-repos-add-meta">
+                <label className="kb-sentry-row">
+                  <span className="kb-sentry-label">Display name</span>
+                  <input
+                    type="text"
+                    value={addDraft.displayName}
+                    placeholder="(defaults to folder name)"
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setAddDraft((d) => ({
+                        ...d,
+                        displayName: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label className="kb-sentry-row">
+                  <span className="kb-sentry-label">Target branch</span>
+                  <input
+                    type="text"
+                    value={addDraft.targetBranch}
+                    placeholder="main"
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setAddDraft((d) => ({
+                        ...d,
+                        targetBranch: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+              {addError ? (
+                <div className="kb-sentry-error" role="alert">
+                  {addError}
+                </div>
+              ) : null}
+              <div className="kb-repos-add-actions">
+                <button
+                  type="button"
+                  className="kb-btn ghost"
+                  onClick={() => {
+                    setAddOpen(false);
+                    setAddDraft(EMPTY_ADD_DRAFT);
+                    setAddError(null);
+                  }}
+                  disabled={adding}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="kb-btn primary"
+                  disabled={adding || addDraft.path.trim() === ''}
+                >
+                  {adding ? 'Adding…' : 'Add repo'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              type="button"
+              className="kb-btn ghost kb-repos-add-toggle"
+              onClick={() => {
+                setAddOpen(true);
+                setAddError(null);
+                void handlePickFolder();
+              }}
+            >
+              + Add repo
+            </button>
+          )}
+        </>
+      ) : null}
+    </ModalFrame>
   );
 }
 

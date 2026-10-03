@@ -1,4 +1,17 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useState, type MouseEvent } from 'react';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
+import ListSubheader from '@mui/material/ListSubheader';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import { IconsaxIcon } from '@kanbots/ui';
+import { ArrowDown2, Sort } from 'iconsax-react';
 
 export interface BoardFiltersStats {
   issues: number;
@@ -56,140 +69,155 @@ export interface BoardFiltersProps {
   controls: BoardFiltersControls | null;
 }
 
+/** A toggleable filter chip: filled + deletable when on, outlined when off. */
+function FilterChip({
+  label,
+  on,
+  onToggle,
+  title,
+  color = 'primary',
+}: {
+  label: string;
+  on: boolean;
+  onToggle: () => void;
+  title?: string;
+  color?: 'primary' | 'success';
+}) {
+  const chip = (
+    <Chip
+      label={label}
+      size="small"
+      color={on ? color : 'secondary'}
+      variant={on ? 'light' : 'outlined'}
+      onClick={onToggle}
+      aria-pressed={on}
+      {...(on ? { onDelete: onToggle } : {})}
+    />
+  );
+  return title ? <Tooltip title={title}>{chip}</Tooltip> : chip;
+}
+
 /**
- * Shared filter row: "Open" pill + optional toggleable pills for has-agent /
- * priority / area + stats summary. Cloud mode passes `controls={null}` until
- * filter state and label parity land in a later phase.
+ * Filter row: "Open" scope + toggleable chips for backlog / has-agent /
+ * priority / area, saved views, sort and a stats summary. Cloud mode passes
+ * `controls={null}` until filter state and label parity land.
  */
 export function BoardFilters({ stats, controls }: BoardFiltersProps) {
   const anyOn =
     controls !== null &&
     (controls.hasAgent || controls.priorities.size > 0 || controls.areas.size > 0);
   return (
-    <div className="kb-filter-row">
-      <span className="kb-pill on" title="Only open issues are loaded">
-        <span className="kb-pill-x" />
-        Open
-      </span>
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{ alignItems: 'center', px: 3, pb: 1.5, flexWrap: 'wrap', rowGap: 1 }}
+    >
+      <Tooltip title="Only open issues are loaded">
+        <Chip label="Open" size="small" color="primary" variant="light" />
+      </Tooltip>
       {controls !== null ? (
         <>
           {controls.backlogCount > 0 || controls.includeBacklog ? (
-            <button
-              type="button"
-              className={`kb-pill${controls.includeBacklog ? ' on' : ''}`}
-              onClick={controls.onToggleIncludeBacklog}
-              aria-pressed={controls.includeBacklog}
+            <FilterChip
+              label={controls.includeBacklog ? 'Backlog' : `Backlog (${controls.backlogCount})`}
+              on={controls.includeBacklog}
+              onToggle={controls.onToggleIncludeBacklog}
               title={
                 controls.includeBacklog
                   ? 'Click to hide the Backlog column'
                   : `Click to show the Backlog column (${controls.backlogCount} hidden)`
               }
-            >
-              {controls.includeBacklog ? <span className="kb-pill-x" /> : null}
-              {controls.includeBacklog ? 'Backlog' : `Backlog (${controls.backlogCount})`}
-            </button>
+            />
           ) : null}
-          <button
-            type="button"
-            className={`kb-pill${controls.hasAgent ? ' on kb-pill-running' : ''}`}
-            onClick={controls.onToggleHasAgent}
-            aria-pressed={controls.hasAgent}
-          >
-            {controls.hasAgent ? <span className="kb-pill-x" /> : null}
-            Has agent
-          </button>
-          {controls.availablePriorities.map((p) => {
-            const on = controls.priorities.has(p);
-            return (
-              <button
-                key={p}
-                type="button"
-                className={`kb-pill${on ? ' on' : ''}`}
-                onClick={() => controls.onTogglePriority(p)}
-                aria-pressed={on}
-              >
-                {on ? <span className="kb-pill-x" /> : null}
-                priority:{p}
-              </button>
-            );
-          })}
-          {controls.availableAreas.slice(0, 4).map((area) => {
-            const on = controls.areas.has(area);
-            return (
-              <button
-                key={area}
-                type="button"
-                className={`kb-pill${on ? ' on' : ''}`}
-                onClick={() => controls.onToggleArea(area)}
-                aria-pressed={on}
-              >
-                {on ? <span className="kb-pill-x" /> : null}
-                {area}
-              </button>
-            );
-          })}
+          <FilterChip
+            label="Has agent"
+            on={controls.hasAgent}
+            onToggle={controls.onToggleHasAgent}
+            color="success"
+          />
+          {controls.availablePriorities.map((p) => (
+            <FilterChip
+              key={p}
+              label={`priority:${p}`}
+              on={controls.priorities.has(p)}
+              onToggle={() => controls.onTogglePriority(p)}
+            />
+          ))}
+          {controls.availableAreas.slice(0, 4).map((area) => (
+            <FilterChip
+              key={area}
+              label={area}
+              on={controls.areas.has(area)}
+              onToggle={() => controls.onToggleArea(area)}
+            />
+          ))}
           {anyOn ? (
-            <button
-              type="button"
-              className="kb-pill"
-              onClick={controls.onClear}
-              title="Clear filters"
-              style={{ color: 'var(--ink-3)' }}
-            >
-              clear
-            </button>
+            <Button size="small" color="secondary" onClick={controls.onClear}>
+              Clear
+            </Button>
           ) : null}
         </>
       ) : null}
-      {controls !== null && controls.views ? <ViewsDropdown views={controls.views} /> : null}
+      <Box sx={{ flex: 1 }} />
+      {controls !== null && controls.views ? <ViewsMenu views={controls.views} /> : null}
       {controls !== null ? (
-        <label
-          className="kb-board-sort"
-          title={
-            controls.sortMode === 'manual'
-              ? 'Manual sort lets you drag cards within a column (drag-reorder ships in a later milestone)'
-              : `Sorting by ${SORT_LABEL[controls.sortMode].toLowerCase()} — switch to Manual for drag-reorder`
-          }
-        >
-          <span className="kb-board-sort-label">Sort</span>
-          <select
-            className="kb-board-sort-select"
-            value={controls.sortMode}
-            onChange={(e) => controls.onChangeSortMode(e.target.value as BoardSortMode)}
-          >
-            <option value="manual">{SORT_LABEL.manual}</option>
-            <option value="priority">{SORT_LABEL.priority}</option>
-            <option value="createdAt">{SORT_LABEL.createdAt}</option>
-            <option value="updatedAt">{SORT_LABEL.updatedAt}</option>
-          </select>
-        </label>
+        <SortMenu mode={controls.sortMode} onChange={controls.onChangeSortMode} />
       ) : null}
-      <span className="kb-stats-line">
+      <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
         {stats.issues} issue{stats.issues === 1 ? '' : 's'} · {stats.runs} active run
         {stats.runs === 1 ? '' : 's'} · {stats.awaiting} awaiting
-        {stats.costToday > 0 ? ` · $${stats.costToday.toFixed(2)} today` : ''}
-      </span>
-    </div>
+      </Typography>
+    </Stack>
   );
 }
 
-function ViewsDropdown({ views }: { views: BoardFiltersViewsAPI }) {
-  const [open, setOpen] = useState(false);
+function SortMenu({
+  mode,
+  onChange,
+}: {
+  mode: BoardSortMode;
+  onChange: (mode: BoardSortMode) => void;
+}) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const title =
+    mode === 'manual'
+      ? 'Manual sort lets you drag cards within a column (drag-reorder ships in a later milestone)'
+      : `Sorting by ${SORT_LABEL[mode].toLowerCase()} — switch to Manual for drag-reorder`;
+  return (
+    <>
+      <Tooltip title={title}>
+        <Button
+          size="small"
+          color="secondary"
+          startIcon={<IconsaxIcon icon={Sort} size={16} />}
+          endIcon={<IconsaxIcon icon={ArrowDown2} size={14} />}
+          onClick={(e) => setAnchor(e.currentTarget)}
+        >
+          Sort: {SORT_LABEL[mode]}
+        </Button>
+      </Tooltip>
+      <Menu anchorEl={anchor} open={anchor !== null} onClose={() => setAnchor(null)}>
+        {(Object.keys(SORT_LABEL) as BoardSortMode[]).map((m) => (
+          <MenuItem
+            key={m}
+            selected={m === mode}
+            onClick={() => {
+              setAnchor(null);
+              onChange(m);
+            }}
+          >
+            {SORT_LABEL[m]}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+}
+
+function ViewsMenu({ views }: { views: BoardFiltersViewsAPI }) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [savePromptOpen, setSavePromptOpen] = useState(false);
   const [draftName, setDraftName] = useState('');
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open && !savePromptOpen) return;
-    function onDoc(e: globalThis.MouseEvent): void {
-      const target = e.target as Node | null;
-      if (target && wrapRef.current?.contains(target)) return;
-      setOpen(false);
-      setSavePromptOpen(false);
-    }
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open, savePromptOpen]);
 
   const current =
     views.activeViewId !== null
@@ -199,101 +227,93 @@ function ViewsDropdown({ views }: { views: BoardFiltersViewsAPI }) {
         : null;
   const label = current?.name ?? 'Custom';
 
-  function pick(e: MouseEvent<HTMLButtonElement>, id: string): void {
-    e.stopPropagation();
-    setOpen(false);
+  function close(): void {
+    setAnchor(null);
+    setSavePromptOpen(false);
+    setDraftName('');
+  }
+
+  function pick(id: string): void {
+    close();
     views.onPickView(id);
   }
 
-  function commitSave(e: MouseEvent<HTMLButtonElement>): void {
-    e.stopPropagation();
+  function commitSave(e?: MouseEvent<HTMLButtonElement>): void {
+    e?.stopPropagation();
     const name = draftName.trim();
     if (name.length === 0) return;
     views.onSaveAsView(name);
-    setDraftName('');
-    setSavePromptOpen(false);
-    setOpen(false);
+    close();
   }
 
   return (
-    <div className="kb-board-views" ref={wrapRef}>
-      <button
-        type="button"
-        className="kb-board-sort-select"
-        onClick={() => setOpen((v) => !v)}
-        title="Switch saved views"
-      >
-        View: {label}
-      </button>
-      {open ? (
-        <div className="kb-board-views-menu" role="menu">
-          {views.views.length === 0 ? (
-            <div className="kb-board-views-empty">No saved views yet</div>
-          ) : (
-            views.views.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                role="menuitem"
-                className={`kb-board-views-item${current?.id === v.id ? ' on' : ''}`}
-                onClick={(e) => pick(e, v.id)}
-              >
-                {v.name}
-              </button>
-            ))
-          )}
-          <div className="kb-board-views-sep" role="separator" />
-          {savePromptOpen ? (
-            <div className="kb-board-views-save-row">
-              <input
-                type="text"
-                className="kb-input"
-                value={draftName}
-                placeholder="View name"
-                autoFocus
-                onChange={(e) => setDraftName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    commitSave(e as unknown as MouseEvent<HTMLButtonElement>);
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    setSavePromptOpen(false);
-                    setDraftName('');
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="kb-btn primary"
-                onClick={commitSave}
-                disabled={draftName.trim().length === 0}
-              >
-                Save
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="kb-board-views-item"
-              onClick={() => setSavePromptOpen(true)}
-            >
-              + Save current as new view
-            </button>
-          )}
-          <button
-            type="button"
-            className="kb-board-views-item"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen(false);
-              views.onManageViews();
-            }}
+    <>
+      <Tooltip title="Switch saved views">
+        <Button
+          size="small"
+          color="secondary"
+          endIcon={<IconsaxIcon icon={ArrowDown2} size={14} />}
+          onClick={(e) => setAnchor(e.currentTarget)}
+        >
+          View: {label}
+        </Button>
+      </Tooltip>
+      <Menu anchorEl={anchor} open={anchor !== null} onClose={close}>
+        {views.views.length === 0 ? (
+          <ListSubheader sx={{ lineHeight: 2.5 }}>No saved views yet</ListSubheader>
+        ) : (
+          views.views.map((v) => (
+            <MenuItem key={v.id} selected={current?.id === v.id} onClick={() => pick(v.id)}>
+              {v.name}
+            </MenuItem>
+          ))
+        )}
+        <Divider />
+        {savePromptOpen ? (
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ px: 2, py: 1 }}
+            onKeyDown={(e) => e.stopPropagation()}
           >
-            Manage views…
-          </button>
-        </div>
-      ) : null}
-    </div>
+            <TextField
+              size="small"
+              value={draftName}
+              placeholder="View name"
+              autoFocus
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  commitSave();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setSavePromptOpen(false);
+                  setDraftName('');
+                }
+              }}
+            />
+            <Button
+              size="small"
+              variant="contained"
+              onClick={commitSave}
+              disabled={draftName.trim().length === 0}
+            >
+              Save
+            </Button>
+          </Stack>
+        ) : (
+          <MenuItem onClick={() => setSavePromptOpen(true)}>+ Save current as new view</MenuItem>
+        )}
+        <MenuItem
+          onClick={() => {
+            close();
+            views.onManageViews();
+          }}
+        >
+          Manage views…
+        </MenuItem>
+      </Menu>
+    </>
   );
 }

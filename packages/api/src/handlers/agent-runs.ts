@@ -588,7 +588,10 @@ function truncateForDraft(input: string): { text: string; truncated: boolean } {
   return { text, truncated: true };
 }
 
-export async function detectLocalBase(repoPath: string, preferred?: string | null): Promise<string> {
+export async function detectLocalBase(
+  repoPath: string,
+  preferred?: string | null,
+): Promise<string> {
   if (preferred?.trim()) {
     try {
       await execFileAsync('git', ['rev-parse', '--verify', '--quiet', preferred], {

@@ -1224,9 +1224,6 @@
 /* =========================================================================
    Archive modal — searchable list of archived tasks.
    ========================================================================= */
-.kb-archive-modal {
-  max-width: 840px;
-}
 .kb-archive-search {
   display: flex;
   align-items: center;
@@ -1431,9 +1428,6 @@
 /* =========================================================================
    Sentry settings modal.
    ========================================================================= */
-.kb-sentry-modal {
-  max-width: 560px;
-}
 .kb-sentry-body {
   padding: 16px 20px;
   display: flex;
@@ -1527,9 +1521,6 @@
 }
 
 /* agentmemory settings modal. */
-.kb-memory-modal {
-  max-width: 560px;
-}
 .kb-memory-body {
   padding: 22px 20px 26px;
   display: flex;
@@ -1841,10 +1832,6 @@
 }
 
 /* === Providers settings ============================================ */
-.kb-modal-providers {
-  /* Single-pane modal — let the body fill and scroll; modal already
-     constrains overall height in .kb-modal. */
-}
 .kb-providers-body {
   display: block;
   overflow-y: auto;
@@ -2832,9 +2819,6 @@
    for layout chrome; the rules below own the per-repo card and the inline
    "+ Add repo" affordance.
    ========================================================================= */
-.kb-repos-modal {
-  max-width: 720px;
-}
 .kb-repos-body {
   gap: 14px;
 }
@@ -3818,16 +3802,6 @@
 /* Compact "↳N" badge shown on a board card when the issue has direct
    sub-issues. Sits in the card meta row alongside checks / assignees
    and avoids drawing a tree on the card itself. */
-.kb-card-children-badge {
-  font-family: var(--ff-mono);
-  font-size: 10.5px;
-  color: var(--ink-2);
-  padding: 1px 6px;
-  border: 1px solid var(--hairline-soft);
-  border-radius: 6px;
-  background: var(--bg-2);
-  flex-shrink: 0;
-}
 
 /* =========================================================================
  * PR comments section — appended to the Thread tab when the issue has a

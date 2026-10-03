@@ -868,13 +868,6 @@
   color: var(--running);
   font-variant-numeric: tabular-nums;
 }
-.kb-rail-item .kb-rail-row-pulse .kb-pulse-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--running);
-  animation: kb-pulse 1.4s infinite;
-}
 
 /* Live agents mini-cards */
 .kb-swarm-card {
@@ -937,48 +930,6 @@
   text-overflow: ellipsis;
 }
 
-.kb-rail-foot {
-  position: relative;
-  margin-top: auto;
-  padding: 12px;
-  border-top: 1px solid var(--hairline-soft);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.kb-rail-account {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 6px;
-  margin: -4px -6px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-}
-.kb-rail-account:hover,
-.kb-rail-account[aria-expanded='true'] {
-  background: var(--bg-2);
-  border-color: var(--hairline-soft);
-}
-.kb-rail-account-caret {
-  margin-left: auto;
-  font-size: 10px;
-  color: var(--ink-4);
-  transform: rotate(180deg);
-  transition: transform 120ms ease;
-  flex-shrink: 0;
-}
-.kb-rail-account[aria-expanded='true'] .kb-rail-account-caret {
-  transform: rotate(0deg);
-  color: var(--ink-2);
-}
 .kb-rail-avatar {
   width: 26px;
   height: 26px;
@@ -990,112 +941,6 @@
   font-size: 11px;
   color: oklch(0.18 0.02 60);
   flex-shrink: 0;
-}
-.kb-who {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  overflow: hidden;
-}
-.kb-who-name {
-  font-size: 12px;
-  color: var(--ink-1);
-}
-.kb-who-status {
-  font-size: 10.5px;
-  color: var(--ink-3);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.kb-who-status .kb-pulse {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--review);
-}
-.kb-rail-cmdk {
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 6px;
-  border: 1px solid var(--hairline);
-  background: transparent;
-  color: var(--ink-2);
-  font-family: var(--ff-mono);
-  font-size: 11px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.kb-rail-cmdk:hover {
-  color: var(--ink);
-  border-color: var(--ink-3);
-}
-
-.kb-rail-account-menu {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 8px;
-  right: 8px;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  padding: 6px;
-  background: var(--bg-2);
-  border: 1px solid var(--hairline);
-  border-radius: 10px;
-  box-shadow:
-    0 12px 32px -12px oklch(0.05 0.01 60 / 0.7),
-    0 4px 12px -2px oklch(0.05 0.01 60 / 0.4);
-  animation: kb-rail-account-pop 120ms ease-out;
-}
-@keyframes kb-rail-account-pop {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.kb-rail-account-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 9px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--ink-1);
-  font-size: 12.5px;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-}
-.kb-rail-account-item:hover,
-.kb-rail-account-item:focus-visible {
-  background: var(--bg-3);
-  outline: none;
-}
-.kb-rail-account-icon {
-  width: 20px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--ink-3);
-  flex-shrink: 0;
-}
-.kb-rail-account-sep {
-  height: 1px;
-  margin: 4px 4px;
-  background: var(--hairline-soft);
-}
-.kb-rail-account-version {
-  padding: 7px 9px 3px;
-  color: var(--ink-3);
-  font-size: 11px;
-  text-align: left;
 }
 
 /* ---------- Activity section ---------- */

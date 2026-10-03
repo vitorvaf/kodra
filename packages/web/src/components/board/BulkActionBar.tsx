@@ -1,4 +1,16 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useState } from 'react';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Popover from '@mui/material/Popover';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import { IconsaxIcon } from '@kanbots/ui';
+import { ArrowDown2 } from 'iconsax-react';
 import { STATUS_LABEL } from '../../labels.js';
 import type { StatusKey } from '../../types.js';
 
@@ -30,9 +42,8 @@ const STATUS_TARGETS: ReadonlyArray<{ key: BulkStatusTarget; label: string }> = 
 ];
 
 /**
- * Floating action bar that appears at the bottom of the board when one
- * or more cards are multi-selected. Mirrors the kb-btn / kb-pill
- * patterns used by the rest of the surface — no new dependencies.
+ * Floating action bar at the bottom of the board while one or more cards
+ * are multi-selected.
  */
 export function BulkActionBar({
   count,
@@ -44,123 +55,99 @@ export function BulkActionBar({
   onClear,
 }: BulkActionBarProps) {
   return (
-    <div
-      className="kb-bulk-action-bar"
+    <Paper
+      elevation={8}
       role="region"
       aria-label={`Bulk actions for ${count} selected card${count === 1 ? '' : 's'}`}
+      sx={{
+        position: 'absolute',
+        left: '50%',
+        bottom: 24,
+        transform: 'translateX(-50%)',
+        zIndex: 50,
+        px: 2,
+        py: 1,
+        borderRadius: 2,
+        border: 1,
+        borderColor: 'divider',
+      }}
     >
-      <span className="kb-bulk-count">
-        {count} card{count === 1 ? '' : 's'} selected
-      </span>
-      <span className="kb-bulk-spacer" />
-      <StatusDropdown busy={busy} onPick={onMoveToStatus} />
-      <LabelsDropdown busy={busy} onApply={onAddLabels} />
-      <button
-        type="button"
-        className="kb-btn"
-        onClick={onDispatch}
-        disabled={busy}
-        title="Start an agent run on each idle selected card"
-      >
-        Dispatch
-      </button>
-      <button
-        type="button"
-        className="kb-btn ghost"
-        onClick={onArchive}
-        disabled={busy}
-        title="Archive every selected card"
-      >
-        Archive
-      </button>
-      <button
-        type="button"
-        className="kb-btn ghost"
-        onClick={onClear}
-        disabled={busy}
-        title="Clear the selection"
-      >
-        Clear
-      </button>
-    </div>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Typography variant="subtitle2" sx={{ mr: 1, whiteSpace: 'nowrap' }}>
+          {count} card{count === 1 ? '' : 's'} selected
+        </Typography>
+        <StatusMenu busy={busy} onPick={onMoveToStatus} />
+        <LabelsPopover busy={busy} onApply={onAddLabels} />
+        <Tooltip title="Start an agent run on each idle selected card">
+          <span>
+            <Button size="small" variant="contained" onClick={onDispatch} disabled={busy}>
+              Dispatch
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip title="Archive every selected card">
+          <span>
+            <Button size="small" color="error" onClick={onArchive} disabled={busy}>
+              Archive
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip title="Clear the selection">
+          <span>
+            <Button size="small" color="secondary" onClick={onClear} disabled={busy}>
+              Clear
+            </Button>
+          </span>
+        </Tooltip>
+      </Stack>
+    </Paper>
   );
 }
 
-function StatusDropdown({
-  busy,
-  onPick,
-}: {
-  busy: boolean;
-  onPick: (s: BulkStatusTarget) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement | null>(null);
+function StatusMenu({ busy, onPick }: { busy: boolean; onPick: (s: BulkStatusTarget) => void }) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  return (
+    <>
+      <Tooltip title="Move every selected card to a status column">
+        <span>
+          <Button
+            size="small"
+            variant="outlined"
+            color="secondary"
+            endIcon={<IconsaxIcon icon={ArrowDown2} size={14} />}
+            onClick={(e) => setAnchor(e.currentTarget)}
+            disabled={busy}
+          >
+            Move to
+          </Button>
+        </span>
+      </Tooltip>
+      <Menu anchorEl={anchor} open={anchor !== null} onClose={() => setAnchor(null)}>
+        {STATUS_TARGETS.map((t) => (
+          <MenuItem
+            key={String(t.key)}
+            onClick={() => {
+              setAnchor(null);
+              onPick(t.key);
+            }}
+          >
+            {t.label}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+}
 
-  useEffect(() => {
-    if (!open) return;
-    function onDoc(e: globalThis.MouseEvent): void {
-      const target = e.target as Node | null;
-      if (target && wrapRef.current?.contains(target)) return;
-      setOpen(false);
-    }
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
+function LabelsPopover({ busy, onApply }: { busy: boolean; onApply: (labels: string[]) => void }) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [draft, setDraft] = useState('');
 
-  function handlePick(e: MouseEvent<HTMLButtonElement>, s: BulkStatusTarget): void {
-    e.stopPropagation();
-    setOpen(false);
-    onPick(s);
+  function close(): void {
+    setAnchor(null);
   }
 
-  return (
-    <div className="kb-bulk-drop" ref={wrapRef}>
-      <button
-        type="button"
-        className="kb-btn"
-        onClick={() => setOpen((v) => !v)}
-        disabled={busy}
-        title="Move every selected card to a status column"
-      >
-        Move to <span aria-hidden>▾</span>
-      </button>
-      {open ? (
-        <div className="kb-bulk-drop-menu" role="menu">
-          {STATUS_TARGETS.map((t) => (
-            <button
-              key={String(t.key)}
-              type="button"
-              role="menuitem"
-              className="kb-bulk-drop-item"
-              onClick={(e) => handlePick(e, t.key)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function LabelsDropdown({ busy, onApply }: { busy: boolean; onApply: (labels: string[]) => void }) {
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState('');
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onDoc(e: globalThis.MouseEvent): void {
-      const target = e.target as Node | null;
-      if (target && wrapRef.current?.contains(target)) return;
-      setOpen(false);
-    }
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
-
-  function apply(e: MouseEvent<HTMLButtonElement>): void {
-    e.stopPropagation();
+  function apply(): void {
     const labels = draft
       .split(',')
       .map((l) => l.trim())
@@ -168,26 +155,37 @@ function LabelsDropdown({ busy, onApply }: { busy: boolean; onApply: (labels: st
     if (labels.length === 0) return;
     onApply(labels);
     setDraft('');
-    setOpen(false);
+    close();
   }
 
   return (
-    <div className="kb-bulk-drop" ref={wrapRef}>
-      <button
-        type="button"
-        className="kb-btn"
-        onClick={() => setOpen((v) => !v)}
-        disabled={busy}
-        title="Append labels to every selected card"
+    <>
+      <Tooltip title="Append labels to every selected card">
+        <span>
+          <Button
+            size="small"
+            variant="outlined"
+            color="secondary"
+            endIcon={<IconsaxIcon icon={ArrowDown2} size={14} />}
+            onClick={(e) => setAnchor(e.currentTarget)}
+            disabled={busy}
+          >
+            Add labels
+          </Button>
+        </span>
+      </Tooltip>
+      <Popover
+        anchorEl={anchor}
+        open={anchor !== null}
+        onClose={close}
+        anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
-        Add labels <span aria-hidden>▾</span>
-      </button>
-      {open ? (
-        <div className="kb-bulk-drop-menu kb-bulk-drop-menu-labels" role="dialog">
-          <label className="kb-bulk-drop-label">Comma-separated</label>
-          <input
-            type="text"
-            className="kb-input"
+        <Box sx={{ p: 2, width: 280 }}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Comma-separated"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="area:auth, priority:p1"
@@ -196,35 +194,25 @@ function LabelsDropdown({ busy, onApply }: { busy: boolean; onApply: (labels: st
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                apply(e as unknown as MouseEvent<HTMLButtonElement>);
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                setOpen(false);
+                apply();
               }
             }}
           />
-          <div className="kb-bulk-drop-actions">
-            <button
-              type="button"
-              className="kb-btn ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpen(false);
-              }}
-            >
+          <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end', mt: 1.5 }}>
+            <Button size="small" color="secondary" onClick={close}>
               Cancel
-            </button>
-            <button
-              type="button"
-              className="kb-btn primary"
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
               onClick={apply}
               disabled={draft.trim().length === 0}
             >
               Apply
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
+            </Button>
+          </Stack>
+        </Box>
+      </Popover>
+    </>
   );
 }

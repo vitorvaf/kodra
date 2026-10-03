@@ -1,10 +1,10 @@
-import { Logo } from '../Logo.js';
 import type { IssueRef } from '@kanbots/core';
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { api } from '../../api.js';
 import { dispatchIssuesRefetch } from '../../hooks/useIssues.js';
 import { ageString, areaLabels, priorityFromLabels, tagFromLabels } from '../../labels.js';
 import type { Issue } from '../../types.js';
+import { ModalFrame } from './ModalFrame.js';
 
 export interface ArchiveModalProps {
   onClose: () => void;
@@ -80,19 +80,7 @@ export function ArchiveModal({ onClose, onOpenDetail }: ArchiveModalProps) {
     return () => window.clearTimeout(handle);
   }, []);
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') onClose();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const filtered = useMemo(() => issues.filter((i) => matchesQuery(i, query)), [issues, query]);
-
-  function stopInner(e: MouseEvent<HTMLDivElement>): void {
-    e.stopPropagation();
-  }
 
   async function handleUnarchive(issueNumber: IssueRef): Promise<void> {
     if (busyNumber !== null) return;
@@ -115,105 +103,72 @@ export function ArchiveModal({ onClose, onOpenDetail }: ArchiveModalProps) {
   }
 
   return (
-    <div
-      className="kb-modal-scrim kb-app"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Archive"
-    >
-      <div className="kb-modal kb-archive-modal" onClick={stopInner}>
-        <div className="kb-modal-head">
-          <Logo size={11} withWordmark />
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <h2>Archive</h2>
-          <span className="grow" />
-          <button
-            type="button"
-            className="x-btn"
-            onClick={onClose}
-            aria-label="Close (Esc)"
-            title="Close"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 6l12 12M18 6l-12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="kb-archive-search">
-          {searchIcon}
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            placeholder="Search archived tasks by title, #number, label, or body…"
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
-            aria-label="Search archived tasks"
-          />
-          <span className="kb-archive-count">
-            {loading ? 'loading…' : `${filtered.length} of ${issues.length}`}
-          </span>
-        </div>
-
-        <div className="kb-archive-body">
-          {error ? (
-            <div className="kb-archive-error" role="alert">
-              {error.message}
-              <button
-                type="button"
-                className="kb-btn ghost"
-                onClick={() => void load()}
-                style={{ marginLeft: 12 }}
-              >
-                Retry
-              </button>
-            </div>
-          ) : null}
-
-          {!loading && !error && issues.length === 0 ? (
-            <div className="kb-archive-empty">
-              <div className="kb-archive-empty-icon">{archiveIcon}</div>
-              <div className="kb-archive-empty-h">Nothing archived yet</div>
-              <div className="kb-archive-empty-sub">
-                Archive a task from its detail view and it will land here.
-              </div>
-            </div>
-          ) : null}
-
-          {!loading && !error && issues.length > 0 && filtered.length === 0 ? (
-            <div className="kb-archive-empty">
-              <div className="kb-archive-empty-h">No matches for "{query}"</div>
-              <div className="kb-archive-empty-sub">
-                Try a different word, an issue number, or clear the search.
-              </div>
-            </div>
-          ) : null}
-
-          {filtered.length > 0 ? (
-            <ul className="kb-archive-list" role="list">
-              {filtered.map((issue) => (
-                <ArchiveRow
-                  key={String(issue.number)}
-                  issue={issue}
-                  busy={busyNumber !== null && String(busyNumber) === String(issue.number)}
-                  disabled={busyNumber !== null}
-                  onOpen={() => handleOpen(issue.number)}
-                  onUnarchive={() => void handleUnarchive(issue.number)}
-                />
-              ))}
-            </ul>
-          ) : null}
-        </div>
+    <ModalFrame title="Archive" ariaLabel="Archive" width={840} onClose={onClose}>
+      <div className="kb-archive-search">
+        {searchIcon}
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          placeholder="Search archived tasks by title, #number, label, or body…"
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+          aria-label="Search archived tasks"
+        />
+        <span className="kb-archive-count">
+          {loading ? 'loading…' : `${filtered.length} of ${issues.length}`}
+        </span>
       </div>
-    </div>
+
+      <div className="kb-archive-body">
+        {error ? (
+          <div className="kb-archive-error" role="alert">
+            {error.message}
+            <button
+              type="button"
+              className="kb-btn ghost"
+              onClick={() => void load()}
+              style={{ marginLeft: 12 }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : null}
+
+        {!loading && !error && issues.length === 0 ? (
+          <div className="kb-archive-empty">
+            <div className="kb-archive-empty-icon">{archiveIcon}</div>
+            <div className="kb-archive-empty-h">Nothing archived yet</div>
+            <div className="kb-archive-empty-sub">
+              Archive a task from its detail view and it will land here.
+            </div>
+          </div>
+        ) : null}
+
+        {!loading && !error && issues.length > 0 && filtered.length === 0 ? (
+          <div className="kb-archive-empty">
+            <div className="kb-archive-empty-h">No matches for "{query}"</div>
+            <div className="kb-archive-empty-sub">
+              Try a different word, an issue number, or clear the search.
+            </div>
+          </div>
+        ) : null}
+
+        {filtered.length > 0 ? (
+          <ul className="kb-archive-list" role="list">
+            {filtered.map((issue) => (
+              <ArchiveRow
+                key={String(issue.number)}
+                issue={issue}
+                busy={busyNumber !== null && String(busyNumber) === String(issue.number)}
+                disabled={busyNumber !== null}
+                onOpen={() => handleOpen(issue.number)}
+                onUnarchive={() => void handleUnarchive(issue.number)}
+              />
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </ModalFrame>
   );
 }
 

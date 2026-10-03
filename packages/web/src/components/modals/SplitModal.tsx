@@ -1,10 +1,12 @@
-import { Logo } from '../Logo.js';
 import type { IssueRef } from '@kanbots/core';
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { api } from '../../api.js';
 import { useFocusedRepo } from '../../hooks/useFocusedRepo.js';
 import { dispatchIssuesRefetch } from '../../hooks/useIssues.js';
 import type { Issue } from '../../types.js';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import { ModalFrame } from './ModalFrame.js';
 
 export interface SplitModalProps {
   parentNumber: IssueRef;
@@ -86,156 +88,144 @@ export function SplitModal({ parentNumber, parentTitle, onClose, onSplit }: Spli
   }
 
   return (
-    <div className="kb-modal-scrim kb-app" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="kb-modal sm" onClick={(e) => e.stopPropagation()}>
-        <div className="kb-modal-head">
-          <Logo size={11} withWordmark />
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <span className="num">#{parentNumber}</span>
-          <h2>Split into sub-tasks</h2>
-          <span className="grow" />
-          <button type="button" className="x-btn" onClick={onClose} aria-label="Close">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+    <ModalFrame
+      escapeCloses={false}
+      title="Split into sub-tasks"
+      width={880}
+      onClose={onClose}
+      footerHint={
+        <>
+          {filled.length} sub-task{filled.length === 1 ? '' : 's'} ready
+          {error ? (
+            <Box component="span" role="alert" sx={{ color: 'error.main', ml: 1 }}>
+              {error}
+            </Box>
+          ) : null}
+        </>
+      }
+      actions={
+        <>
+          <Button color="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={() => void submit()} disabled={!canSubmit}>
+            {submitting ? 'Splitting…' : `Split into ${filled.length || 'N'}`}
+            <Box
+              component="kbd"
+              sx={{
+                ml: 0.75,
+                px: 0.75,
+                borderRadius: 0.5,
+                fontSize: 11,
+                fontFamily: 'var(--ff-mono, monospace)',
+                bgcolor: 'rgba(255,255,255,0.18)',
+              }}
             >
-              <path d="M6 6l12 12M18 6l-12 12" />
-            </svg>
-          </button>
+              ⌘↵
+            </Box>
+          </Button>
+        </>
+      }
+    >
+      <div className="kb-tcm-content">
+        <div style={{ marginBottom: 14, color: 'var(--ink-2)', fontSize: 12 }}>
+          Splitting <span style={{ color: 'var(--ink-1)' }}>#{parentNumber}</span> ·{' '}
+          <span style={{ color: 'var(--ink-1)' }}>{parentTitle}</span> into sub-tasks. Each becomes
+          a new issue tagged <span className="kb-kbd">parent:{parentNumber}</span>.
         </div>
 
-        <div className="kb-modal-body" style={{ display: 'block' }}>
-          <div className="kb-tcm-content">
-            <div style={{ marginBottom: 14, color: 'var(--ink-2)', fontSize: 12 }}>
-              Splitting <span style={{ color: 'var(--ink-1)' }}>#{parentNumber}</span> ·{' '}
-              <span style={{ color: 'var(--ink-1)' }}>{parentTitle}</span> into sub-tasks. Each
-              becomes a new issue tagged <span className="kb-kbd">parent:{parentNumber}</span>.
-            </div>
-
-            <div className="kb-field">
-              <label className="kb-field-label">
-                Sub-tasks
-                <span className="kb-field-hint">{drafts.length} / 8</span>
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {drafts.map((d, i) => (
-                  <div
-                    key={i}
+        <div className="kb-field">
+          <label className="kb-field-label">
+            Sub-tasks
+            <span className="kb-field-hint">{drafts.length} / 8</span>
+          </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {drafts.map((d, i) => (
+              <div
+                key={i}
+                style={{
+                  border: '1px solid var(--hairline)',
+                  borderRadius: 9,
+                  background: 'var(--bg-1)',
+                  padding: 10,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 6,
+                  }}
+                >
+                  <span
                     style={{
-                      border: '1px solid var(--hairline)',
-                      borderRadius: 9,
-                      background: 'var(--bg-1)',
-                      padding: 10,
+                      fontFamily: 'var(--ff-mono)',
+                      fontSize: 11,
+                      color: 'var(--ink-3)',
                     }}
                   >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        marginBottom: 6,
-                      }}
+                    {i + 1}.
+                  </span>
+                  <input
+                    className="kb-input"
+                    placeholder="Sub-task title…"
+                    value={d.title}
+                    onChange={(e) => setTitle(i, e.target.value)}
+                    onKeyDown={onTitleKey}
+                    style={{ flex: 1, fontSize: 13 }}
+                    autoFocus={i === 0}
+                  />
+                  {drafts.length > 1 ? (
+                    <button
+                      type="button"
+                      className="kb-btn ghost"
+                      onClick={() => removeRow(i)}
+                      aria-label="Remove sub-task"
+                      style={{ height: 24, padding: '0 8px' }}
                     >
-                      <span
-                        style={{
-                          fontFamily: 'var(--ff-mono)',
-                          fontSize: 11,
-                          color: 'var(--ink-3)',
-                        }}
-                      >
-                        {i + 1}.
-                      </span>
-                      <input
-                        className="kb-input"
-                        placeholder="Sub-task title…"
-                        value={d.title}
-                        onChange={(e) => setTitle(i, e.target.value)}
-                        onKeyDown={onTitleKey}
-                        style={{ flex: 1, fontSize: 13 }}
-                        autoFocus={i === 0}
-                      />
-                      {drafts.length > 1 ? (
-                        <button
-                          type="button"
-                          className="kb-btn ghost"
-                          onClick={() => removeRow(i)}
-                          aria-label="Remove sub-task"
-                          style={{ height: 24, padding: '0 8px' }}
-                        >
-                          ×
-                        </button>
-                      ) : null}
-                    </div>
-                    <textarea
-                      className="kb-textarea"
-                      placeholder="Optional details / acceptance criteria"
-                      value={d.body}
-                      onChange={(e) => setBody(i, e.target.value)}
-                      style={{ minHeight: 60, fontSize: 12 }}
-                    />
-                  </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="kb-scope-add"
-                onClick={addRow}
-                disabled={drafts.length >= 8}
-                style={{ marginTop: 8 }}
-              >
-                + Add sub-task
-              </button>
-            </div>
-
-            <div className="kb-field" style={{ marginBottom: 0 }}>
-              <label className="kb-tweaks-toggle">
-                <span>Dispatch agents on each sub-task immediately</span>
-                <span className="kb-tweaks-switch" data-on={dispatchAgents ? 'true' : 'false'} />
-                <input
-                  type="checkbox"
-                  checked={dispatchAgents}
-                  onChange={(e) => setDispatchAgents(e.target.checked)}
+                      ×
+                    </button>
+                  ) : null}
+                </div>
+                <textarea
+                  className="kb-textarea"
+                  placeholder="Optional details / acceptance criteria"
+                  value={d.body}
+                  onChange={(e) => setBody(i, e.target.value)}
+                  style={{ minHeight: 60, fontSize: 12 }}
                 />
-              </label>
-              <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4 }}>
-                {dispatchAgents
-                  ? 'Each sub-task will spin up its own worktree + agent run.'
-                  : 'Sub-tasks land in Backlog. Start them manually from the board.'}
               </div>
-            </div>
+            ))}
           </div>
-        </div>
-
-        <div className="kb-modal-foot">
-          <span className="hint">
-            {filled.length} sub-task{filled.length === 1 ? '' : 's'} ready
-          </span>
-          {error ? (
-            <span style={{ color: 'var(--failed)', fontSize: 11.5 }} role="alert">
-              {error}
-            </span>
-          ) : null}
-          <span className="grow" />
-          <button type="button" className="kb-btn ghost" onClick={onClose}>
-            Cancel
-          </button>
           <button
             type="button"
-            className="kb-btn primary"
-            onClick={() => void submit()}
-            disabled={!canSubmit}
+            className="kb-scope-add"
+            onClick={addRow}
+            disabled={drafts.length >= 8}
+            style={{ marginTop: 8 }}
           >
-            {submitting ? 'Splitting…' : `Split into ${filled.length || 'N'}`}
-            <span className="kb-kbd" style={{ marginLeft: 6 }}>
-              ⌘↵
-            </span>
+            + Add sub-task
           </button>
         </div>
+
+        <div className="kb-field" style={{ marginBottom: 0 }}>
+          <label className="kb-tweaks-toggle">
+            <span>Dispatch agents on each sub-task immediately</span>
+            <span className="kb-tweaks-switch" data-on={dispatchAgents ? 'true' : 'false'} />
+            <input
+              type="checkbox"
+              checked={dispatchAgents}
+              onChange={(e) => setDispatchAgents(e.target.checked)}
+            />
+          </label>
+          <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4 }}>
+            {dispatchAgents
+              ? 'Each sub-task will spin up its own worktree + agent run.'
+              : 'Sub-tasks land in Backlog. Start them manually from the board.'}
+          </div>
+        </div>
       </div>
-    </div>
+    </ModalFrame>
   );
 }

@@ -1,3 +1,8 @@
+import Chip from '@mui/material/Chip';
+import Tooltip from '@mui/material/Tooltip';
+import { IconsaxIcon } from '@kanbots/ui';
+import { DollarCircle } from 'iconsax-react';
+
 export interface WorkspaceCostMeterProps {
   /** Sum of `totalCostUsd` across runs that started since midnight (local).
    *  Pass null while the first fetch is in flight so the meter renders an
@@ -10,46 +15,36 @@ export interface WorkspaceCostMeterProps {
 }
 
 /**
- * Compact workspace-wide cost rollup that lives in the board toolbar
- * next to the Autopilot / New task buttons. Reads from the existing
- * `cost:today` data source (sum of `total_cost_usd` across every agent
- * run since midnight), so it doesn't introduce a new schema or polling
- * cadence — the parent Board page already refreshes the value.
+ * Compact workspace-wide cost rollup in the board header. Reads from the
+ * existing `cost:today` data source (sum of `total_cost_usd` across every
+ * agent run since midnight); the parent Board page refreshes the value.
  *
- * When `totalUsd` is exactly zero the meter is dimmed so the toolbar
- * doesn't shout at the user before they've burned any spend; once any
- * cost has accumulated the value lights up in the clay accent.
+ * The figure is what each CLI reports, priced at API list rates. Runs on a
+ * subscription (Claude Code or ChatGPT sign-in) report the same figure but
+ * are not billed per token, and Kodra can't tell which auth the CLI used —
+ * so the meter reads as an estimate rather than a bill.
  */
 export function WorkspaceCostMeter({ totalUsd, onClick }: WorkspaceCostMeterProps) {
   const empty = totalUsd === null;
   const zero = totalUsd === 0;
-  const display = empty ? '—' : `$${(totalUsd as number).toFixed(2)}`;
+  const display = empty ? '—' : `≈ $${(totalUsd as number).toFixed(2)} today`;
   const title = empty
     ? 'Workspace cost today is still loading'
     : zero
       ? 'No agent runs have spent today yet'
-      : `Workspace agent spend since midnight: $${(totalUsd as number).toFixed(2)}`;
-  const className =
-    `kb-cost-meter${empty ? ' is-empty' : zero ? ' is-zero' : ''}` +
-    (onClick ? ' is-clickable' : '');
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        className={className}
-        onClick={onClick}
-        title={title}
-        aria-label={title}
-      >
-        <span className="kb-cost-meter-amount">{display}</span>
-        <span className="kb-cost-meter-suffix">today</span>
-      </button>
-    );
-  }
+      : `Estimated agent spend since midnight at API list prices: $${(totalUsd as number).toFixed(2)}. ` +
+        'Runs on a Claude Code or ChatGPT subscription use your plan limits instead and are not billed per token.';
   return (
-    <div className={className} title={title} aria-label={title}>
-      <span className="kb-cost-meter-amount">{display}</span>
-      <span className="kb-cost-meter-suffix">today</span>
-    </div>
+    <Tooltip title={title}>
+      <Chip
+        icon={<IconsaxIcon icon={DollarCircle} size={16} variant="Bulk" />}
+        label={display}
+        color={empty || zero ? 'secondary' : 'primary'}
+        variant="light"
+        aria-label={title}
+        {...(onClick ? { onClick } : {})}
+        sx={{ fontFamily: 'var(--ff-mono, monospace)', fontWeight: 600 }}
+      />
+    </Tooltip>
   );
 }

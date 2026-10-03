@@ -1,14 +1,8 @@
-import { Logo } from '../Logo.js';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ChangeEvent,
-  type MouseEvent,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { api } from '../../api.js';
 import type { CardTemplatePayload, ProviderId } from '../../types.js';
+import Button from '@mui/material/Button';
+import { ModalFrame } from './ModalFrame.js';
 
 export interface CardTemplatesSettingsModalProps {
   onClose: () => void;
@@ -113,10 +107,6 @@ export function CardTemplatesSettingsModal({ onClose }: CardTemplatesSettingsMod
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, editingId]);
-
-  function stopInner(e: MouseEvent<HTMLDivElement>): void {
-    e.stopPropagation();
-  }
 
   function startNew(): void {
     setEditingId('new');
@@ -243,129 +233,97 @@ export function CardTemplatesSettingsModal({ onClose }: CardTemplatesSettingsMod
   }
 
   return (
-    <div
-      className="kb-modal-scrim kb-app"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Card templates"
+    <ModalFrame
+      escapeCloses={false}
+      title="Card templates"
+      ariaLabel="Card templates"
+      width={560}
+      onClose={onClose}
+      bodyClassName="kb-sentry-body"
+      footerHint={
+        <>
+          Templates live in the workspace database. <code>{'{{cursor}}'}</code> inside the body
+          marks where the create-task modal places the caret.
+        </>
+      }
+      actions={
+        <Button color="secondary" onClick={onClose}>
+          Close
+        </Button>
+      }
     >
-      <div className="kb-modal kb-sentry-modal" onClick={stopInner}>
-        <div className="kb-modal-head">
-          <Logo size={11} withWordmark />
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <h2>Card templates</h2>
-          <span className="grow" />
-          <button
-            type="button"
-            className="x-btn"
-            onClick={onClose}
-            aria-label="Close (Esc)"
-            title="Close"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 6l12 12M18 6l-12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="kb-modal-body kb-sentry-body">
-          <div className="kb-sentry-hint">
-            Saved prompt + label + agent presets. Use them from the &ldquo;From template&rdquo;
-            quick-pick at the top of the new-task modal to spawn a card with one click. Drag to
-            reorder; the order surfaces in the quick-pick.
-          </div>
-
-          {loading ? <div className="kb-sentry-row">Loading…</div> : null}
-          {error ? (
-            <div className="kb-sentry-error" role="alert">
-              {error.message}
-            </div>
-          ) : null}
-
-          {!loading ? (
-            <div className="kb-card-templates-list">
-              {sorted.length === 0 && editingId === null ? (
-                <div className="kb-sentry-row kb-repos-empty">
-                  No templates yet. Add the first one below.
-                </div>
-              ) : null}
-
-              {sorted.map((t) => (
-                <div
-                  key={t.id}
-                  className={`kb-card-template-row${
-                    editingId === t.id ? ' is-editing' : ''
-                  }${dragId === t.id ? ' is-dragging' : ''}`}
-                  draggable={editingId === null}
-                  onDragStart={() => onDragStart(t.id)}
-                  onDragOver={onDragOver}
-                  onDrop={() => void onDrop(t.id)}
-                  onDragEnd={() => setDragId(null)}
-                >
-                  {editingId === t.id ? (
-                    <TemplateEditor
-                      draft={draft}
-                      setDraft={setDraft}
-                      saving={saving}
-                      onSave={() => void handleSave()}
-                      onCancel={cancelEdit}
-                    />
-                  ) : (
-                    <TemplateRow
-                      template={t}
-                      busy={busyId === t.id}
-                      onEdit={() => startEdit(t)}
-                      onDelete={() => void handleDelete(t.id)}
-                    />
-                  )}
-                </div>
-              ))}
-
-              {editingId === 'new' ? (
-                <div className="kb-card-template-row is-editing">
-                  <TemplateEditor
-                    draft={draft}
-                    setDraft={setDraft}
-                    saving={saving}
-                    onSave={() => void handleSave()}
-                    onCancel={cancelEdit}
-                  />
-                </div>
-              ) : null}
-
-              {editingId === null ? (
-                <button
-                  type="button"
-                  className="kb-btn ghost kb-repos-add-toggle"
-                  onClick={startNew}
-                >
-                  + New template
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="kb-modal-foot">
-          <span className="hint">
-            Templates live in the workspace database. <code>{'{{cursor}}'}</code> inside the body
-            marks where the create-task modal places the caret.
-          </span>
-          <span className="grow" />
-          <button type="button" className="kb-btn ghost" onClick={onClose}>
-            Close
-          </button>
-        </div>
+      <div className="kb-sentry-hint">
+        Saved prompt + label + agent presets. Use them from the &ldquo;From template&rdquo;
+        quick-pick at the top of the new-task modal to spawn a card with one click. Drag to reorder;
+        the order surfaces in the quick-pick.
       </div>
-    </div>
+
+      {loading ? <div className="kb-sentry-row">Loading…</div> : null}
+      {error ? (
+        <div className="kb-sentry-error" role="alert">
+          {error.message}
+        </div>
+      ) : null}
+
+      {!loading ? (
+        <div className="kb-card-templates-list">
+          {sorted.length === 0 && editingId === null ? (
+            <div className="kb-sentry-row kb-repos-empty">
+              No templates yet. Add the first one below.
+            </div>
+          ) : null}
+
+          {sorted.map((t) => (
+            <div
+              key={t.id}
+              className={`kb-card-template-row${
+                editingId === t.id ? ' is-editing' : ''
+              }${dragId === t.id ? ' is-dragging' : ''}`}
+              draggable={editingId === null}
+              onDragStart={() => onDragStart(t.id)}
+              onDragOver={onDragOver}
+              onDrop={() => void onDrop(t.id)}
+              onDragEnd={() => setDragId(null)}
+            >
+              {editingId === t.id ? (
+                <TemplateEditor
+                  draft={draft}
+                  setDraft={setDraft}
+                  saving={saving}
+                  onSave={() => void handleSave()}
+                  onCancel={cancelEdit}
+                />
+              ) : (
+                <TemplateRow
+                  template={t}
+                  busy={busyId === t.id}
+                  onEdit={() => startEdit(t)}
+                  onDelete={() => void handleDelete(t.id)}
+                />
+              )}
+            </div>
+          ))}
+
+          {editingId === 'new' ? (
+            <div className="kb-card-template-row is-editing">
+              <TemplateEditor
+                draft={draft}
+                setDraft={setDraft}
+                saving={saving}
+                onSave={() => void handleSave()}
+                onCancel={cancelEdit}
+              />
+            </div>
+          ) : null}
+
+          {editingId === null ? (
+            <button type="button" className="kb-btn ghost kb-repos-add-toggle" onClick={startNew}>
+              + New template
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </ModalFrame>
   );
 }
 

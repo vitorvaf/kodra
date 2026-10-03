@@ -221,7 +221,8 @@ export function useCloudRunStream(opts: UseCloudRunStreamOpts): AgentRunStreamSt
         });
         setState((prev) => ({
           ...prev,
-          ...(agentEvent !== null && !prev.events.some((existing) => existing.seq === agentEvent.seq)
+          ...(agentEvent !== null &&
+          !prev.events.some((existing) => existing.seq === agentEvent.seq)
             ? { events: [...prev.events, agentEvent].sort((a, b) => a.seq - b.seq) }
             : {}),
           pendingDecision: decision,

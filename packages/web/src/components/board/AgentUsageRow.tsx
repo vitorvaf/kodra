@@ -1,3 +1,8 @@
+import Box from '@mui/material/Box';
+import LinearProgress from '@mui/material/LinearProgress';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import type { AgentUsageResult, UsageWindowInfo } from '../../api.js';
 import { PROVIDER_LABELS } from '../forms/ModelPicker.js';
 
@@ -42,57 +47,60 @@ function shortLabel(provider: string): string {
  * whether an agent is live, logged out, or unavailable.
  */
 export function AgentUsageRow({ providers }: AgentUsageRowProps) {
-  if (providers.length === 0) {
-    // Cloud mode (or before the first local snapshot lands): keep the
-    // row's footprint with a single quiet placeholder meter.
-    return (
-      <div className="kb-usage-row">
-        <div className="kb-usage-meter is-empty" title="Usage unavailable">
-          <span className="kb-usage-label">Usage</span>
-          <span className="kb-usage-bar" aria-hidden>
-            <span className="kb-usage-bar-fill" style={{ width: '0%' }} />
-          </span>
-          <span className="kb-usage-pct">—</span>
-        </div>
-      </div>
-    );
-  }
   return (
-    <div className="kb-usage-row kb-usage-multi">
-      {providers.map((agent) => (
-        <AgentCluster key={agent.provider} agent={agent} />
-      ))}
-    </div>
+    <Stack
+      direction="row"
+      sx={{
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        columnGap: 3,
+        rowGap: 1,
+        mx: 3,
+        mb: 2,
+        px: 2,
+        py: 1.25,
+        borderRadius: 1.5,
+        border: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+      }}
+    >
+      {providers.length === 0 ? (
+        // Cloud mode (or before the first local snapshot lands): keep the
+        // row's footprint with a single quiet placeholder meter.
+        <EmptyMeter label="Usage" title="Usage unavailable" />
+      ) : (
+        providers.map((agent) => <AgentCluster key={agent.provider} agent={agent} />)
+      )}
+    </Stack>
   );
 }
 
 function AgentCluster({ agent }: { agent: AgentUsageResult }) {
   const degraded = agent.source !== 'live';
   return (
-    <div className={`kb-usage-agent${degraded ? ' is-degraded' : ''}`}>
-      <span className="kb-usage-agent-name" title={nameTitle(agent)}>
-        {shortLabel(agent.provider)}
-      </span>
+    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', opacity: degraded ? 0.6 : 1 }}>
+      <Tooltip title={nameTitle(agent)}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          {shortLabel(agent.provider)}
+        </Typography>
+      </Tooltip>
       {degraded ? (
         (PLACEHOLDER_WINDOWS[agent.provider] ?? ['usage']).map((label) => (
-          <div className="kb-usage-meter is-empty" key={label} title={nameTitle(agent)}>
-            <span className="kb-usage-label">{label}</span>
-            <span className="kb-usage-bar" aria-hidden>
-              <span className="kb-usage-bar-fill" style={{ width: '0%' }} />
-            </span>
-            <span className="kb-usage-pct">—</span>
-          </div>
+          <EmptyMeter key={label} label={label} title={nameTitle(agent)} />
         ))
       ) : agent.windows.length === 0 ? (
         // Live but windowless (e.g. an unlimited plan) — a quiet plan-only
         // note instead of an empty gap.
-        <span className="kb-usage-unlimited" title={nameTitle(agent)}>
-          {agent.plan ?? 'Unlimited'}
-        </span>
+        <Tooltip title={nameTitle(agent)}>
+          <Typography variant="caption" color="text.secondary">
+            {agent.plan ?? 'Unlimited'}
+          </Typography>
+        </Tooltip>
       ) : (
         agent.windows.map((win) => <UsageMeter key={win.id} agent={agent} win={win} />)
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -109,18 +117,44 @@ function nameTitle(agent: AgentUsageResult): string {
   return agent.plan ? `${full} · ${agent.plan} plan` : full;
 }
 
+const meterLabelSx = {
+  fontFamily: 'var(--ff-mono, monospace)',
+  textTransform: 'uppercase' as const,
+  color: 'text.secondary',
+};
+
+function EmptyMeter({ label, title }: { label: string; title: string }) {
+  return (
+    <Tooltip title={title}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Typography variant="caption" sx={meterLabelSx}>
+          {label}
+        </Typography>
+        <LinearProgress
+          variant="determinate"
+          value={0}
+          color="secondary"
+          sx={{ width: 64, height: 4, borderRadius: 2 }}
+        />
+        <Typography variant="caption" color="text.disabled">
+          —
+        </Typography>
+      </Stack>
+    </Tooltip>
+  );
+}
+
 function UsageMeter({ agent, win }: { agent: AgentUsageResult; win: UsageWindowInfo }) {
   const pct = Math.max(0, Math.min(1, win.pct));
-  const tone = pct >= 0.9 ? 'danger' : pct >= 0.7 ? 'warn' : 'ok';
+  const color = pct >= 0.9 ? 'error' : pct >= 0.7 ? 'warning' : 'primary';
   const display = `${Math.round(pct * 100)}%`;
-  const barWidth = `${Math.round(pct * 1000) / 10}%`;
   const reset = win.resetsAt ? formatResetCountdown(win.resetsAt) : null;
   // Details come in two flavors: a group name for agents with several
   // windows sharing a label ('Gemini models') — promoted to the visible
   // label — or an absolute usage fraction ('1498 / 1500') shown next to
   // the percentage.
   const detail = win.detail?.trim() || null;
-  const groupName = detail !== null && !/^[\d.,\s/:%-]+$/.test(detail) ? detail : null;
+  const groupName = detail !== null && !/^[d.,s/:%-]+$/.test(detail) ? detail : null;
   const label = groupName ?? win.label;
   const quota = groupName === null ? detail : null;
   const title = [
@@ -132,15 +166,34 @@ function UsageMeter({ agent, win }: { agent: AgentUsageResult; win: UsageWindowI
     .filter((part): part is string => part !== null)
     .join(' · ');
   return (
-    <div className={`kb-usage-meter tone-${tone}`} title={title}>
-      <span className="kb-usage-label">{label}</span>
-      <span className="kb-usage-bar" aria-hidden>
-        <span className="kb-usage-bar-fill" style={{ width: barWidth }} />
-      </span>
-      <span className="kb-usage-pct">{display}</span>
-      {quota ? <span className="kb-usage-quota">{quota}</span> : null}
-      {reset ? <span className="kb-usage-reset">Resets in {reset}</span> : null}
-    </div>
+    <Tooltip title={title}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Typography variant="caption" sx={meterLabelSx}>
+          {label}
+        </Typography>
+        <LinearProgress
+          variant="determinate"
+          value={pct * 100}
+          color={color}
+          sx={{ width: 64, height: 4, borderRadius: 2 }}
+        />
+        <Typography variant="caption" sx={{ fontWeight: 600, color: `${color}.main` }}>
+          {display}
+        </Typography>
+        {quota ? (
+          <Typography variant="caption" color="text.secondary">
+            {quota}
+          </Typography>
+        ) : null}
+        {reset ? (
+          <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>
+            <Typography variant="caption" color="text.secondary">
+              Resets in {reset}
+            </Typography>
+          </Box>
+        ) : null}
+      </Stack>
+    </Tooltip>
   );
 }
 

@@ -1,6 +1,21 @@
 import { useDraggable } from '@dnd-kit/core';
 import type { IssueRef } from '@kanbots/core';
-import { memo, useEffect, useState, type ChangeEvent, type MouseEvent } from 'react';
+import { memo, useEffect, useState, type MouseEvent } from 'react';
+import { alpha, keyframes, type Theme } from '@mui/material/styles';
+import Alert from '@mui/material/Alert';
+import Avatar from '@mui/material/Avatar';
+import AvatarGroup from '@mui/material/AvatarGroup';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import LinearProgress from '@mui/material/LinearProgress';
+import MenuItem from '@mui/material/MenuItem';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import { IconsaxIcon } from '@kanbots/ui';
+import { Hierarchy, MessageQuestion } from 'iconsax-react';
 import { api } from '../api.js';
 import { useFocusedRepo } from '../hooks/useFocusedRepo.js';
 import { dispatchIssuesRefetch } from '../hooks/useIssues.js';
@@ -13,6 +28,7 @@ import {
   tagFromLabels,
 } from '../labels.js';
 import type { Issue, IssueActiveRun, ShipStatus } from '../types.js';
+import { agentColor, agentLabel, priorityColor, tagColor } from './board/boardStyle.js';
 
 export function cardDragId(issueNumber: IssueRef): string {
   return `card:${issueNumber}`;
@@ -40,44 +56,14 @@ export interface CardProps {
   onOpen?: (issueNumber: IssueRef) => void;
 }
 
-const branchIcon = (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="6" cy="5" r="2" />
-    <circle cx="6" cy="19" r="2" />
-    <circle cx="18" cy="12" r="2" />
-    <path d="M6 7v10M8 12h8" />
-  </svg>
-);
+const pulse = keyframes`
+  0% { opacity: 1; }
+  50% { opacity: 0.35; }
+  100% { opacity: 1; }
+`;
 
-function statusPillFor(issue: Issue): { label: string; cls: string } | null {
-  switch (issue.agent) {
-    case 'running':
-      return { label: 'RUNNING', cls: 'kb-state-running' };
-    case 'blocked':
-      return { label: 'WAITING ON YOU', cls: 'kb-state-awaiting' };
-    case 'review':
-      return { label: 'READY TO REVIEW', cls: 'kb-state-review' };
-    case 'queued':
-      return { label: 'QUEUED', cls: 'kb-state-queued' };
-    case 'failed':
-      return { label: 'FAILED', cls: 'kb-state-failed' };
-    default:
-      return null;
-  }
-}
-
-function stateClassFor(issue: Issue): string {
-  switch (issue.agent) {
-    case 'running':
-      return 'kb-state-running';
-    case 'blocked':
-      return 'kb-state-awaiting';
-    case 'review':
-      return 'kb-state-review';
-    default:
-      return '';
-  }
-}
+const chipSx = { height: 20, fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.02em' };
+const monoSx = { fontFamily: 'var(--ff-mono, monospace)' };
 
 function CardBody({
   issue,
@@ -90,7 +76,8 @@ function CardBody({
 }) {
   const tag = tagFromLabels(issue.labels, issue.isPullRequest);
   const priority = priorityFromLabels(issue.labels);
-  const pill = statusPillFor(issue);
+  const stateColor = agentColor(issue.agent);
+  const stateLabel = agentLabel(issue.agent);
   const active: IssueActiveRun | null = issue.activeRun ?? null;
   const branch = strippedBranch(active?.branch);
   const isRunning = issue.agent === 'running';
@@ -108,61 +95,150 @@ function CardBody({
   const areas = areaLabels(issue.labels);
 
   return (
-    <>
-      <div className="kb-card-row1">
-        {tag ? <span className={`kb-tag kb-tag-${tag}`}>{tag}</span> : null}
-        <span className="kb-card-num">#{issue.number}</span>
+    <Stack spacing={1.25}>
+      <Stack
+        direction="row"
+        spacing={0.75}
+        sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5 }}
+      >
+        {tag ? (
+          <Chip label={tag} size="small" color={tagColor(tag)} variant="outlined" sx={chipSx} />
+        ) : null}
+        <Typography variant="caption" color="text.secondary" sx={monoSx}>
+          #{issue.number}
+        </Typography>
         {priority ? (
-          <span className={`kb-card-pri kb-pri-${priority}`}>{priority.toUpperCase()}</span>
+          <Chip
+            label={priority.toUpperCase()}
+            size="small"
+            color={priorityColor(priority)}
+            variant="light"
+            sx={chipSx}
+          />
         ) : null}
         {issue.sentryMeta ? (
-          <span
-            className={`kb-sentry-badge kb-sentry-${issue.sentryMeta.status}`}
+          <Tooltip
             title={`Sentry · ${issue.sentryMeta.count} occurrence${issue.sentryMeta.count === 1 ? '' : 's'}`}
           >
-            SENTRY{issue.sentryMeta.status === 'analyzed' ? ' · REVIEWED' : ''}
-          </span>
+            <Chip
+              label={`Sentry${issue.sentryMeta.status === 'analyzed' ? ' · reviewed' : ''}`}
+              size="small"
+              color={issue.sentryMeta.status === 'analyzed' ? 'secondary' : 'error'}
+              variant="light"
+              sx={chipSx}
+            />
+          </Tooltip>
         ) : null}
-        {pill ? (
-          <span className={`kb-status-pill ${pill.cls}`}>
-            <span className="kb-pulse" />
-            {pill.label}
-          </span>
+        {stateColor && stateLabel ? (
+          <Chip
+            size="small"
+            color={stateColor}
+            variant="light"
+            label={stateLabel}
+            icon={
+              <Box
+                component="span"
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  bgcolor: 'currentColor',
+                  ml: '6px !important',
+                  ...(isRunning && { animation: `${pulse} 1.4s ease-in-out infinite` }),
+                }}
+              />
+            }
+            sx={{ ...chipSx, ml: 'auto !important' }}
+          />
         ) : null}
-      </div>
-      <div className="kb-card-title">{issue.title}</div>
+      </Stack>
+
+      <Typography variant="subtitle1" sx={{ lineHeight: 1.35, wordBreak: 'break-word' }}>
+        {issue.title}
+      </Typography>
 
       {isRunning && tickerName ? (
-        <div className="kb-live-ticker" aria-label="Agent is running">
-          <span className="kb-pulse-dot" />
-          <span className="kb-tool">{tickerName}</span>
-          {tickerArg ? <span className="kb-arg">{tickerArg}</span> : null}
-        </div>
+        <Stack
+          direction="row"
+          spacing={1}
+          aria-label="Agent is running"
+          sx={{
+            alignItems: 'center',
+            px: 1,
+            py: 0.5,
+            borderRadius: 1,
+            bgcolor: (t: Theme) => alpha(t.palette.success.main, 0.08),
+            minWidth: 0,
+          }}
+        >
+          <Box
+            sx={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              bgcolor: 'success.main',
+              flexShrink: 0,
+              animation: `${pulse} 1.4s ease-in-out infinite`,
+            }}
+          />
+          <Typography variant="caption" sx={{ ...monoSx, color: 'success.main', fontWeight: 600 }}>
+            {tickerName}
+          </Typography>
+          {tickerArg ? (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              sx={{ ...monoSx, minWidth: 0 }}
+            >
+              {tickerArg}
+            </Typography>
+          ) : null}
+        </Stack>
       ) : null}
 
       {isBlocked && decision ? (
-        <>
-          <div className="kb-card-decision" aria-label="Agent question">
-            <div className="kb-q-icon" aria-hidden>
-              ?
-            </div>
-            <div className="kb-q-text">{decision.question}</div>
-          </div>
+        <Box
+          aria-label="Agent question"
+          sx={{
+            p: 1.25,
+            borderRadius: 1,
+            border: 1,
+            borderColor: (t: Theme) => alpha(t.palette.warning.main, 0.4),
+            bgcolor: (t: Theme) => alpha(t.palette.warning.main, 0.08),
+          }}
+        >
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', mb: 1 }}>
+            <Box sx={{ color: 'warning.main', display: 'flex', mt: '1px' }}>
+              <IconsaxIcon icon={MessageQuestion} size={16} variant="Bulk" />
+            </Box>
+            <Typography variant="body2">{decision.question}</Typography>
+          </Stack>
           <DecisionActions
             cardId={decision.cardId}
             options={decision.options}
             {...(typeof active?.cloudRunId === 'string' ? { cloudRunId: active.cloudRunId } : {})}
           />
-        </>
+        </Box>
       ) : null}
 
       {(isRunning || isReview) && progress !== null ? (
-        <div className="kb-card-progress" aria-label={`Progress ${Math.round(progress * 100)}%`}>
-          <div className="kb-bar">
-            <i style={{ width: `${Math.max(0, Math.min(1, progress)) * 100}%` }} />
-          </div>
-          <span className="kb-pct">{Math.round(progress * 100)}%</span>
-        </div>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: 'center' }}
+          aria-label={`Progress ${Math.round(progress * 100)}%`}
+        >
+          <LinearProgress
+            variant="determinate"
+            color={isReview ? 'info' : 'success'}
+            value={Math.max(0, Math.min(1, progress)) * 100}
+            sx={{ flex: 1, height: 4, borderRadius: 2 }}
+          />
+          <Typography variant="caption" color="text.secondary" sx={monoSx}>
+            {Math.round(progress * 100)}%
+          </Typography>
+        </Stack>
       ) : null}
 
       {isReview ? (
@@ -173,56 +249,81 @@ function CardBody({
         />
       ) : null}
 
-      <div className="kb-card-meta">
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0 }}>
         {branch ? (
-          <span className="kb-branch-pill" title={active?.branch ?? ''}>
-            {branchIcon}
-            {branch}
-          </span>
+          <Tooltip title={active?.branch ?? ''}>
+            <Chip
+              size="small"
+              variant="outlined"
+              icon={<IconsaxIcon icon={Hierarchy} size={12} />}
+              label={branch}
+              sx={{ ...chipSx, ...monoSx, fontWeight: 400, maxWidth: 150 }}
+            />
+          </Tooltip>
         ) : null}
         {stats ? (
-          <span className="kb-stats">
-            <span className="add">+{stats.add}</span>
-            <span className="del">−{stats.del}</span>
-          </span>
+          <Typography variant="caption" sx={monoSx}>
+            <Box component="span" sx={{ color: 'success.main' }}>
+              +{stats.add}
+            </Box>{' '}
+            <Box component="span" sx={{ color: 'error.main' }}>
+              −{stats.del}
+            </Box>
+          </Typography>
         ) : null}
         {areas.length > 0 && !branch && !stats ? (
-          <span className="kb-branch-pill">{areas[0]}</span>
+          <Chip
+            size="small"
+            variant="outlined"
+            label={areas[0]}
+            sx={{ ...chipSx, fontWeight: 400 }}
+          />
         ) : null}
         {checks ? (
-          <span className="kb-checks" aria-label="Checks">
+          <Stack direction="row" spacing={0.5} aria-label="Checks">
             <CheckPill kind={checks.tests} label="tests" />
             <CheckPill kind={checks.typecheck} label="tsc" />
             <CheckPill kind={checks.lint} label="lint" />
-          </span>
-        ) : (
-          <span className="kb-spacer" />
-        )}
-        {issue.subIssueCount && issue.subIssueCount > 0 ? (
-          <span
-            className="kb-card-children-badge"
-            title={`${issue.subIssueCount} sub-issue${issue.subIssueCount === 1 ? '' : 's'}`}
-            aria-label={`Has ${issue.subIssueCount} sub-issue${issue.subIssueCount === 1 ? '' : 's'}`}
-          >
-            ↳{issue.subIssueCount}
-          </span>
+          </Stack>
         ) : null}
-        <span className="kb-assignees">
-          {issue.assignees.slice(0, 3).map((login) => (
-            <span
-              key={login}
-              className="kb-av"
-              style={{ background: colorForLogin(login) }}
-              title={login}
+        <Box sx={{ flex: 1 }} />
+        {issue.subIssueCount && issue.subIssueCount > 0 ? (
+          <Tooltip
+            title={`${issue.subIssueCount} sub-issue${issue.subIssueCount === 1 ? '' : 's'}`}
+          >
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              aria-label={`Has ${issue.subIssueCount} sub-issue${issue.subIssueCount === 1 ? '' : 's'}`}
             >
-              {login.slice(0, 1).toUpperCase()}
-            </span>
-          ))}
-        </span>
-        <span className="kb-card-age">{ageString(issue.updatedAt || issue.createdAt)}</span>
-      </div>
-    </>
+              ↳{issue.subIssueCount}
+            </Typography>
+          </Tooltip>
+        ) : null}
+        {issue.assignees.length > 0 ? (
+          <AvatarGroup
+            max={3}
+            sx={{ '& .MuiAvatar-root': { width: 20, height: 20, fontSize: 10, borderWidth: 1 } }}
+          >
+            {issue.assignees.map((login) => (
+              <Tooltip key={login} title={login}>
+                <Avatar sx={{ bgcolor: colorForLogin(login) }}>
+                  {login.slice(0, 1).toUpperCase()}
+                </Avatar>
+              </Tooltip>
+            ))}
+          </AvatarGroup>
+        ) : null}
+        <Typography variant="caption" color="text.secondary" sx={{ ...monoSx, flexShrink: 0 }}>
+          {ageString(issue.updatedAt || issue.createdAt)}
+        </Typography>
+      </Stack>
+    </Stack>
   );
+}
+
+function stopClick(e: MouseEvent<HTMLElement>): void {
+  e.stopPropagation();
 }
 
 function ReviewActions({
@@ -236,9 +337,6 @@ function ReviewActions({
 }) {
   const [shipOpen, setShipOpen] = useState(false);
   const { focusedRepoId } = useFocusedRepo();
-  function stop(e: MouseEvent<HTMLDivElement>): void {
-    e.stopPropagation();
-  }
   function toggleShip(e: MouseEvent<HTMLButtonElement>): void {
     e.stopPropagation();
     setShipOpen((v) => !v);
@@ -273,18 +371,18 @@ function ReviewActions({
     });
   }
   return (
-    <div className="kb-card-actions" onClick={stop}>
-      <div className="kb-card-actions-row">
-        <button type="button" className="kb-btn primary" onClick={toggleShip}>
+    <Stack spacing={1} onClick={stopClick} onPointerDown={stopClick}>
+      <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
+        <Button size="small" variant="contained" onClick={toggleShip}>
           {shipOpen ? 'Cancel' : 'Ship…'}
-        </button>
-        <button type="button" className="kb-btn" onClick={requestChanges}>
+        </Button>
+        <Button size="small" variant="outlined" color="secondary" onClick={requestChanges}>
           Request changes
-        </button>
-        <button type="button" className="kb-btn ghost" onClick={spawnReviewer}>
+        </Button>
+        <Button size="small" color="secondary" onClick={spawnReviewer}>
           Run reviewer
-        </button>
-      </div>
+        </Button>
+      </Stack>
       {shipOpen ? (
         <ShipPanel
           issueNumber={issueNumber}
@@ -292,7 +390,7 @@ function ReviewActions({
           onCancel={() => setShipOpen(false)}
         />
       ) : null}
-    </div>
+    </Stack>
   );
 }
 
@@ -386,81 +484,88 @@ function ShipPanel({
     }
   }
 
-  function onChangeTarget(e: ChangeEvent<HTMLSelectElement>): void {
-    setTarget(e.target.value);
-  }
-
   if (status === null && error === null) {
     return (
-      <div className="kb-ship-panel" aria-busy>
+      <Typography variant="caption" color="text.secondary" aria-busy>
         Loading branch info…
-      </div>
+      </Typography>
     );
   }
 
   return (
-    <div className="kb-ship-panel">
+    <Stack spacing={1.25} sx={{ p: 1.25, borderRadius: 1, border: 1, borderColor: 'divider' }}>
       {status?.branchName ? (
-        <div className="kb-ship-row">
-          <span className="kb-ship-label">From</span>
-          <code className="kb-ship-branch">{status.branchName}</code>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary">
+            From
+          </Typography>
+          <Typography variant="caption" noWrap sx={{ ...monoSx, minWidth: 0 }}>
+            {status.branchName}
+          </Typography>
           {status.commitsAheadOfDefault > 0 ? (
-            <span className="kb-ship-ahead">
-              {status.commitsAheadOfDefault} commit
-              {status.commitsAheadOfDefault === 1 ? '' : 's'} ahead
-            </span>
+            <Chip
+              size="small"
+              variant="light"
+              color="info"
+              sx={chipSx}
+              label={`${status.commitsAheadOfDefault} commit${status.commitsAheadOfDefault === 1 ? '' : 's'} ahead`}
+            />
           ) : null}
-        </div>
+        </Stack>
       ) : null}
-      <div className="kb-ship-row">
-        <label className="kb-ship-label" htmlFor={`ship-target-${issueNumber}`}>
-          Target
-        </label>
-        <select
-          id={`ship-target-${issueNumber}`}
-          className="kb-input"
-          value={target}
-          onChange={onChangeTarget}
-        >
-          {(status?.availableTargets ?? []).map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
-        </select>
-      </div>
+      <TextField
+        select
+        size="small"
+        label="Target"
+        id={`ship-target-${issueNumber}`}
+        value={target}
+        onChange={(e) => setTarget(e.target.value)}
+      >
+        {(status?.availableTargets ?? []).map((b) => (
+          <MenuItem key={b} value={b}>
+            {b}
+          </MenuItem>
+        ))}
+      </TextField>
       {status?.hasUncommittedChanges ? (
-        <div className="kb-ship-warn">
+        <Alert severity="warning" sx={{ py: 0 }}>
           Worktree has uncommitted changes — you&rsquo;ll be asked before shipping.
-        </div>
+        </Alert>
       ) : null}
       {error !== null ? (
-        <div className="kb-error" role="alert">
+        <Alert severity="error" role="alert" sx={{ py: 0 }}>
           {error}
-        </div>
+        </Alert>
       ) : null}
-      <div className="kb-ship-actions">
-        <button
-          type="button"
-          className="kb-btn primary"
+      <Stack direction="row" spacing={0.75}>
+        <Button
+          size="small"
+          variant="contained"
           disabled={busy !== null || !target}
-          onClick={onMerge}
+          onClick={(e) => void onMerge(e)}
         >
           {busy === 'merge' ? 'Merging…' : 'Merge'}
-        </button>
-        <button
-          type="button"
-          className="kb-btn"
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
           disabled={busy !== null || !status?.branchName}
-          onClick={onCreatePR}
+          onClick={(e) => void onCreatePR(e)}
         >
           {busy === 'pr' ? 'Opening PR…' : 'Open PR'}
-        </button>
-        <button type="button" className="kb-btn ghost" onClick={onCancel}>
+        </Button>
+        <Button
+          size="small"
+          color="secondary"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCancel();
+          }}
+        >
           Close
-        </button>
-      </div>
-    </div>
+        </Button>
+      </Stack>
+    </Stack>
   );
 }
 
@@ -477,10 +582,6 @@ function DecisionActions({
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function stop(e: MouseEvent<HTMLDivElement>): void {
-    e.stopPropagation();
-  }
 
   async function pick(e: MouseEvent<HTMLButtonElement>, value: string): Promise<void> {
     e.stopPropagation();
@@ -516,49 +617,119 @@ function DecisionActions({
   }
 
   return (
-    <div
-      className="kb-card-actions kb-card-decision-opts"
-      onClick={stop}
+    <Stack
+      direction="row"
+      spacing={0.75}
+      sx={{ flexWrap: 'wrap', rowGap: 0.75 }}
+      onClick={stopClick}
+      onPointerDown={stopClick}
       role="group"
       aria-label="Decision options"
     >
       {options.map((opt) => (
-        <button
+        <Button
           key={opt.value}
-          type="button"
-          className="o"
+          size="small"
+          variant="outlined"
+          color="warning"
           disabled={submitting}
           onClick={(e) => void pick(e, opt.value)}
         >
           {submitting ? '…' : opt.label}
-        </button>
+        </Button>
       ))}
-      {error !== null ? (
-        <span className="kb-error" role="alert">
-          {error}
+      <Tooltip title="Dismiss this decision and stop the run">
+        <span>
+          <Button
+            size="small"
+            color="secondary"
+            disabled={submitting}
+            onClick={(e) => void dismiss(e)}
+          >
+            Dismiss
+          </Button>
         </span>
+      </Tooltip>
+      {error !== null ? (
+        <Typography variant="caption" color="error" role="alert" sx={{ width: '100%' }}>
+          {error}
+        </Typography>
       ) : null}
-      <button
-        type="button"
-        className="o dismiss"
-        disabled={submitting}
-        onClick={(e) => void dismiss(e)}
-        title="Dismiss this decision and stop the run"
-      >
-        Dismiss
-      </button>
-    </div>
+    </Stack>
   );
 }
 
 function CheckPill({ kind, label }: { kind: 'pass' | 'fail' | 'running' | 'idle'; label: string }) {
-  const cls = kind === 'pass' ? 'pass' : kind === 'fail' ? 'fail' : kind === 'running' ? 'run' : '';
+  const color =
+    kind === 'pass'
+      ? 'success.main'
+      : kind === 'fail'
+        ? 'error.main'
+        : kind === 'running'
+          ? 'warning.main'
+          : 'text.disabled';
   const icon = kind === 'pass' ? '✓' : kind === 'fail' ? '×' : kind === 'running' ? '↻' : '·';
   return (
-    <span className={`kb-check ${cls}`} title={`${label}: ${kind}`} aria-label={`${label} ${kind}`}>
-      {icon}
-    </span>
+    <Tooltip title={`${label}: ${kind}`}>
+      <Box
+        component="span"
+        aria-label={`${label} ${kind}`}
+        sx={{
+          width: 16,
+          height: 16,
+          borderRadius: '50%',
+          border: 1,
+          borderColor: color,
+          color,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 10,
+          fontWeight: 700,
+          lineHeight: 1,
+        }}
+      >
+        {icon}
+      </Box>
+    </Tooltip>
   );
+}
+
+/** Card surface: state accent on the left, rings for focus and multi-select. */
+function cardSx(issue: Issue, selected: boolean, multiSelected: boolean, dragging: boolean) {
+  const accent = agentColor(issue.agent);
+  return (t: Theme) => ({
+    position: 'relative' as const,
+    display: 'block',
+    width: '100%',
+    textAlign: 'left' as const,
+    p: 1.75,
+    pl: accent ? 2 : 1.75,
+    borderRadius: 1.5,
+    border: '1px solid',
+    borderColor: selected ? t.palette.primary.main : t.palette.divider,
+    bgcolor: t.palette.background.paper,
+    boxShadow: selected ? `0 0 0 1px ${t.palette.primary.main}` : 'none',
+    outline: multiSelected ? `2px dashed ${t.palette.primary.main}` : 'none',
+    outlineOffset: 2,
+    opacity: dragging ? 0.4 : 1,
+    cursor: 'pointer',
+    transition: t.transitions.create(['border-color', 'box-shadow']),
+    '&:hover': { borderColor: selected ? t.palette.primary.main : t.palette.secondary.light },
+    '&:focus-visible': { outline: `2px solid ${t.palette.primary.main}`, outlineOffset: 2 },
+    ...(accent && {
+      '&::before': {
+        content: '""',
+        position: 'absolute' as const,
+        left: 0,
+        top: 10,
+        bottom: 10,
+        width: 3,
+        borderRadius: '0 3px 3px 0',
+        bgcolor: t.palette[accent].main,
+      },
+    }),
+  });
 }
 
 function CardImpl({
@@ -574,36 +745,33 @@ function CardImpl({
     id: cardDragId(issue.number),
     disabled: !draggable,
   });
-  const stateCls = stateClassFor(issue);
-  const setNodeRef = drag.setNodeRef;
 
-  function handleClick(e: MouseEvent<HTMLButtonElement>): void {
+  function handleClick(e: MouseEvent<HTMLDivElement>): void {
     e.preventDefault();
     onSelect?.(issue.number, {
       shiftKey: e.shiftKey,
       metaOrCtrlKey: e.metaKey || e.ctrlKey,
     });
   }
-  function handleDoubleClick(e: MouseEvent<HTMLButtonElement>): void {
+  function handleDoubleClick(e: MouseEvent<HTMLDivElement>): void {
     e.preventDefault();
     onOpen?.(issue.number);
   }
 
-  const ringClass = multiSelected ? ' is-selected' : '';
+  // A div with the drag attributes (role="button", tabIndex) instead of a
+  // <button>: the review and decision actions nest real buttons inside.
   return (
-    <button
-      type="button"
-      ref={setNodeRef}
-      className={`kb-card ${stateCls}${selected ? ' kb-card-selected' : ''}${ringClass}${
-        drag.isDragging ? ' kb-card-source' : ''
-      }`}
+    <Box
+      ref={drag.setNodeRef}
+      data-agent={issue.agent ?? undefined}
+      sx={cardSx(issue, selected, multiSelected, drag.isDragging)}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       {...(draggable ? drag.listeners : {})}
-      {...(draggable ? drag.attributes : {})}
+      {...(draggable ? drag.attributes : { role: 'button', tabIndex: 0 })}
     >
       <CardBody issue={issue} liveTool={liveTool} />
-    </button>
+    </Box>
   );
 }
 
@@ -683,10 +851,16 @@ export function CardPreview({
   issue: Issue;
   liveTool?: CardProps['liveTool'];
 }) {
-  const stateCls = stateClassFor(issue);
   return (
-    <div className={`kb-card kb-card-preview ${stateCls}`}>
+    <Box
+      sx={(t: Theme) => ({
+        ...cardSx(issue, false, false, false)(t),
+        boxShadow: t.shadows[8],
+        transform: 'rotate(2deg)',
+        cursor: 'grabbing',
+      })}
+    >
       <CardBody issue={issue} liveTool={liveTool} />
-    </div>
+    </Box>
   );
 }

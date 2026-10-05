@@ -17,9 +17,7 @@ import { ProvidersOverlay } from './pages/ProvidersOverlay.js';
 // Users can open a folder without signing in to Kodra Cloud.
 import { WorkspacePicker } from './pages/WorkspacePicker.js';
 import { api, setCloudCtx } from './api.js';
-import { Window } from './components/shell/Window.js';
-import { Shell } from './components/shell/Shell.js';
-import { LeftRail } from './components/rail/LeftRail.js';
+import { AppShell, ShellTheme } from './components/shell/AppShell.js';
 import { CloudFirstRunPrompt } from './components/CloudFirstRunPrompt.js';
 import { TaskDetailModal } from './components/modals/TaskDetailModal.js';
 import { TaskCreateModal } from './components/modals/TaskCreateModal.js';
@@ -234,46 +232,36 @@ function ShellHost({
   const pausedAgent = issues.find((i) => i.agent === 'blocked') ?? null;
 
   return (
-    <>
-      <Window
-        workspaceName="Kodra workspace"
+    <ShellTheme theme={tweaks.theme}>
+      <AppShell
         folderName={describeFolder(config)}
         branch="main"
-        showRail={tweaks.showRail}
-        onToggleRail={() => setTweak('showRail', !tweaks.showRail)}
+        drawerOpen={tweaks.showRail}
+        onToggleDrawer={() => setTweak('showRail', !tweaks.showRail)}
         tweaksOpen={tweaksOpen}
         onToggleTweaks={() => setTweaksOpen((v) => !v)}
+        selectedNumber={selectedNumber}
+        onSelectIssue={setSelectedNumber}
+        nav={{
+          onOpenPalette: () => setPaletteOpen(true),
+          onOpenStats: () => setStatsOpen(true),
+          onOpenArchive: () => setArchiveOpen(true),
+          onOpenProviders: () => setProvidersSettingsOpen(true),
+          onOpenCloud: () => setCloudSettingsOpen(true),
+          onOpenRules: () => setHouseRulesOpen(true),
+          onOpenScripts: () => setScriptsOpen({}),
+          onOpenRepos: () => setReposOpen(true),
+          onOpenCardTemplates: () => setCardTemplatesOpen(true),
+          onOpenMemory: () => setMemorySettingsOpen(true),
+          onOpenSettings: () => setSentrySettingsOpen(true),
+        }}
       >
-        <Shell
-          rail={
-            tweaks.showRail ? (
-              <LeftRail
-                selectedNumber={selectedNumber}
-                onSelectIssue={setSelectedNumber}
-                onOpenPalette={() => setPaletteOpen(true)}
-                onOpenArchive={() => setArchiveOpen(true)}
-                onOpenStats={() => setStatsOpen(true)}
-                onOpenProviders={() => setProvidersSettingsOpen(true)}
-                onOpenCloud={() => setCloudSettingsOpen(true)}
-                onOpenRules={() => setHouseRulesOpen(true)}
-                onOpenScripts={() => setScriptsOpen({})}
-                onOpenRepos={() => setReposOpen(true)}
-                onOpenSentry={() => setSentrySettingsOpen(true)}
-                onOpenMemory={() => setMemorySettingsOpen(true)}
-                onOpenCardTemplates={() => setCardTemplatesOpen(true)}
-              />
-            ) : null
-          }
-          center={
-            <Board
-              onOpenDetail={openDetail}
-              onOpenCreate={() => openCreate()}
-              onOpenPalette={() => setPaletteOpen(true)}
-              onOpenStats={() => setStatsOpen(true)}
-            />
-          }
+        <Board
+          onOpenDetail={openDetail}
+          onOpenCreate={() => openCreate()}
+          onOpenStats={() => setStatsOpen(true)}
         />
-      </Window>
+      </AppShell>
       {detailIssueNumber !== null ? (
         <TaskDetailModal
           issueNumber={detailIssueNumber}
@@ -355,7 +343,7 @@ function ShellHost({
           {...(getBridge() ? { onSetNotifyOnRunComplete: setNotifyOnRunComplete } : {})}
         />
       ) : null}
-    </>
+    </ShellTheme>
   );
 }
 

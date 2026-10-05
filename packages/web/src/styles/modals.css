@@ -3818,16 +3818,6 @@
 /* Compact "↳N" badge shown on a board card when the issue has direct
    sub-issues. Sits in the card meta row alongside checks / assignees
    and avoids drawing a tree on the card itself. */
-.kb-card-children-badge {
-  font-family: var(--ff-mono);
-  font-size: 10.5px;
-  color: var(--ink-2);
-  padding: 1px 6px;
-  border: 1px solid var(--hairline-soft);
-  border-radius: 6px;
-  background: var(--bg-2);
-  flex-shrink: 0;
-}
 
 /* =========================================================================
  * PR comments section — appended to the Thread tab when the issue has a

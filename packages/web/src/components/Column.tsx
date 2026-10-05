@@ -1,8 +1,19 @@
 import { useDroppable } from '@dnd-kit/core';
 import type { IssueRef } from '@kanbots/core';
 import { useEffect, useMemo, useState } from 'react';
+import { alpha, type Theme } from '@mui/material/styles';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Skeleton from '@mui/material/Skeleton';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import { IconButton, IconsaxIcon } from '@kanbots/ui';
+import { Add, MagicStar } from 'iconsax-react';
 import type { Issue, StatusKey } from '../types.js';
 import { Card, type CardProps, type CardSelectModifiers } from './Card.js';
+import { columnColor } from './board/boardStyle.js';
 import type { RunLiveMap } from '../hooks/useBoardAgentStreams.js';
 
 const NOOP_SELECT = (): void => undefined;
@@ -23,34 +34,6 @@ function cardLiveTool(live: LiveState | undefined): NonNullable<CardProps['liveT
 export function columnDropId(key: StatusKey | null): string {
   return `col:${key ?? 'inbox'}`;
 }
-
-const plusIcon = (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-  >
-    <path d="M12 5v14M5 12h14" />
-  </svg>
-);
-
-const sparkleIcon = (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8" />
-  </svg>
-);
 
 export type SuggestActivity =
   | { kind: 'tool'; name: string; summary: string }
@@ -99,39 +82,66 @@ export function Column({
   }, [multiSelected]);
   const selectCard = onSelect ?? NOOP_SELECT;
   const openCard = onOpen ?? NOOP_OPEN;
+  const color = columnColor(status);
+
   return (
-    <div ref={setNodeRef} className="kb-col" data-over={isOver ? 'true' : undefined}>
-      <div className="kb-col-head" data-status={status}>
-        <span className="kb-col-glyph" aria-hidden />
-        <span className="kb-col-name">{label}</span>
-        <span className="kb-col-count">{issues.length}</span>
+    <Box
+      ref={setNodeRef}
+      data-over={isOver ? 'true' : undefined}
+      sx={(t: Theme) => ({
+        width: 300,
+        flex: '0 0 300px',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+        borderRadius: 2,
+        bgcolor: isOver
+          ? alpha(t.palette.primary.main, 0.06)
+          : alpha(t.palette.secondary.main, t.palette.mode === 'dark' ? 0.06 : 0.04),
+        border: '1px dashed',
+        borderColor: isOver ? t.palette.primary.main : 'transparent',
+        transition: t.transitions.create(['background-color', 'border-color']),
+      })}
+    >
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', px: 1.75, pt: 1.5, pb: 1 }}>
+        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: `${color}.main` }} />
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+          {label}
+        </Typography>
+        <Chip label={issues.length} size="small" sx={{ height: 20, fontSize: '0.6875rem' }} />
+        <Box sx={{ flex: 1 }} />
         {onAdd ? (
-          <button
-            type="button"
-            className="kb-col-add"
-            title="Add issue"
-            aria-label={`Add issue to ${label}`}
-            onClick={() => onAdd(columnKey)}
-          >
-            {plusIcon}
-          </button>
+          <Tooltip title="Add issue">
+            <IconButton
+              size="small"
+              color="secondary"
+              aria-label={`Add issue to ${label}`}
+              onClick={() => onAdd(columnKey)}
+            >
+              <IconsaxIcon icon={Add} size={16} />
+            </IconButton>
+          </Tooltip>
         ) : null}
         {onSuggest ? (
-          <button
-            type="button"
-            className="kb-col-suggest"
-            title={suggesting ? 'Claude is thinking…' : 'Ask Claude to suggest a feature'}
-            aria-label={`Suggest a feature for ${label}`}
-            aria-busy={suggesting || undefined}
-            disabled={suggesting}
-            onClick={onSuggest}
-          >
-            {sparkleIcon}
-            <span>{suggesting ? 'Suggesting…' : 'Suggest'}</span>
-          </button>
+          <Tooltip title={suggesting ? 'Claude is thinking…' : 'Ask Claude to suggest a feature'}>
+            <span>
+              <Button
+                size="small"
+                color="secondary"
+                startIcon={<IconsaxIcon icon={MagicStar} size={14} variant="Bulk" />}
+                aria-label={`Suggest a feature for ${label}`}
+                aria-busy={suggesting || undefined}
+                disabled={suggesting}
+                onClick={onSuggest}
+                sx={{ minWidth: 0, px: 1 }}
+              >
+                {suggesting ? 'Suggesting…' : 'Suggest'}
+              </Button>
+            </span>
+          </Tooltip>
         ) : null}
-      </div>
-      <div className="kb-col-list">
+      </Stack>
+      <Stack spacing={1.25} sx={{ px: 1.25, pb: 1.5, overflowY: 'auto', minHeight: 0, flex: 1 }}>
         {suggesting ? (
           <SuggestingSkeletonCard
             activity={suggestingActivity ?? []}
@@ -139,7 +149,9 @@ export function Column({
           />
         ) : null}
         {issues.length === 0 && !suggesting ? (
-          <div className="kb-col-empty">—</div>
+          <Typography variant="caption" color="text.disabled" sx={{ textAlign: 'center', py: 3 }}>
+            No cards
+          </Typography>
         ) : (
           issues.map((issue) => {
             const liveState = issue.activeRun ? liveByRun?.get(issue.activeRun.id) : undefined;
@@ -168,8 +180,8 @@ export function Column({
             );
           })
         )}
-      </div>
-    </div>
+      </Stack>
+    </Box>
   );
 }
 
@@ -183,68 +195,64 @@ function SuggestingSkeletonCard({
   const lastTwo = activity.slice(-2);
   const elapsed = useElapsedSeconds(startedAt);
   return (
-    <div
-      className="kb-card kb-card-skeleton"
+    <Box
       aria-busy="true"
       aria-label="Claude is suggesting a feature"
+      sx={{
+        p: 1.75,
+        borderRadius: 1.5,
+        border: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+      }}
     >
-      <div className="kb-card-row1">
-        <span className="kb-skel kb-skel-num" />
-        <span className="kb-skel kb-skel-tag" />
-      </div>
-      <div className="kb-skel kb-skel-line kb-skel-title" />
-      <div className="kb-skel kb-skel-line kb-skel-line-short" />
-      <div className="kb-card-meta">
-        <span className="kb-skel kb-skel-pill" />
-        <span className="kb-skel kb-skel-pill kb-skel-pill-sm" />
-      </div>
-      <div
-        className="mono"
-        style={{
-          marginTop: 8,
-          paddingTop: 8,
-          borderTop: '1px solid var(--hairline-soft)',
-          fontSize: 11,
-          color: 'var(--ink-3)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span
-            style={{
-              display: 'inline-block',
+      <Stack direction="row" spacing={1} sx={{ mb: 1.25 }}>
+        <Skeleton variant="rounded" width={34} height={18} />
+        <Skeleton variant="rounded" width={44} height={18} />
+      </Stack>
+      <Skeleton variant="text" width="90%" />
+      <Skeleton variant="text" width="60%" />
+      <Box sx={{ mt: 1.25, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+          <Box
+            sx={{
               width: 6,
               height: 6,
               borderRadius: '50%',
-              background: 'var(--running)',
+              bgcolor: 'success.main',
               flexShrink: 0,
             }}
           />
-          <span style={{ flex: 1, color: 'var(--ink-2)' }}>Ideating…</span>
-          {elapsed !== null ? <span>{elapsed}s</span> : null}
-        </div>
+          <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+            Ideating…
+          </Typography>
+          {elapsed !== null ? (
+            <Typography variant="caption" color="text.secondary">
+              {elapsed}s
+            </Typography>
+          ) : null}
+        </Stack>
         {lastTwo.length === 0 ? (
-          <div style={{ paddingLeft: 12 }}>starting…</div>
+          <Typography variant="caption" color="text.disabled" component="div" sx={{ pl: 1.5 }}>
+            starting…
+          </Typography>
         ) : (
           lastTwo.map((ev, i) => (
-            <div
+            <Typography
               key={i}
-              style={{
-                paddingLeft: 12,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
+              variant="caption"
+              color="text.secondary"
+              component="div"
+              noWrap
               title={formatActivity(ev)}
+              sx={{ pl: 1.5, fontFamily: 'var(--ff-mono, monospace)' }}
             >
               {formatActivity(ev)}
-            </div>
+            </Typography>
           ))
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 

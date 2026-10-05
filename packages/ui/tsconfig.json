@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "noEmit": true,
+    // The template code is written for a looser compiler; keep the rest of
+    // the monorepo strict and relax only what it trips over.
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src/**/*", "tsup.config.ts"],
+  "exclude": ["dist", "node_modules"]
+}

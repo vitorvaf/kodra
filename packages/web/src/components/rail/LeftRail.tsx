@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { IssueRef } from '@kanbots/core';
 import { api } from '../../api.js';
 import { getBridge } from '../../desktop-bridge.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useIssues } from '../../hooks/useIssues.js';
 import { useWorkspace } from '../../hooks/useWorkspace.js';
-import { ageString, colorForLogin } from '../../labels.js';
+import { ageString } from '../../labels.js';
 import type { ChatConversation, Issue } from '../../types.js';
 import { ActivitySection } from './ActivitySection.js';
 import { CollapsibleSection } from './CollapsibleSection.js';
@@ -15,18 +15,7 @@ import { WorktreesSection } from './WorktreesSection.js';
 export interface LeftRailProps {
   selectedNumber: IssueRef | null;
   onSelectIssue: (n: IssueRef) => void;
-  onOpenPalette?: () => void;
-  authorLogin?: string | null;
-  onOpenArchive?: () => void;
-  onOpenStats?: () => void;
-  onOpenProviders?: () => void;
   onOpenCloud?: () => void;
-  onOpenRules?: () => void;
-  onOpenScripts?: () => void;
-  onOpenRepos?: () => void;
-  onOpenSentry?: () => void;
-  onOpenMemory?: () => void;
-  onOpenCardTemplates?: () => void;
 }
 
 function LiveAgentRow({
@@ -179,73 +168,18 @@ function ChatList() {
   );
 }
 
-export function LeftRail({
-  selectedNumber,
-  onSelectIssue,
-  onOpenPalette,
-  authorLogin,
-  onOpenArchive,
-  onOpenStats,
-  onOpenProviders,
-  onOpenCloud,
-  onOpenRules,
-  onOpenScripts,
-  onOpenRepos,
-  onOpenSentry,
-  onOpenMemory,
-  onOpenCardTemplates,
-}: LeftRailProps) {
+/**
+ * The workspace data sections shown under the drawer navigation: folder
+ * tree, worktrees, activity, live agents and chats. The account menu that
+ * used to sit at the bottom moved to the app shell (drawer nav + footer).
+ */
+export function LeftRail({ selectedNumber, onSelectIssue, onOpenCloud }: LeftRailProps) {
   const ws = useWorkspace();
   const { issues } = useIssues();
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [appVersion, setAppVersion] = useState<string | null>(null);
-  const accountMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const bridge = getBridge();
-    if (!bridge) return;
-    let alive = true;
-    bridge
-      .updaterGetState()
-      .then((state) => {
-        if (alive) setAppVersion(state.currentVersion);
-      })
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!accountMenuOpen) return;
-    function onPointerDown(e: PointerEvent): void {
-      if (!accountMenuRef.current) return;
-      if (e.target instanceof Node && accountMenuRef.current.contains(e.target)) return;
-      setAccountMenuOpen(false);
-    }
-    function onKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') setAccountMenuOpen(false);
-    }
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [accountMenuOpen]);
-
-  function pick(handler: (() => void) | undefined): void {
-    setAccountMenuOpen(false);
-    handler?.();
-  }
 
   const liveAgents = issues.filter(
     (i) => i.agent === 'running' || i.agent === 'blocked' || i.agent === 'review',
   );
-  const runs = liveAgents.filter((i) => i.agent === 'running').length;
-
-  const me: string = authorLogin ?? 'you';
-  const meColor = colorForLogin(me);
 
   const currentFolder = ws.folders.find((f) => f.current) ?? ws.folders[0] ?? null;
 
@@ -253,7 +187,7 @@ export function LeftRail({
   const headerSubtitle = currentFolder?.branch ?? null;
 
   return (
-    <div className="kb-rail">
+    <div className="kb-rail kb-rail-embedded">
       <CollapsibleSection
         storageKey="workspace"
         className="kb-rail-tree-section"
@@ -306,160 +240,6 @@ export function LeftRail({
       ) : null}
 
       <ChatList />
-
-      <div className="kb-rail-foot" ref={accountMenuRef}>
-        <button
-          type="button"
-          className="kb-rail-account"
-          onClick={() => setAccountMenuOpen((v) => !v)}
-          aria-haspopup="menu"
-          aria-expanded={accountMenuOpen}
-          title="Workspace menu"
-        >
-          <span className="kb-rail-avatar" style={{ background: meColor }} aria-hidden>
-            {String(me).slice(0, 1).toUpperCase()}
-          </span>
-          <span className="kb-who">
-            <span className="kb-who-name">{String(me)}</span>
-            <span className="kb-who-status">
-              <span className="kb-pulse" />
-              {runs} run{runs === 1 ? '' : 's'} · {issues.length} issue
-              {issues.length === 1 ? '' : 's'}
-            </span>
-          </span>
-          <span className="kb-rail-account-caret" aria-hidden>
-            ⌃
-          </span>
-        </button>
-        <button
-          type="button"
-          className="kb-rail-cmdk"
-          onClick={onOpenPalette}
-          title="Command palette (⌘K)"
-        >
-          ⌘K
-        </button>
-
-        {accountMenuOpen ? (
-          <div className="kb-rail-account-menu" role="menu">
-            <button
-              type="button"
-              role="menuitem"
-              className="kb-rail-account-item"
-              onClick={() => pick(onOpenArchive)}
-            >
-              <span className="kb-rail-account-icon" aria-hidden>
-                📦
-              </span>
-              Archive
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="kb-rail-account-item"
-              onClick={() => pick(onOpenStats)}
-            >
-              <span className="kb-rail-account-icon" aria-hidden>
-                📊
-              </span>
-              Stats &amp; cost
-            </button>
-            <div className="kb-rail-account-sep" role="separator" />
-            <button
-              type="button"
-              role="menuitem"
-              className="kb-rail-account-item"
-              onClick={() => pick(onOpenProviders)}
-            >
-              <span className="kb-rail-account-icon" aria-hidden>
-                ⚡
-              </span>
-              Providers
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="kb-rail-account-item"
-              onClick={() => pick(onOpenCloud)}
-            >
-              <span className="kb-rail-account-icon" aria-hidden>
-                ☁
-              </span>
-              Cloud
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="kb-rail-account-item"
-              onClick={() => pick(onOpenRules)}
-            >
-              <span className="kb-rail-account-icon" aria-hidden>
-                📜
-              </span>
-              House rules
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="kb-rail-account-item"
-              onClick={() => pick(onOpenScripts)}
-            >
-              <span className="kb-rail-account-icon" aria-hidden>
-                ▸_
-              </span>
-              Repo scripts
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="kb-rail-account-item"
-              onClick={() => pick(onOpenRepos)}
-            >
-              <span className="kb-rail-account-icon" aria-hidden>
-                ⎘
-              </span>
-              Repos
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="kb-rail-account-item"
-              onClick={() => pick(onOpenCardTemplates)}
-            >
-              <span className="kb-rail-account-icon" aria-hidden>
-                ◳
-              </span>
-              Card templates
-            </button>
-            <div className="kb-rail-account-sep" role="separator" />
-            <button
-              type="button"
-              role="menuitem"
-              className="kb-rail-account-item"
-              onClick={() => pick(onOpenMemory)}
-            >
-              <span className="kb-rail-account-icon" aria-hidden>
-                ◌
-              </span>
-              Memory
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="kb-rail-account-item"
-              onClick={() => pick(onOpenSentry)}
-            >
-              <span className="kb-rail-account-icon" aria-hidden>
-                ⚙
-              </span>
-              Settings
-            </button>
-            <div className="kb-rail-account-version">
-              Kodra{appVersion ? ` v${appVersion}` : ''}
-            </div>
-          </div>
-        ) : null}
-      </div>
     </div>
   );
 }

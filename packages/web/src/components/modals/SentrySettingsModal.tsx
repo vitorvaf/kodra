@@ -1,8 +1,9 @@
-import { Logo } from '../Logo.js';
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { api } from '../../api.js';
 import { dispatchIssuesRefetch } from '../../hooks/useIssues.js';
 import type { SentryConfigInput, SentryConfigPayload } from '../../types.js';
+import Button from '@mui/material/Button';
+import { ModalFrame } from './ModalFrame.js';
 
 export interface SentrySettingsModalProps {
   onClose: () => void;
@@ -64,18 +65,6 @@ export function SentrySettingsModal({ onClose }: SentrySettingsModalProps) {
   useEffect(() => {
     void load();
   }, []);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') onClose();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  function stopInner(e: MouseEvent<HTMLDivElement>): void {
-    e.stopPropagation();
-  }
 
   const dirty = useMemo(() => {
     if (!config) return false;
@@ -148,214 +137,176 @@ export function SentrySettingsModal({ onClose }: SentrySettingsModalProps) {
   }
 
   return (
-    <div
-      className="kb-modal-scrim kb-app"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Sentry settings"
+    <ModalFrame
+      title="Sentry integration"
+      ariaLabel="Sentry settings"
+      width={560}
+      onClose={onClose}
+      bodyClassName="kb-sentry-body"
+      footerHint={
+        config?.safeStorageAvailable === false
+          ? 'No system keyring; tokens stored as plaintext in the local SQLite db.'
+          : 'Token is encrypted via the OS keyring.'
+      }
+      actions={
+        <>
+          <Button color="secondary" onClick={onClose}>
+            Close
+          </Button>
+          <Button variant="contained" onClick={() => void handleSave()} disabled={saving || !dirty}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+        </>
+      }
     >
-      <div className="kb-modal kb-sentry-modal" onClick={stopInner}>
-        <div className="kb-modal-head">
-          <Logo size={11} withWordmark />
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <h2>Sentry integration</h2>
-          <span className="grow" />
-          <button
-            type="button"
-            className="x-btn"
-            onClick={onClose}
-            aria-label="Close (Esc)"
-            title="Close"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 6l12 12M18 6l-12 12" />
-            </svg>
-          </button>
+      {loading ? <div className="kb-sentry-row">Loading…</div> : null}
+
+      {error ? (
+        <div className="kb-sentry-error" role="alert">
+          {error.message}
         </div>
+      ) : null}
 
-        <div className="kb-modal-body kb-sentry-body">
-          {loading ? <div className="kb-sentry-row">Loading…</div> : null}
-
-          {error ? (
-            <div className="kb-sentry-error" role="alert">
-              {error.message}
+      {config && !loading ? (
+        <>
+          {config.tokenEncryption === 'plain' && config.hasToken ? (
+            <div className="kb-sentry-warn" role="status">
+              Token is stored unencrypted (no system keyring detected). Set{' '}
+              <code>SENTRY_AUTH_TOKEN</code> in your shell to override at runtime.
             </div>
           ) : null}
 
-          {config && !loading ? (
-            <>
-              {config.tokenEncryption === 'plain' && config.hasToken ? (
-                <div className="kb-sentry-warn" role="status">
-                  Token is stored unencrypted (no system keyring detected). Set{' '}
-                  <code>SENTRY_AUTH_TOKEN</code> in your shell to override at runtime.
-                </div>
-              ) : null}
-
-              {config.lastError ? (
-                <div className="kb-sentry-error" role="alert">
-                  Last sync error: {config.lastError}
-                </div>
-              ) : null}
-
-              <label className="kb-sentry-row kb-sentry-toggle">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setEnabled(e.target.checked)}
-                />
-                <span>
-                  <strong>Enabled</strong>
-                  <small>Polls Sentry on the interval below; new errors land in Inbox.</small>
-                </span>
-              </label>
-
-              <label className="kb-sentry-row">
-                <span className="kb-sentry-label">Organization slug</span>
-                <input
-                  type="text"
-                  value={orgSlug}
-                  placeholder="my-org"
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setOrgSlug(e.target.value)}
-                />
-              </label>
-
-              <label className="kb-sentry-row">
-                <span className="kb-sentry-label">Project slug</span>
-                <input
-                  type="text"
-                  value={projectSlug}
-                  placeholder="my-project"
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setProjectSlug(e.target.value)}
-                />
-              </label>
-
-              <label className="kb-sentry-row">
-                <span className="kb-sentry-label">Auth token</span>
-                <input
-                  ref={tokenInputRef}
-                  type="password"
-                  value={tokenDraft}
-                  placeholder={
-                    config.hasToken ? '•••••• (leave blank to keep)' : 'Sentry auth token'
-                  }
-                  autoComplete="off"
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setTokenDraft(e.target.value)}
-                />
-              </label>
-              <div className="kb-sentry-hint">
-                Use a Sentry Internal Integration token with <code>project:read</code> +{' '}
-                <code>event:read</code> scopes.
-              </div>
-
-              <label className="kb-sentry-row">
-                <span className="kb-sentry-label">Environment filter</span>
-                <input
-                  type="text"
-                  value={environmentFilter}
-                  placeholder="production (leave blank for all)"
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setEnvironmentFilter(e.target.value)
-                  }
-                />
-              </label>
-
-              <label className="kb-sentry-row">
-                <span className="kb-sentry-label">Poll interval</span>
-                <select
-                  value={pollIntervalSeconds}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                    setPollIntervalSeconds(Number(e.target.value))
-                  }
-                >
-                  {INTERVAL_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="kb-sentry-status">
-                <div>
-                  <strong>Last sync:</strong>{' '}
-                  {config.lastSyncedAt ? new Date(config.lastSyncedAt).toLocaleString() : 'never'}
-                </div>
-                {config.consecutiveAuthFailures > 0 ? (
-                  <div className="kb-sentry-fail">
-                    Consecutive auth failures: {config.consecutiveAuthFailures}
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="kb-sentry-actions">
-                <button
-                  type="button"
-                  className="kb-btn ghost"
-                  onClick={() => void handleTest()}
-                  disabled={testState.kind === 'running'}
-                >
-                  {testState.kind === 'running' ? 'Testing…' : 'Test connection'}
-                </button>
-                <button
-                  type="button"
-                  className="kb-btn ghost"
-                  onClick={() => void handleSyncNow()}
-                  disabled={syncState.kind === 'running' || !config.hasToken}
-                  title={!config.hasToken ? 'Save a token first' : 'Run a sync now'}
-                >
-                  {syncState.kind === 'running' ? 'Syncing…' : 'Sync now'}
-                </button>
-              </div>
-
-              {testState.kind === 'ok' ? (
-                <div className="kb-sentry-ok">
-                  ✓ Connected to <code>{testState.project.slug}</code> ({testState.project.name})
-                </div>
-              ) : null}
-              {testState.kind === 'error' ? (
-                <div className="kb-sentry-error">{testState.message}</div>
-              ) : null}
-              {syncState.kind === 'done' ? (
-                <div className="kb-sentry-ok">
-                  ✓ Imported {syncState.imported} new, refreshed {syncState.updated} (saw{' '}
-                  {syncState.totalSeen}).
-                </div>
-              ) : null}
-              {syncState.kind === 'error' ? (
-                <div className="kb-sentry-error">{syncState.message}</div>
-              ) : null}
-            </>
+          {config.lastError ? (
+            <div className="kb-sentry-error" role="alert">
+              Last sync error: {config.lastError}
+            </div>
           ) : null}
-        </div>
 
-        <div className="kb-modal-foot">
-          <span className="hint">
-            {config?.safeStorageAvailable === false
-              ? 'No system keyring; tokens stored as plaintext in the local SQLite db.'
-              : 'Token is encrypted via the OS keyring.'}
-          </span>
-          <span className="grow" />
-          <button type="button" className="kb-btn ghost" onClick={onClose}>
-            Close
-          </button>
-          <button
-            type="button"
-            className="kb-btn primary"
-            onClick={() => void handleSave()}
-            disabled={saving || !dirty}
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-      </div>
-    </div>
+          <label className="kb-sentry-row kb-sentry-toggle">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setEnabled(e.target.checked)}
+            />
+            <span>
+              <strong>Enabled</strong>
+              <small>Polls Sentry on the interval below; new errors land in Inbox.</small>
+            </span>
+          </label>
+
+          <label className="kb-sentry-row">
+            <span className="kb-sentry-label">Organization slug</span>
+            <input
+              type="text"
+              value={orgSlug}
+              placeholder="my-org"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setOrgSlug(e.target.value)}
+            />
+          </label>
+
+          <label className="kb-sentry-row">
+            <span className="kb-sentry-label">Project slug</span>
+            <input
+              type="text"
+              value={projectSlug}
+              placeholder="my-project"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setProjectSlug(e.target.value)}
+            />
+          </label>
+
+          <label className="kb-sentry-row">
+            <span className="kb-sentry-label">Auth token</span>
+            <input
+              ref={tokenInputRef}
+              type="password"
+              value={tokenDraft}
+              placeholder={config.hasToken ? '•••••• (leave blank to keep)' : 'Sentry auth token'}
+              autoComplete="off"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setTokenDraft(e.target.value)}
+            />
+          </label>
+          <div className="kb-sentry-hint">
+            Use a Sentry Internal Integration token with <code>project:read</code> +{' '}
+            <code>event:read</code> scopes.
+          </div>
+
+          <label className="kb-sentry-row">
+            <span className="kb-sentry-label">Environment filter</span>
+            <input
+              type="text"
+              value={environmentFilter}
+              placeholder="production (leave blank for all)"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setEnvironmentFilter(e.target.value)}
+            />
+          </label>
+
+          <label className="kb-sentry-row">
+            <span className="kb-sentry-label">Poll interval</span>
+            <select
+              value={pollIntervalSeconds}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                setPollIntervalSeconds(Number(e.target.value))
+              }
+            >
+              {INTERVAL_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="kb-sentry-status">
+            <div>
+              <strong>Last sync:</strong>{' '}
+              {config.lastSyncedAt ? new Date(config.lastSyncedAt).toLocaleString() : 'never'}
+            </div>
+            {config.consecutiveAuthFailures > 0 ? (
+              <div className="kb-sentry-fail">
+                Consecutive auth failures: {config.consecutiveAuthFailures}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="kb-sentry-actions">
+            <button
+              type="button"
+              className="kb-btn ghost"
+              onClick={() => void handleTest()}
+              disabled={testState.kind === 'running'}
+            >
+              {testState.kind === 'running' ? 'Testing…' : 'Test connection'}
+            </button>
+            <button
+              type="button"
+              className="kb-btn ghost"
+              onClick={() => void handleSyncNow()}
+              disabled={syncState.kind === 'running' || !config.hasToken}
+              title={!config.hasToken ? 'Save a token first' : 'Run a sync now'}
+            >
+              {syncState.kind === 'running' ? 'Syncing…' : 'Sync now'}
+            </button>
+          </div>
+
+          {testState.kind === 'ok' ? (
+            <div className="kb-sentry-ok">
+              ✓ Connected to <code>{testState.project.slug}</code> ({testState.project.name})
+            </div>
+          ) : null}
+          {testState.kind === 'error' ? (
+            <div className="kb-sentry-error">{testState.message}</div>
+          ) : null}
+          {syncState.kind === 'done' ? (
+            <div className="kb-sentry-ok">
+              ✓ Imported {syncState.imported} new, refreshed {syncState.updated} (saw{' '}
+              {syncState.totalSeen}).
+            </div>
+          ) : null}
+          {syncState.kind === 'error' ? (
+            <div className="kb-sentry-error">{syncState.message}</div>
+          ) : null}
+        </>
+      ) : null}
+    </ModalFrame>
   );
 }

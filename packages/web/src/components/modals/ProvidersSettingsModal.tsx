@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { api } from '../../api.js';
 import { getBridge } from '../../desktop-bridge.js';
 import type {
@@ -7,6 +7,8 @@ import type {
   ProviderTestConnectionResult,
   ProvidersPayload,
 } from '../../types.js';
+import Button from '@mui/material/Button';
+import { ModalFrame } from './ModalFrame.js';
 
 export interface ProvidersSettingsModalProps {
   onClose: () => void;
@@ -378,18 +380,6 @@ export function ProvidersSettingsModal({ onClose }: ProvidersSettingsModalProps)
     void load();
   }, []);
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') onClose();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  function stopInner(e: MouseEvent<HTMLDivElement>): void {
-    e.stopPropagation();
-  }
-
   async function handleSetDefaults(input: {
     defaultProvider?: ProviderId | null;
     defaultModel?: string | null;
@@ -408,115 +398,91 @@ export function ProvidersSettingsModal({ onClose }: ProvidersSettingsModalProps)
   );
 
   return (
-    <div className="kb-modal-scrim" onMouseDown={onClose} role="dialog" aria-modal="true">
-      <div className="kb-modal kb-modal-providers sm" onMouseDown={stopInner}>
-        <div className="kb-modal-head">
-          <h2>AI providers</h2>
-          <span className="grow" />
-          <button
-            type="button"
-            className="x-btn"
-            onClick={onClose}
-            aria-label="Close"
-            title="Close"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 6l12 12M18 6l-12 12" />
-            </svg>
-          </button>
+    <ModalFrame
+      title="AI providers"
+      width={880}
+      onClose={onClose}
+      bodyClassName="kb-providers-body"
+      actions={
+        <Button color="secondary" onClick={onClose}>
+          Close
+        </Button>
+      }
+    >
+      {loading ? <div>Loading…</div> : null}
+      {error ? (
+        <div className="kb-sentry-error" role="alert">
+          {error.message}
         </div>
+      ) : null}
 
-        <div className="kb-modal-body kb-providers-body">
-          {loading ? <div>Loading…</div> : null}
-          {error ? (
-            <div className="kb-sentry-error" role="alert">
-              {error.message}
+      {payload ? (
+        <>
+          {!payload.anyConfigured ? (
+            <div className="kb-sentry-warn" role="status">
+              <strong>No providers configured.</strong> Sign in to any of the supported agent CLIs
+              below (Claude Code, Codex, Gemini, Amp, Cursor, Copilot, OpenCode, Droid, CCR, Qwen)
+              to enable agent runs.
             </div>
           ) : null}
 
-          {payload ? (
-            <>
-              {!payload.anyConfigured ? (
-                <div className="kb-sentry-warn" role="status">
-                  <strong>No providers configured.</strong> Sign in to any of the supported agent
-                  CLIs below (Claude Code, Codex, Gemini, Amp, Cursor, Copilot, OpenCode, Droid,
-                  CCR, Qwen) to enable agent runs.
-                </div>
-              ) : null}
+          <div className="kb-providers-defaults">
+            <div className="kb-providers-defaults-title">Defaults</div>
+            <label className="kb-sentry-row">
+              <span className="kb-sentry-label">Default provider</span>
+              <select
+                value={payload.settings.defaultProvider ?? ''}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  void handleSetDefaults({
+                    defaultProvider: (e.target.value || null) as ProviderId | null,
+                  })
+                }
+              >
+                <option value="">(none)</option>
+                {configuredProviders.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {SPECS.find((s) => s.id === p.id)?.name ?? p.id}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {payload.settings.defaultProvider ? (
+              <label className="kb-sentry-row">
+                <span className="kb-sentry-label">Default model</span>
+                <select
+                  value={payload.settings.defaultModel ?? ''}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                    void handleSetDefaults({ defaultModel: e.target.value || null })
+                  }
+                >
+                  <option value="">(provider default)</option>
+                  {(MODELS_BY_PROVIDER[payload.settings.defaultProvider] ?? []).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </div>
 
-              <div className="kb-providers-defaults">
-                <div className="kb-providers-defaults-title">Defaults</div>
-                <label className="kb-sentry-row">
-                  <span className="kb-sentry-label">Default provider</span>
-                  <select
-                    value={payload.settings.defaultProvider ?? ''}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                      void handleSetDefaults({
-                        defaultProvider: (e.target.value || null) as ProviderId | null,
-                      })
-                    }
-                  >
-                    <option value="">(none)</option>
-                    {configuredProviders.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {SPECS.find((s) => s.id === p.id)?.name ?? p.id}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {payload.settings.defaultProvider ? (
-                  <label className="kb-sentry-row">
-                    <span className="kb-sentry-label">Default model</span>
-                    <select
-                      value={payload.settings.defaultModel ?? ''}
-                      onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                        void handleSetDefaults({ defaultModel: e.target.value || null })
-                      }
-                    >
-                      <option value="">(provider default)</option>
-                      {(MODELS_BY_PROVIDER[payload.settings.defaultProvider] ?? []).map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-              </div>
-
-              <div className="kb-providers-list">
-                {SPECS.map((spec) => {
-                  const cfg = payload.providers.find((p) => p.id === spec.id);
-                  if (!cfg) return null;
-                  return (
-                    <ProviderSection
-                      key={spec.id}
-                      spec={spec}
-                      config={cfg}
-                      onChanged={(next) => setPayload(next)}
-                    />
-                  );
-                })}
-              </div>
-            </>
-          ) : null}
-        </div>
-
-        <div className="kb-modal-foot">
-          <span className="hint" />
-          <button type="button" className="kb-btn ghost" onClick={onClose}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+          <div className="kb-providers-list">
+            {SPECS.map((spec) => {
+              const cfg = payload.providers.find((p) => p.id === spec.id);
+              if (!cfg) return null;
+              return (
+                <ProviderSection
+                  key={spec.id}
+                  spec={spec}
+                  config={cfg}
+                  onChanged={(next) => setPayload(next)}
+                />
+              );
+            })}
+          </div>
+        </>
+      ) : null}
+    </ModalFrame>
   );
 }
 

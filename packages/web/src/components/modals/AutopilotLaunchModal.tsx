@@ -1,8 +1,10 @@
-import { Logo } from '../Logo.js';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api.js';
 import { listPersonas, type Persona } from '../../personas.js';
 import { ModelPicker, type ModelPickerValue } from '../forms/ModelPicker.js';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import { ModalFrame } from './ModalFrame.js';
 
 export interface AutopilotLaunchModalProps {
   onClose: () => void;
@@ -79,98 +81,82 @@ export function AutopilotLaunchModal({ onClose, onStarted }: AutopilotLaunchModa
   }
 
   return (
-    <div className="kb-modal-scrim kb-app" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="kb-modal sm" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 760 }}>
-        <div className="kb-modal-head">
-          <Logo size={11} withWordmark />
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <h2>Start an autopilot</h2>
-          <span className="grow" />
-          <button type="button" className="x-btn" onClick={onClose} aria-label="Close">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 6l12 12M18 6l-12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="kb-modal-body" style={{ display: 'block', overflowY: 'auto' }}>
-          <div style={{ padding: '14px 22px 0' }}>
-            <div className="kb-tdm-tabs" style={{ marginBottom: 18 }}>
-              <button
-                type="button"
-                className={`kb-tdm-tab${tab === 'feature-dev' ? ' active' : ''}`}
-                onClick={() => setTab('feature-dev')}
-              >
-                Feature dev
-              </button>
-              <button
-                type="button"
-                className={`kb-tdm-tab${tab === 'qa' ? ' active' : ''}`}
-                onClick={() => setTab('qa')}
-              >
-                QA <span style={{ color: 'var(--ink-4)', fontSize: 10, marginLeft: 6 }}>soon</span>
-              </button>
-            </div>
-          </div>
-
-          <div style={{ padding: '0 22px 18px' }}>
-            {tab === 'feature-dev' ? (
-              <FeatureDevTab
-                personas={personas}
-                selectedIds={selectedIds}
-                onToggle={toggle}
-                onPersonasChanged={refreshPersonas}
-                modelSelection={modelSelection}
-                onModelChange={setModelSelection}
-                effort={effort}
-                onEffortChange={setEffort}
-                parallelism={parallelism}
-                onParallelismChange={setParallelism}
-              />
-            ) : (
-              <QaComingSoon />
-            )}
-          </div>
-        </div>
-
-        <div className="kb-modal-foot">
-          {tab === 'feature-dev' ? (
-            <span className="hint">
-              {selected.length === 0
-                ? 'Pick one or more personas.'
-                : `Round-robin across ${selected.length} persona${selected.length === 1 ? '' : 's'} · ${parallelism} in parallel · ${effort} effort · ${modelSelection?.model ?? 'default model'}. Runs until you stop it.`}
-            </span>
-          ) : null}
-          <span className="grow" />
+    <ModalFrame
+      escapeCloses={false}
+      title="Start an autopilot"
+      width={760}
+      onClose={onClose}
+      footerHint={
+        <>
+          {tab === 'feature-dev'
+            ? selected.length === 0
+              ? 'Pick one or more personas.'
+              : `Round-robin across ${selected.length} persona${selected.length === 1 ? '' : 's'} · ${parallelism} in parallel · ${effort} effort · ${modelSelection?.model ?? 'default model'}. Runs until you stop it.`
+            : null}
           {error ? (
-            <span style={{ color: 'var(--failed)', fontSize: 11, marginRight: 8 }}>{error}</span>
+            <Box component="span" sx={{ color: 'error.main', ml: 1 }}>
+              {error}
+            </Box>
           ) : null}
-          <button type="button" className="kb-btn ghost" onClick={onClose} disabled={submitting}>
+        </>
+      }
+      actions={
+        <>
+          <Button color="secondary" onClick={onClose} disabled={submitting}>
             Cancel
-          </button>
+          </Button>
           {tab === 'feature-dev' ? (
-            <button
-              type="button"
-              className="kb-btn primary"
+            <Button
+              variant="contained"
               disabled={selected.length === 0 || submitting}
               onClick={() => void start()}
-              style={{ marginLeft: 8 }}
             >
               {submitting
                 ? 'Starting…'
                 : `Start autopilot${selected.length > 0 ? ` (${selected.length})` : ''}`}
-            </button>
+            </Button>
           ) : null}
+        </>
+      }
+    >
+      <div style={{ padding: '14px 22px 0' }}>
+        <div className="kb-tdm-tabs" style={{ marginBottom: 18 }}>
+          <button
+            type="button"
+            className={`kb-tdm-tab${tab === 'feature-dev' ? ' active' : ''}`}
+            onClick={() => setTab('feature-dev')}
+          >
+            Feature dev
+          </button>
+          <button
+            type="button"
+            className={`kb-tdm-tab${tab === 'qa' ? ' active' : ''}`}
+            onClick={() => setTab('qa')}
+          >
+            QA <span style={{ color: 'var(--ink-4)', fontSize: 10, marginLeft: 6 }}>soon</span>
+          </button>
         </div>
       </div>
-    </div>
+
+      <div style={{ padding: '0 22px 18px' }}>
+        {tab === 'feature-dev' ? (
+          <FeatureDevTab
+            personas={personas}
+            selectedIds={selectedIds}
+            onToggle={toggle}
+            onPersonasChanged={refreshPersonas}
+            modelSelection={modelSelection}
+            onModelChange={setModelSelection}
+            effort={effort}
+            onEffortChange={setEffort}
+            parallelism={parallelism}
+            onParallelismChange={setParallelism}
+          />
+        ) : (
+          <QaComingSoon />
+        )}
+      </div>
+    </ModalFrame>
   );
 }
 

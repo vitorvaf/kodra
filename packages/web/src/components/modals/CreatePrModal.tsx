@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type ChangeEvent, type MouseEvent } from 'react';
-import { Logo } from '../Logo.js';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { api } from '../../api.js';
 import { MarkdownEditor } from '../forms/MarkdownEditor.js';
+import Button from '@mui/material/Button';
+import { ModalFrame } from './ModalFrame.js';
 
 export interface CreatePrModalProps {
   /** Agent run whose worktree/branch we're promoting. */
@@ -85,10 +86,6 @@ export function CreatePrModal({ runId, onCreated, onClose }: CreatePrModalProps)
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, submitting]);
 
-  function stopInner(e: MouseEvent<HTMLDivElement>): void {
-    e.stopPropagation();
-  }
-
   function updateField<K extends keyof DraftState>(key: K, value: DraftState[K]): void {
     setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
   }
@@ -116,142 +113,108 @@ export function CreatePrModal({ runId, onCreated, onClose }: CreatePrModalProps)
   }
 
   return (
-    <div
-      className="kb-modal-scrim kb-app"
-      onClick={() => {
+    <ModalFrame
+      escapeCloses={false}
+      title="Create draft PR"
+      ariaLabel="Create draft pull request"
+      width={560}
+      onClose={() => {
         if (!submitting) onClose();
       }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Create draft pull request"
-    >
-      <div className="kb-modal kb-sentry-modal" onClick={stopInner}>
-        <div className="kb-modal-head">
-          <Logo size={11} withWordmark />
-          <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <h2>Create draft PR</h2>
-          <span className="grow" />
-          <button
-            type="button"
-            className="x-btn"
-            onClick={onClose}
-            disabled={submitting}
-            aria-label="Close (Esc)"
-            title="Close"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 6l12 12M18 6l-12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="kb-modal-body kb-sentry-body">
-          <div className="kb-sentry-hint">
-            We drafted a title and body from this run's diff to save you a round-trip. Edit before
-            submitting — your text is what lands on GitHub.
-          </div>
-
-          {drafting ? (
-            <div
-              className="kb-sentry-row"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '20px 4px',
-              }}
-            >
-              <SpinnerDot />
-              <span style={{ color: 'var(--ink-2)' }}>Drafting PR description…</span>
-            </div>
-          ) : null}
-
-          {!drafting && draft ? (
-            <>
-              <label
-                className="kb-sentry-row"
-                style={{ flexDirection: 'column', alignItems: 'stretch' }}
-              >
-                <span className="kb-sentry-label" style={{ marginBottom: 6 }}>
-                  Title
-                </span>
-                <input
-                  ref={titleRef}
-                  className="kb-input"
-                  type="text"
-                  value={draft.title}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    updateField('title', e.target.value)
-                  }
-                  disabled={submitting}
-                  placeholder="One-line summary"
-                  maxLength={200}
-                />
-              </label>
-
-              <div
-                className="kb-sentry-row"
-                style={{
-                  flexDirection: 'column',
-                  alignItems: 'stretch',
-                  marginTop: 12,
-                }}
-              >
-                <span className="kb-sentry-label" style={{ marginBottom: 6 }}>
-                  Body
-                </span>
-                <MarkdownEditor
-                  value={draft.body}
-                  onChange={(next) => updateField('body', next)}
-                  disabled={submitting}
-                  rows={12}
-                  ariaLabel="Pull request body"
-                  placeholder="Markdown body (Summary / Changes / Why / Test plan)"
-                />
-              </div>
-
-              {draft.diffTruncated ? (
-                <div className="kb-sentry-hint" style={{ marginTop: 6, color: 'var(--ink-3)' }}>
-                  Heads up: the diff was truncated before drafting — the body may miss work from
-                  later files. Edit before submitting.
-                </div>
-              ) : null}
-            </>
-          ) : null}
-
-          {error ? (
-            <div className="kb-sentry-error" role="alert" style={{ marginTop: 12 }}>
-              {error}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="kb-modal-foot">
-          <span className="hint">
-            Pre-filling costs about $0.01-0.05 of agent budget per draft.
-          </span>
-          <span className="grow" />
-          <button type="button" className="kb-btn ghost" onClick={onClose} disabled={submitting}>
+      bodyClassName="kb-sentry-body"
+      footerHint={'Pre-filling costs about $0.01-0.05 of agent budget per draft.'}
+      actions={
+        <>
+          <Button color="secondary" onClick={onClose} disabled={submitting}>
             Cancel
-          </button>
-          <button
-            type="button"
-            className="kb-btn primary"
+          </Button>
+          <Button
+            variant="contained"
             onClick={() => void handleSubmit()}
             disabled={drafting || submitting || (draft?.title.trim().length ?? 0) === 0}
           >
             {submitting ? 'Opening…' : 'Create draft PR'}
-          </button>
-        </div>
+          </Button>
+        </>
+      }
+    >
+      <div className="kb-sentry-hint">
+        We drafted a title and body from this run's diff to save you a round-trip. Edit before
+        submitting — your text is what lands on GitHub.
       </div>
-    </div>
+
+      {drafting ? (
+        <div
+          className="kb-sentry-row"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '20px 4px',
+          }}
+        >
+          <SpinnerDot />
+          <span style={{ color: 'var(--ink-2)' }}>Drafting PR description…</span>
+        </div>
+      ) : null}
+
+      {!drafting && draft ? (
+        <>
+          <label
+            className="kb-sentry-row"
+            style={{ flexDirection: 'column', alignItems: 'stretch' }}
+          >
+            <span className="kb-sentry-label" style={{ marginBottom: 6 }}>
+              Title
+            </span>
+            <input
+              ref={titleRef}
+              className="kb-input"
+              type="text"
+              value={draft.title}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => updateField('title', e.target.value)}
+              disabled={submitting}
+              placeholder="One-line summary"
+              maxLength={200}
+            />
+          </label>
+
+          <div
+            className="kb-sentry-row"
+            style={{
+              flexDirection: 'column',
+              alignItems: 'stretch',
+              marginTop: 12,
+            }}
+          >
+            <span className="kb-sentry-label" style={{ marginBottom: 6 }}>
+              Body
+            </span>
+            <MarkdownEditor
+              value={draft.body}
+              onChange={(next) => updateField('body', next)}
+              disabled={submitting}
+              rows={12}
+              ariaLabel="Pull request body"
+              placeholder="Markdown body (Summary / Changes / Why / Test plan)"
+            />
+          </div>
+
+          {draft.diffTruncated ? (
+            <div className="kb-sentry-hint" style={{ marginTop: 6, color: 'var(--ink-3)' }}>
+              Heads up: the diff was truncated before drafting — the body may miss work from later
+              files. Edit before submitting.
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
+      {error ? (
+        <div className="kb-sentry-error" role="alert" style={{ marginTop: 12 }}>
+          {error}
+        </div>
+      ) : null}
+    </ModalFrame>
   );
 }
 

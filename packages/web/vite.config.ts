@@ -6,9 +6,10 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     // The package root also exports Node-only GitHub client code. The web
-    // renderer only needs the browser-safe issue-ref helpers.
+    // renderer only needs the browser-safe subset (issue-ref helpers and
+    // shared limits) exported by core's browser barrel.
     alias: {
-      '@kanbots/core': fileURLToPath(new URL('../core/src/issue-ref.ts', import.meta.url)),
+      '@kanbots/core': fileURLToPath(new URL('../core/src/browser.ts', import.meta.url)),
     },
   },
   base: './',

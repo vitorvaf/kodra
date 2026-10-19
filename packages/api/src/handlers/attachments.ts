@@ -15,6 +15,10 @@ const MIME_EXT: Record<string, string> = {
   'image/webp': '.webp',
   'image/svg+xml': '.svg',
   'image/bmp': '.bmp',
+  'application/json': '.json',
+  'text/plain': '.txt',
+  'text/xml': '.xml',
+  'application/xml': '.xml',
 };
 
 const MAX_BYTES = 15 * 1024 * 1024;

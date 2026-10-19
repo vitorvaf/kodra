@@ -1,5 +1,6 @@
 import {
   agentFromLabels,
+  BODY_MAX_CHARS,
   statusFromLabels,
   type Comment,
   type CreateIssueInput,
@@ -55,7 +56,7 @@ const issueCreateSchema = z
   .object({
     title: z.string().min(1).max(200),
     number: z.string().min(1).max(32).optional(),
-    body: z.string().max(65_536).optional(),
+    body: z.string().max(BODY_MAX_CHARS).optional(),
     labels: z.array(z.string()).optional(),
     assignees: z.array(z.string()).optional(),
   })
@@ -79,7 +80,7 @@ const issuePatchSchema = z
 const addCommentSchema = z
   .object({
     number: issueRefSchema,
-    body: z.string().min(1).max(65_536),
+    body: z.string().min(1).max(BODY_MAX_CHARS),
   })
   .strict();
 
@@ -101,7 +102,7 @@ const PROVIDER_ENUM = z.enum([
 const postMessageSchema = z
   .object({
     number: issueRefSchema,
-    body: z.string().min(1).max(65_536),
+    body: z.string().min(1).max(BODY_MAX_CHARS),
     dispatch: z.boolean().optional(),
     model: z.string().min(1).max(120).optional(),
     provider: PROVIDER_ENUM.optional(),

@@ -28,4 +28,35 @@ describe('attachments:upload', () => {
       }),
     ).rejects.toThrow();
   });
+
+  it('uses a JSON extension for application/json uploads', async () => {
+    const repoPath = await mkdtemp(join(tmpdir(), 'kanbots-attach-'));
+    const { handlers } = makeHandlerTestKit({ repoPath });
+    const result = await handlers['attachments:upload']({
+      contentType: 'application/json',
+      data: new Uint8Array([0x7b, 0x7d]),
+    });
+    expect(result.filename.endsWith('.json')).toBe(true);
+  });
+
+  it('uses an XML extension for text/xml uploads', async () => {
+    const repoPath = await mkdtemp(join(tmpdir(), 'kanbots-attach-'));
+    const { handlers } = makeHandlerTestKit({ repoPath });
+    const result = await handlers['attachments:upload']({
+      contentType: 'text/xml',
+      data: new Uint8Array([0x3c, 0x78, 0x2f, 0x3e]),
+    });
+    expect(result.filename.endsWith('.xml')).toBe(true);
+  });
+
+  it('rejects application/pdf as unsupported media', async () => {
+    const repoPath = await mkdtemp(join(tmpdir(), 'kanbots-attach-'));
+    const { handlers } = makeHandlerTestKit({ repoPath });
+    await expect(
+      handlers['attachments:upload']({
+        contentType: 'application/pdf',
+        data: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      }),
+    ).rejects.toMatchObject({ name: 'UnsupportedMediaType' });
+  });
 });

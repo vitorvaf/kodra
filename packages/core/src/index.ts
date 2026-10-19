@@ -50,3 +50,4 @@ export type {
   User,
 } from './types.js';
 export { isValidCustomIssueId, issueBranchSlug, parseIssueRef } from './issue-ref.js';
+export { BODY_MAX_CHARS, KICKOFF_PROMPT_MAX_CHARS } from './limits.js';

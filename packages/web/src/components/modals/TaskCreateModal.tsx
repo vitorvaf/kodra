@@ -1,5 +1,9 @@
 import { Logo } from '../Logo.js';
-import { isValidCustomIssueId } from '@kanbots/core';
+import {
+  BODY_MAX_CHARS,
+  isValidCustomIssueId,
+  KICKOFF_PROMPT_MAX_CHARS,
+} from '@kanbots/core';
 import {
   useCallback,
   useEffect,
@@ -12,6 +16,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { api, isCloudMode } from '../../api.js';
+import { classifyPastedFile, resolveUploadContentType } from '../../lib/attachments.js';
 import { CardPreview } from '../Card.js';
 import { notifyBacklogCreated } from '../BacklogToast.js';
 import { MarkdownEditor, type MarkdownEditorHandle } from '../forms/MarkdownEditor.js';
@@ -305,27 +310,42 @@ export function TaskCreateModal({
   async function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>): Promise<void> {
     const items = e.clipboardData?.items;
     if (!items) return;
-    const images: File[] = [];
+    const attachments: Array<{ file: File; kind: 'image' | 'data' }> = [];
     for (const item of items) {
-      if (item.kind === 'file' && item.type.startsWith('image/')) {
+      if (item.kind === 'file') {
         const file = item.getAsFile();
-        if (file) images.push(file);
+        const kind = file ? classifyPastedFile(file) : null;
+        if (file && kind) attachments.push({ file, kind });
       }
     }
-    if (images.length === 0) return;
+    if (attachments.length === 0) return;
     e.preventDefault();
-    for (const file of images) {
-      const token = `![uploading image…](kanbots-pending:${Date.now()}-${Math.random().toString(36).slice(2, 8)})`;
+    for (const { file, kind } of attachments) {
+      const name = file.name?.trim() || 'pasted file';
+      const token =
+        kind === 'image'
+          ? `![uploading image…](kanbots-pending:${Date.now()}-${Math.random().toString(36).slice(2, 8)})`
+          : `[uploading ${name}…](kanbots-pending:${Date.now()}-${Math.random().toString(36).slice(2, 8)})`;
       insertAtCursor(token);
       setPasting((n) => n + 1);
       try {
-        const result = await api.uploadAttachment(file);
-        const alt = file.name?.trim() || 'pasted image';
-        replaceText(token, `![${alt}](${result.absolutePath})`);
+        const contentType = resolveUploadContentType(file);
+        if (!contentType) throw new Error('unsupported pasted file type');
+        const uploadFile =
+          contentType !== file.type
+            ? new File([file], file.name ?? 'attachment', { type: contentType })
+            : file;
+        const result = await api.uploadAttachment(uploadFile);
+        if (kind === 'image') {
+          const alt = file.name?.trim() || 'pasted image';
+          replaceText(token, `![${alt}](${result.absolutePath})`);
+        } else {
+          replaceText(token, `${name} (pasted file): ${result.absolutePath}`);
+        }
       } catch (err) {
         replaceText(token, '');
         setError(
-          `Failed to upload pasted image: ${err instanceof Error ? err.message : String(err)}`,
+          `Failed to upload pasted ${kind === 'image' ? 'image' : 'file'}: ${err instanceof Error ? err.message : String(err)}`,
         );
       } finally {
         setPasting((n) => Math.max(0, n - 1));
@@ -392,12 +412,26 @@ export function TaskCreateModal({
   }, [onClose]);
 
   const modeDef = MODES.find((m) => m.id === mode) ?? MODES[0]!;
+  const kickoffSuffix =
+    mode === 'spec'
+      ? 'Refine the acceptance criteria first via /spec.'
+      : mode === 'dispatch'
+        ? 'Implement this task. Run typecheck after each major edit.'
+        : '';
+  const kickoffLength =
+    mode === 'queue'
+      ? body.length
+      : (body.trim() ? body.trim().length + 2 : 0) + kickoffSuffix.length;
+  const lengthLimit = mode === 'queue' ? BODY_MAX_CHARS : KICKOFF_PROMPT_MAX_CHARS;
+  const lengthOverLimit = kickoffLength > lengthLimit;
+  const showLengthCounter =
+    body.length > BODY_MAX_CHARS * 0.9 || kickoffLength > KICKOFF_PROMPT_MAX_CHARS * 0.9;
 
   async function submit(e?: FormEvent): Promise<void> {
     if (e) e.preventDefault();
     if (submitting) return;
     if (pasting > 0) {
-      setError('Wait for the pasted image upload to finish');
+      setError('Wait for the pasted attachment upload to finish');
       return;
     }
     if (!title.trim()) {
@@ -408,6 +442,22 @@ export function TaskCreateModal({
     if (trimmedCustomNumber && !isValidCustomIssueId(trimmedCustomNumber)) {
       setError(
         'ID inválido: use letras, números, ponto, hífen ou underline; sem espaços, "..", "--", ou terminando em "-" ou "."',
+      );
+      return;
+    }
+    if (body.length > BODY_MAX_CHARS) {
+      setError(
+        `Description exceeds ${BODY_MAX_CHARS} characters (${body.length}). Attach large content as a file instead — paste it into the description.`,
+      );
+      return;
+    }
+    const kickoff =
+      mode === 'spec' || mode === 'dispatch'
+        ? (body.trim() ? `${body.trim()}\n\n` : '') + kickoffSuffix
+        : null;
+    if (kickoff !== null && kickoff.length > KICKOFF_PROMPT_MAX_CHARS) {
+      setError(
+        `Description is too long for ${mode} mode (kickoff prompt would be ${kickoff.length} chars, limit ${KICKOFF_PROMPT_MAX_CHARS}). Attach large content as a file instead — paste it into the description.`,
       );
       return;
     }
@@ -434,13 +484,8 @@ export function TaskCreateModal({
       notifyBacklogCreated(labels);
       onCreated?.(created);
 
-      if (mode === 'spec' || mode === 'dispatch') {
+      if (kickoff !== null) {
         // Drop a kickoff message into the thread so the agent has a prompt.
-        const kickoff =
-          (body.trim() ? `${body.trim()}\n\n` : '') +
-          (mode === 'spec'
-            ? 'Refine the acceptance criteria first via /spec.'
-            : 'Implement this task. Run typecheck after each major edit.');
         const messageRes = await api.postMessage(created.number, kickoff, { dispatch: false });
         if (!messageRes.thread) {
           throw new Error(`Could not initialise thread for issue #${created.number}`);
@@ -474,6 +519,12 @@ export function TaskCreateModal({
     if (trimmedCustomNumber && !isValidCustomIssueId(trimmedCustomNumber)) {
       setError(
         'ID inválido: use letras, números, ponto, hífen ou underline; sem espaços, "..", "--", ou terminando em "-" ou "."',
+      );
+      return;
+    }
+    if (body.length > BODY_MAX_CHARS) {
+      setError(
+        `Description exceeds ${BODY_MAX_CHARS} characters (${body.length}). Attach large content as a file instead — paste it into the description.`,
       );
       return;
     }
@@ -642,11 +693,22 @@ export function TaskCreateModal({
                   onPaste={(e) => void handlePaste(e)}
                   rows={10}
                   ariaLabel="Task description"
-                  placeholder={`What is the user-facing outcome?\n\nAC:\n- A new user can register a passkey on first login\n- Existing users see a banner with passkey CTA\n\nTip: paste an image (⌘V / Ctrl+V) to attach it.`}
+                  placeholder={`What is the user-facing outcome?\n\nAC:\n- A new user can register a passkey on first login\n- Existing users see a banner with passkey CTA\n\nTip: paste an image or file (⌘V / Ctrl+V) to attach it.`}
                 />
                 {pasting > 0 ? (
                   <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4 }}>
-                    Uploading {pasting} image{pasting === 1 ? '' : 's'}…
+                    Uploading {pasting} attachment{pasting === 1 ? '' : 's'}…
+                  </div>
+                ) : null}
+                {showLengthCounter ? (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: lengthOverLimit ? 'var(--failed)' : 'var(--ink-3)',
+                      marginTop: 4,
+                    }}
+                  >
+                    {body.length} / {lengthLimit}
                   </div>
                 ) : null}
               </div>

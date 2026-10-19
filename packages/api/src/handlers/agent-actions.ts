@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { promisify } from 'node:util';
-import type { Issue, IssueRef } from '@kanbots/core';
+import { KICKOFF_PROMPT_MAX_CHARS, type Issue, type IssueRef } from '@kanbots/core';
 import { removeWorktree, type AgentRunProvider } from '@kanbots/dispatcher';
 import type { AgentRun, Store } from '@kanbots/local-store';
 import { z } from 'zod';
@@ -67,7 +67,7 @@ const startAgentSchema = z
   .object({
     number: issueRefSchema,
     threadId: z.number().int().positive(),
-    prompt: z.string().min(1).max(20_000),
+    prompt: z.string().min(1).max(KICKOFF_PROMPT_MAX_CHARS),
     appendSystemPrompt: z.string().max(20_000).optional(),
     model: z.string().min(1).max(120).optional(),
     provider: PROVIDER_ENUM.optional(),

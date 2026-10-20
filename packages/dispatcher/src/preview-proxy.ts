@@ -158,12 +158,50 @@ async function isPortFree(port: number): Promise<boolean> {
   });
 }
 
-async function pickPort(start: number, attempts = 16): Promise<number> {
+/** Ask the OS for a free port by listening on port 0. */
+async function osAssignedPort(): Promise<number> {
+  return await new Promise<number>((resolveFn, rejectFn) => {
+    const server = createNetServer();
+    server.once('error', rejectFn);
+    server.listen(0, '127.0.0.1', () => {
+      const addr = server.address();
+      const port = addr && typeof addr === 'object' ? addr.port : 0;
+      server.close(() =>
+        port > 0 ? resolveFn(port) : rejectFn(new Error('preview-proxy: no address')),
+      );
+    });
+  });
+}
+
+export interface PickPortOptions {
+  attempts?: number;
+  isPortFree?: (port: number) => Promise<boolean>;
+  osAssignedPort?: () => Promise<number>;
+}
+
+/**
+ * Prefer a port near `start` (stable, predictable URLs), but fall back to an
+ * OS-assigned port when the whole window is unbindable. On Windows,
+ * Hyper-V/Docker/WinNAT reserve blocks of ~100+ ports (see `netsh interface
+ * ipv4 show excludedportrange protocol=tcp`), so a short linear scan that
+ * starts inside one of them never escapes it. The OS never hands out a port
+ * from an excluded range, so port 0 is always safe.
+ */
+export async function pickPort(start: number, opts: PickPortOptions = {}): Promise<number> {
+  const attempts = opts.attempts ?? 16;
+  const probe = opts.isPortFree ?? isPortFree;
   for (let i = 0; i < attempts; i++) {
     const candidate = start + i;
-    if (await isPortFree(candidate)) return candidate;
+    if (candidate > 65535) break;
+    if (await probe(candidate)) return candidate;
   }
-  throw new Error(`preview-proxy: no free port near ${start}`);
+  try {
+    return await (opts.osAssignedPort ?? osAssignedPort)();
+  } catch (err) {
+    throw new Error(
+      `preview-proxy: no free port near ${start}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }
 
 function filterRequestHeaders(

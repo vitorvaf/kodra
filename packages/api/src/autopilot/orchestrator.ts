@@ -1,4 +1,11 @@
-import type { IssueRef, IssueSource } from '@kanbots/core';
+import {
+  withAgentLabel,
+  withStatusLabel,
+  type AgentKey,
+  type IssueRef,
+  type IssueSource,
+  type StatusKey,
+} from '@kanbots/core';
 import type {
   AgentRunStatus,
   AutopilotChildEntry,
@@ -181,12 +188,43 @@ export function createAutopilotManager(opts: AutopilotManagerOpts): AutopilotMan
   const active = new Map<number, ActiveLoop>();
   const planning = createPlanningTracker();
 
+  const settledCards = new Set<number>();
+
+  /**
+   * The session card is created `status:in-progress` and nothing else moves
+   * it, so a session that ends — failed, stopped, completed, or cut by a
+   * restart — used to leave a card stuck in progress forever. Move it once,
+   * on the first terminal status we see, so a later notify for the same
+   * session can't undo a move the user made by hand.
+   */
+  async function settleSessionCard(session: AutopilotSession): Promise<void> {
+    const target = CARD_LABELS_FOR_ENDED_SESSION[session.status];
+    if (!target || settledCards.has(session.id)) return;
+    settledCards.add(session.id);
+    try {
+      const issue = await source.getIssue(session.issueNumber);
+      const labels = withAgentLabel(withStatusLabel(issue.labels, target.status), target.agent);
+      if (sameLabels(labels, issue.labels)) return;
+      await source.updateIssue(session.issueNumber, { labels });
+    } catch (err) {
+      console.warn(
+        `[autopilot] could not move card #${session.issueNumber} for session ${session.id}:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+
   // Restart sweep — runs once on construction. Must be AFTER createSupervisor's
   // own sweep so that current_child_run_id doesn't reference a row still
   // marked 'running'.
-  store.autopilotSessions.markRunningAsInterrupted('interrupted: app restart');
+  for (const interrupted of store.autopilotSessions.markRunningAsInterrupted(
+    'interrupted: app restart',
+  )) {
+    void settleSessionCard(interrupted);
+  }
 
   function notify(session: AutopilotSession): void {
+    if (session.status !== 'running') void settleSessionCard(session);
     if (opts.onSessionChange) opts.onSessionChange(planning.decorate(session));
   }
 
@@ -286,6 +324,10 @@ export function createAutopilotManager(opts: AutopilotManagerOpts): AutopilotMan
     signal: AbortSignal,
   ): Promise<void> {
     let budgetError: SessionBudgetExceededError | null = null;
+    // Set when an error escapes to start()'s catch, which records the real
+    // outcome. Settling here first would briefly mark a crashed session
+    // 'completed'.
+    let crashed = false;
     try {
       if (kind === 'feature-dev') {
         await runFeatureDevLoop(ctx, session, signal);
@@ -297,11 +339,12 @@ export function createAutopilotManager(opts: AutopilotManagerOpts): AutopilotMan
       if (err instanceof SessionBudgetExceededError) {
         budgetError = err;
       } else {
+        crashed = true;
         throw err;
       }
     } finally {
       const finalSession = store.autopilotSessions.findById(session.id);
-      if (finalSession && finalSession.status === 'running') {
+      if (finalSession && finalSession.status === 'running' && !crashed) {
         const stopReason = budgetError
           ? budgetError.reason
           : signal.aborted
@@ -378,21 +421,23 @@ export function createAutopilotManager(opts: AutopilotManagerOpts): AutopilotMan
 
   async function stopAllForShutdown(): Promise<void> {
     const ids = [...active.keys()];
+    const cardMoves: Promise<void>[] = [];
     for (const id of ids) {
       const loop = active.get(id);
       if (!loop) continue;
       loop.controller.abort();
       const session = store.autopilotSessions.findById(id);
       if (session && session.status === 'running') {
-        store.autopilotSessions.update(id, {
+        const stopped = store.autopilotSessions.update(id, {
           status: 'stopped',
           endedAt: new Date().toISOString(),
           stopReason: 'app shutdown',
           currentChildRunId: null,
         });
+        cardMoves.push(settleSessionCard(stopped));
       }
     }
-    await Promise.allSettled(ids.map((id) => active.get(id)?.done));
+    await Promise.allSettled([...cardMoves, ...ids.map((id) => active.get(id)?.done)]);
   }
 
   return {
@@ -403,6 +448,19 @@ export function createAutopilotManager(opts: AutopilotManagerOpts): AutopilotMan
     listActive,
     stopAllForShutdown,
   };
+}
+
+const CARD_LABELS_FOR_ENDED_SESSION: Partial<
+  Record<AutopilotSession['status'], { status: StatusKey; agent: AgentKey }>
+> = {
+  completed: { status: 'done', agent: 'idle' },
+  failed: { status: 'todo', agent: 'failed' },
+  stopped: { status: 'todo', agent: 'idle' },
+};
+
+function sameLabels(a: readonly string[], b: readonly string[]): boolean {
+  const set = new Set(b);
+  return a.length === b.length && a.every((label) => set.has(label));
 }
 
 export type TerminalChildStatus = Extract<

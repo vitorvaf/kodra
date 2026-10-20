@@ -1,9 +1,5 @@
 import { Logo } from '../Logo.js';
-import {
-  BODY_MAX_CHARS,
-  isValidCustomIssueId,
-  KICKOFF_PROMPT_MAX_CHARS,
-} from '@kanbots/core';
+import { BODY_MAX_CHARS, isValidCustomIssueId, KICKOFF_PROMPT_MAX_CHARS } from '@kanbots/core';
 import {
   useCallback,
   useEffect,

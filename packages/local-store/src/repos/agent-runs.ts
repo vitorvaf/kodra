@@ -162,7 +162,7 @@ export class AgentRunsRepo {
         `INSERT INTO agent_runs
            (thread_id, status, started_at, worktree_path, branch_name, base_branch, success_signal, chat_session_id)
          VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
-       )
+      )
       .run(input.threadId, status, startedAt, worktreePath, branchName, baseBranch, chatSessionId);
 
     return {

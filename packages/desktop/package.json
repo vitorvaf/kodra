@@ -11,7 +11,7 @@
     "copy:web": "node scripts/copy-web.cjs",
     "ensure:native": "node scripts/ensure-native.cjs",
     "build": "pnpm build:deps && pnpm build:main && pnpm copy:web",
-    "dev": "pnpm ensure:native && dotenv -c -e ../../.env.local -- concurrently -k -n web,main,electron -c blue,yellow,magenta \"pnpm --filter @kanbots/web dev\" \"tsup --watch\" \"wait-on http://127.0.0.1:5173 ./dist/main.cjs && KANBOTS_RENDERER_URL=http://127.0.0.1:5173 electronmon ./dist/main.cjs\"",
+    "dev": "pnpm ensure:native && dotenv -c -e ../../.env.local -- node scripts/dev.mjs",
     "launch": "pnpm ensure:native && pnpm build && electron ./dist/main.cjs",
     "package": "pnpm ensure:native && pnpm build && electron-builder",
     "package:linux": "pnpm ensure:native && pnpm build && electron-builder --linux",

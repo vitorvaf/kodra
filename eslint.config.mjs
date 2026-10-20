@@ -47,7 +47,7 @@ export default [
   },
   {
     // Node ESM helper scripts (pnpm memory:health etc).
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'packages/*/scripts/**/*.mjs'],
     languageOptions: {
       globals: { ...globals.node },
     },

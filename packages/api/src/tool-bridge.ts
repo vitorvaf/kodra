@@ -1,13 +1,16 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import type { Handlers } from './handlers/index.js';
+import { ToolPermissionError, type ToolCaller } from './tool-policy.js';
 
 /**
  * Localhost HTTP bridge that the kodra MCP server forwards tool calls
  * through. The bridge is bound to 127.0.0.1 with a random ephemeral port
  * so it cannot be reached from the network. Each tool call must include
- * a valid bearer token; tokens are issued per chat run by `issueToken`
- * and revoked when the run ends.
+ * a valid bearer token; tokens are issued per run by `issueToken` and
+ * revoked when the run ends. Each token remembers which caller it was
+ * issued to, and the dispatcher receives that caller with every call so it
+ * can scope what the run may do.
  */
 
 interface ToolBridgeOptions {
@@ -20,18 +23,23 @@ interface ToolBridgeOptions {
   dispatch: ToolDispatcher;
 }
 
-export type ToolDispatcher = (name: string, args: unknown, handlers: Handlers) => Promise<unknown>;
+export type ToolDispatcher = (
+  name: string,
+  args: unknown,
+  handlers: Handlers,
+  caller?: ToolCaller,
+) => Promise<unknown>;
 
 export interface ToolBridge {
   baseUrl(): string;
-  issueToken(): string;
+  issueToken(caller: ToolCaller): string;
   revokeToken(token: string): void;
   close(): Promise<void>;
 }
 
 export async function startToolBridge(opts: ToolBridgeOptions): Promise<ToolBridge> {
   const { handlers, dispatch } = opts;
-  const tokens = new Set<string>();
+  const tokens = new Map<string, ToolCaller>();
 
   const handleRequest = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     if (req.method !== 'POST') {
@@ -41,7 +49,8 @@ export async function startToolBridge(opts: ToolBridgeOptions): Promise<ToolBrid
     }
     const auth = req.headers.authorization;
     const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
-    if (!token || !tokens.has(token)) {
+    const caller = token ? tokens.get(token) : undefined;
+    if (!caller) {
       res.writeHead(401, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ error: 'unauthorized' }));
       return;
@@ -68,12 +77,13 @@ export async function startToolBridge(opts: ToolBridgeOptions): Promise<ToolBrid
     }
 
     try {
-      const result = await dispatch(toolName, body, handlers);
+      const result = await dispatch(toolName, body, handlers, caller);
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify(result ?? null));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(500, { 'content-type': 'application/json' });
+      const status = err instanceof ToolPermissionError ? 403 : 500;
+      res.writeHead(status, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ error: message }));
     }
   };
@@ -99,9 +109,9 @@ export async function startToolBridge(opts: ToolBridgeOptions): Promise<ToolBrid
 
   return {
     baseUrl: () => baseUrl,
-    issueToken: () => {
+    issueToken: (caller: ToolCaller) => {
       const token = randomBytes(24).toString('hex');
-      tokens.add(token);
+      tokens.set(token, caller);
       return token;
     },
     revokeToken: (token: string) => {

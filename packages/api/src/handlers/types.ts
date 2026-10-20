@@ -5,6 +5,7 @@ import type { AgentMemoryClient } from '../memory/client.js';
 import type { MemoryProvider } from '../memory/provider.js';
 import type { AgentSupervisor } from '../agent-runs/supervisor.js';
 import type { AutopilotManager } from '../autopilot/orchestrator.js';
+import type { ToolCaller } from '../tool-policy.js';
 import type {
   Config,
   DecisionChangePayload,
@@ -55,8 +56,11 @@ export interface ChatToolRuntime {
    * args is provider-specific (claude takes `--mcp-config <file>`; codex
    * takes repeated `-c mcp_servers.<name>.* = ...` overrides), so callers
    * must pass the provider that will actually be spawned.
+   *
+   * `caller` is bound to the run's bridge token and decides which tools
+   * the run may call: a card run is scoped to its own card.
    */
-  prepareForRun(input: { provider: AgentRunProvider }): Promise<{
+  prepareForRun(input: { provider: AgentRunProvider; caller: ToolCaller }): Promise<{
     extraArgs: string[];
     env: Record<string, string>;
     /** Called once the run terminates so the token can be revoked. */

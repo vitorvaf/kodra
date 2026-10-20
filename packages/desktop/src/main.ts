@@ -911,10 +911,10 @@ async function openWorkspaceInternal(repoPath: string): Promise<ActiveWorkspaceI
   try {
     toolBridge = await startToolBridge({
       handlers: {} as Handlers,
-      dispatch: (name, args) => {
+      dispatch: (name, args, _handlers, caller) => {
         const h = handlersHolder.handlers;
         if (!h) throw new Error('handlers not yet ready');
-        return dispatchChatTool(name, args, h);
+        return dispatchChatTool(name, args, h, caller);
       },
     });
     toolBridgeRuntimeDir = join(kdir.root, 'mcp-runtime');
@@ -2346,8 +2346,8 @@ function buildChatToolRuntime(args: {
 }): ChatToolRuntime {
   const { toolBridge, runtimeDir, mcpServerEntry, getMemoryConfig } = args;
   return {
-    prepareForRun: async ({ provider }) => {
-      const token = toolBridge.issueToken();
+    prepareForRun: async ({ provider, caller }) => {
+      const token = toolBridge.issueToken(caller);
       const bridgeEnv = {
         KODRA_TOOL_BRIDGE_URL: toolBridge.baseUrl(),
         KODRA_TOOL_BRIDGE_TOKEN: token,

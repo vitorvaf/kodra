@@ -170,7 +170,10 @@ export async function startAgent(deps: HandlerDeps, args: StartAgentArgs): Promi
     null;
   if (deps.chatTools) {
     try {
-      toolPrep = await deps.chatTools.prepareForRun({ provider: dispatchProvider });
+      toolPrep = await deps.chatTools.prepareForRun({
+        provider: dispatchProvider,
+        caller: { kind: 'card', issueNumber: parsed.number },
+      });
     } catch {
       toolPrep = null;
     }

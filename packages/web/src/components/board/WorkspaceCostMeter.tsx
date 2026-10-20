@@ -19,16 +19,22 @@ export interface WorkspaceCostMeterProps {
  * When `totalUsd` is exactly zero the meter is dimmed so the toolbar
  * doesn't shout at the user before they've burned any spend; once any
  * cost has accumulated the value lights up in the clay accent.
+ *
+ * The figure is what each CLI reports, priced at API list rates. Runs on a
+ * subscription (Claude Code or ChatGPT sign-in) report the same figure but
+ * are not billed per token, and Kodra can't tell which auth the CLI used —
+ * so the meter reads as an estimate rather than a bill.
  */
 export function WorkspaceCostMeter({ totalUsd, onClick }: WorkspaceCostMeterProps) {
   const empty = totalUsd === null;
   const zero = totalUsd === 0;
-  const display = empty ? '—' : `$${(totalUsd as number).toFixed(2)}`;
+  const display = empty ? '—' : `≈ ${(totalUsd as number).toFixed(2)}`;
   const title = empty
     ? 'Workspace cost today is still loading'
     : zero
       ? 'No agent runs have spent today yet'
-      : `Workspace agent spend since midnight: $${(totalUsd as number).toFixed(2)}`;
+      : `Estimated agent spend since midnight at API list prices: ${(totalUsd as number).toFixed(2)}. ` +
+        'Runs on a Claude Code or ChatGPT subscription use your plan limits instead and are not billed per token.';
   const className =
     `kb-cost-meter${empty ? ' is-empty' : zero ? ' is-zero' : ''}` +
     (onClick ? ' is-clickable' : '');

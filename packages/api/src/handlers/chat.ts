@@ -489,7 +489,10 @@ export async function postMessage(
       null;
     if (deps.chatTools) {
       try {
-        toolPrep = await deps.chatTools.prepareForRun({ provider: dispatchProvider });
+        toolPrep = await deps.chatTools.prepareForRun({
+          provider: dispatchProvider,
+          caller: { kind: 'chat' },
+        });
       } catch {
         toolPrep = null;
       }

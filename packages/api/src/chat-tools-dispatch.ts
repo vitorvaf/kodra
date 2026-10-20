@@ -2,15 +2,20 @@ import { withStatusLabel } from '@kanbots/core';
 import type { Handlers } from './handlers/index.js';
 import type { ToolDispatcher } from './tool-bridge.js';
 import { issueRefSchema } from './issue-ref.js';
+import { assertToolAllowed } from './tool-policy.js';
 
 /**
  * Maps each MCP-exposed kanban tool to the typed IPC handler that performs
  * the work. This keeps the chat agent's tool surface aligned with the
  * board UI's surface — every tool call is shaped exactly like the request
  * a renderer would have made over IPC.
+ *
+ * `caller` comes from the tool bridge; calls a card agent is not allowed
+ * to make throw `ToolPermissionError` before any handler runs.
  */
-export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers) => {
+export const dispatchChatTool: ToolDispatcher = async (name, rawArgs, handlers, caller) => {
   const args = (rawArgs && typeof rawArgs === 'object' ? rawArgs : {}) as Record<string, unknown>;
+  assertToolAllowed(name, args, caller);
 
   switch (name) {
     case 'listIssues': {

@@ -26,9 +26,7 @@ export function resolveUploadContentType(file: { type: string; name?: string }):
 }
 
 /** Classifies a clipboard File by upload support. */
-export function classifyPastedFile(
-  file: { type: string; name?: string },
-): 'image' | 'data' | null {
+export function classifyPastedFile(file: { type: string; name?: string }): 'image' | 'data' | null {
   if (file.type.startsWith('image/')) return 'image';
   const contentType = resolveUploadContentType(file);
   return contentType && DATA_MIME_EXT[contentType] ? 'data' : null;
